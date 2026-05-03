@@ -9,9 +9,16 @@ prototype model.
 .\.venv\Scripts\python.exe -m src.data_ingestion
 ```
 
-`behavioral_signals.csv` contains anonymized, aggregate Kenya county/category/
-segment-level behavioral signals for the adaptive revealed demand pipeline:
+`sample_behavioral_signals.csv` contains anonymized, aggregate Kenya
+county/category/consumer-segment/time-period behavioral signals for the adaptive
+revealed demand pipeline.
+
+`sample_competitors.csv` contains synthetic competitor coverage, price, service,
+and delivery indicators.
+
+`sample_feedback.csv` contains aggregate observed outcomes for retraining-loop
+tests.
 
 ```powershell
-.\.venv\Scripts\python.exe -m src.data_pipeline --output data\behavioral_signals.csv
+.\.venv\Scripts\python.exe -m src.data_pipeline.synthetic_data --data-dir data
 ```

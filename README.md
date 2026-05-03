@@ -56,18 +56,20 @@ scores, retraining decisions, records used, and model versions.
 Privacy safeguards reject PII, usernames, phone numbers, emails, exact GPS
 fields, psychological targeting fields, and small-cell segment reporting.
 
-Generate the Kenya behavioral sample:
+Generate the modular Kenya behavioral, competitor, and feedback samples:
 
 ```powershell
-.\.venv\Scripts\python.exe -m src.data_pipeline --output data\behavioral_signals.csv
+.\.venv\Scripts\python.exe -m src.data_pipeline.synthetic_data --data-dir data
 ```
 
-Dashboard endpoints:
+Modular API endpoints:
 
-- `GET /market-intelligence/dashboard`
-- `GET /market-intelligence/evaluation`
-- `POST /market-intelligence/retrain`
-- `GET /dashboard`
+- `GET /health`
+- `GET /predict-demand`
+- `GET /county-demand`
+- `GET /opportunities`
+- `GET /segments`
+- `GET /market-access`
 
 ## Run locally
 
