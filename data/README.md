@@ -8,3 +8,10 @@ prototype model.
 ```powershell
 .\.venv\Scripts\python.exe -m src.data_ingestion
 ```
+
+`behavioral_signals.csv` contains anonymized, aggregate Kenya county/category/
+segment-level behavioral signals for the adaptive revealed demand pipeline:
+
+```powershell
+.\.venv\Scripts\python.exe -m src.data_pipeline --output data\behavioral_signals.csv
+```

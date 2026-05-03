@@ -36,6 +36,34 @@ Module 1 generates and validates deterministic synthetic preference data:
 The generated dataset covers policy, operations, research, and planning user
 segments across analytics, automation, forecasting, and research categories.
 
+## Adaptive Demand Intelligence
+
+Signal now includes a privacy-preserving market intelligence pipeline:
+
+```text
+behavioral data -> feature extraction -> model training -> prediction
+-> recommendation -> feedback -> retraining
+```
+
+It uses anonymized county/category/segment-level behavioral signals only. The
+learned models predict demand class, aggregate demand, opportunity, trend and
+unmet-demand probabilities, market gaps, value propositions, product/service
+opportunities, revenue models, competitor gaps, and supplier/logistics/payment
+recommendations.
+
+Generate the Kenya behavioral sample:
+
+```powershell
+.\.venv\Scripts\python.exe -m src.data_pipeline --output data\behavioral_signals.csv
+```
+
+Dashboard endpoints:
+
+- `GET /market-intelligence/dashboard`
+- `GET /market-intelligence/evaluation`
+- `POST /market-intelligence/retrain`
+- `GET /dashboard`
+
 ## Run locally
 
 ```powershell

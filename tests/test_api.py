@@ -106,6 +106,28 @@ class ApiTests(unittest.TestCase):
         self.assertEqual(response.rows[0].scenario_id, "policy_scenario_1")
         self.assertEqual(response.rows[0].sam_account, "DIGITAL_SERVICES")
 
+    def test_market_intelligence_dashboard_endpoint(self) -> None:
+        endpoint = _route_endpoint(self.app, "/market-intelligence/dashboard")
+        response = endpoint()
+
+        self.assertIn("dashboard", response)
+        self.assertIn("national_aggregate_demand_index", response["dashboard"])
+        self.assertIn("market_opportunities", response["dashboard"])
+
+    def test_market_intelligence_evaluation_endpoint(self) -> None:
+        endpoint = _route_endpoint(self.app, "/market-intelligence/evaluation")
+        response = endpoint()
+
+        self.assertIn("classification", response)
+        self.assertIn("accuracy", response["classification"])
+
+    def test_dashboard_html_endpoint(self) -> None:
+        endpoint = _route_endpoint(self.app, "/dashboard")
+        response = endpoint()
+
+        self.assertEqual(response.status_code, 200)
+        self.assertIn("Signal Market Intelligence Dashboard", response.body.decode("utf-8"))
+
 
 def _route_endpoint(app, path: str):
     for route in app.routes:
