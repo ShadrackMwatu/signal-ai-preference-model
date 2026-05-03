@@ -25,6 +25,17 @@ Every model prediction includes:
 The `src.research.export_cge_sam_csv` helper writes export-ready CSV files for
 integration with CGE/SAM pipelines.
 
+## Module 1: Data Ingestion
+
+Module 1 generates and validates deterministic synthetic preference data:
+
+```powershell
+.\.venv\Scripts\python.exe -m src.data_ingestion --output data\synthetic_preferences.csv
+```
+
+The generated dataset covers policy, operations, research, and planning user
+segments across analytics, automation, forecasting, and research categories.
+
 ## Run locally
 
 ```powershell
