@@ -45,11 +45,16 @@ behavioral data -> feature extraction -> model training -> prediction
 -> recommendation -> feedback -> retraining
 ```
 
-It uses anonymized county/category/segment-level behavioral signals only. The
-learned models predict demand class, aggregate demand, opportunity, trend and
-unmet-demand probabilities, market gaps, value propositions, product/service
-opportunities, revenue models, competitor gaps, and supplier/logistics/payment
-recommendations.
+It uses anonymized country/county/category/consumer-segment/time-period
+behavioral signals only. The learned models predict demand class, aggregate
+demand, opportunity, trend and unmet-demand probabilities, likely market gaps,
+value propositions, product/service opportunities, revenue models, market-entry
+strategy, competitor gaps, price gaps, service gaps, delivery gaps, and
+supplier/logistics/payment recommendations. Adaptive retraining records drift
+scores, retraining decisions, records used, and model versions.
+
+Privacy safeguards reject PII, usernames, phone numbers, emails, exact GPS
+fields, psychological targeting fields, and small-cell segment reporting.
 
 Generate the Kenya behavioral sample:
 

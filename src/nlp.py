@@ -12,7 +12,7 @@ from sklearn.linear_model import LogisticRegression
 
 @dataclass
 class SignalNLPModel:
-    """Supervised NLP model for sentiment, intent, urgency, and topic signals."""
+    """Supervised NLP model for sentiment, intent, urgency, dissatisfaction, and topics."""
 
     max_features: int = 300
     random_state: int = 42
@@ -22,6 +22,7 @@ class SignalNLPModel:
         self.sentiment_model = LogisticRegression(max_iter=1000, random_state=self.random_state)
         self.intent_model = LogisticRegression(max_iter=1000, random_state=self.random_state)
         self.urgency_model = LogisticRegression(max_iter=1000, random_state=self.random_state)
+        self.dissatisfaction_model = LogisticRegression(max_iter=1000, random_state=self.random_state)
         self.topic_model = LogisticRegression(max_iter=1000, random_state=self.random_state)
         self.is_trained = False
 
@@ -31,6 +32,7 @@ class SignalNLPModel:
         self.sentiment_model.fit(matrix, frame["sentiment_label"])
         self.intent_model.fit(matrix, frame["purchase_intent_label"])
         self.urgency_model.fit(matrix, frame["urgency_label"])
+        self.dissatisfaction_model.fit(matrix, frame["dissatisfaction_label"])
         self.topic_model.fit(matrix, frame["topic_label"])
         self.is_trained = True
         return self
@@ -47,6 +49,7 @@ class SignalNLPModel:
                 "sentiment_score": _class_probability(self.sentiment_model, matrix, positive_class=1),
                 "purchase_intent_score": _class_probability(self.intent_model, matrix, positive_class=1),
                 "urgency_score": _class_probability(self.urgency_model, matrix, positive_class=1),
+                "dissatisfaction_score": _class_probability(self.dissatisfaction_model, matrix, positive_class=1),
                 "nlp_topic": topic_labels,
                 "topic_confidence": topic_probabilities.max(axis=1),
             }

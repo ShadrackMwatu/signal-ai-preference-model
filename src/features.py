@@ -59,6 +59,7 @@ class BehavioralFeatureExtractor:
         response_base = working["comments"] + working["shares"] + working["saves"] + 1
 
         features = working[["county", "category", "time_period", "anonymized_segment", "segment_size"]].copy()
+        features["country"] = working["country"]
         features["engagement_intensity"] = np.log1p(engagement) / np.log1p(working["views"] + working["segment_size"])
         features["repetition_score"] = working["repeated_engagement"] / (working["clicks"] + 1)
         features["trend_growth"] = _trend_growth(working, engagement)
@@ -73,6 +74,9 @@ class BehavioralFeatureExtractor:
         features = pd.concat([features, nlp_features], axis=1)
         for column in FEATURE_COLUMNS:
             features[column] = features[column].replace([np.inf, -np.inf], 0).fillna(0).clip(lower=0)
+        features["dissatisfaction_score"] = (
+            features["dissatisfaction_score"].replace([np.inf, -np.inf], 0).fillna(0).clip(lower=0, upper=1)
+        )
 
         return features
 

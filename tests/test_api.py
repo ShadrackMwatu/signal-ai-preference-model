@@ -121,6 +121,14 @@ class ApiTests(unittest.TestCase):
         self.assertIn("classification", response)
         self.assertIn("accuracy", response["classification"])
 
+    def test_market_intelligence_retrain_endpoint_reports_version_logs(self) -> None:
+        endpoint = _route_endpoint(self.app, "/market-intelligence/retrain")
+        response = endpoint()
+
+        self.assertEqual(response["status"], "retrained")
+        self.assertGreaterEqual(response["model_version"], 2)
+        self.assertTrue(response["retraining_logs"])
+
     def test_dashboard_html_endpoint(self) -> None:
         endpoint = _route_endpoint(self.app, "/dashboard")
         response = endpoint()

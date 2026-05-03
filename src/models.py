@@ -30,7 +30,11 @@ CLASSIFIER_TARGETS = {
     "supplier_recommendation": "supplier_recommendation_label",
     "logistics_recommendation": "logistics_recommendation_label",
     "payment_recommendation": "payment_recommendation_label",
+    "market_entry_strategy": "market_entry_strategy_label",
     "competitor_gap": "competitor_gap_label",
+    "price_gap": "price_gap_label",
+    "service_gap": "service_gap_label",
+    "delivery_gap": "delivery_gap_label",
     "customer_dissatisfaction_signal": "customer_dissatisfaction_label",
 }
 
@@ -40,6 +44,7 @@ REGRESSION_TARGETS = {
     "opportunity_score": "opportunity_score_target",
     "emerging_trend_probability": "emerging_trend_target",
     "unmet_demand_probability": "unmet_demand_target",
+    "likely_market_gap": "market_gap_target",
     "market_gap": "market_gap_target",
     "pricing_power": "pricing_power_target",
     "customer_reach": "customer_reach_target",
@@ -47,8 +52,13 @@ REGRESSION_TARGETS = {
     "sales_forecasting": "sales_forecast_target",
 }
 
-CATEGORICAL_MODEL_COLUMNS = ["county", "category", "time_period", "nlp_topic", "anonymized_segment"]
-NUMERIC_MODEL_COLUMNS = FEATURE_COLUMNS + ["topic_confidence", "segment_cluster", "county_pattern_cluster"]
+CATEGORICAL_MODEL_COLUMNS = ["country", "county", "category", "time_period", "nlp_topic", "anonymized_segment"]
+NUMERIC_MODEL_COLUMNS = FEATURE_COLUMNS + [
+    "dissatisfaction_score",
+    "topic_confidence",
+    "segment_cluster",
+    "county_pattern_cluster",
+]
 
 
 @dataclass
@@ -59,6 +69,7 @@ class AdaptiveLearningLog:
     drifted_features: list[str]
     retraining_triggered: bool
     records_used: int
+    model_version: int
 
 
 class SignalDemandIntelligenceSystem:
@@ -72,6 +83,8 @@ class SignalDemandIntelligenceSystem:
         self.regressors: dict[str, Pipeline] = {}
         self.baseline_profile: dict[str, dict[str, float]] | None = None
         self.training_data: pd.DataFrame | None = None
+        self.model_version = 1
+        self.retraining_logs: list[dict[str, object]] = []
         self.is_trained = False
 
     def fit(self, frame: pd.DataFrame) -> "SignalDemandIntelligenceSystem":
@@ -95,8 +108,9 @@ class SignalDemandIntelligenceSystem:
         records = _attach_context(frame, predictions)
         return {
             "records": records,
-            "dashboard": build_market_dashboard(records),
+            "dashboard": build_market_dashboard(records, model_version=self.model_version),
             "county_patterns": self.clusterer.summarize_county_patterns(features),
+            "retraining_logs": self.retraining_logs,
         }
 
     def detect_drift(self, frame: pd.DataFrame, threshold: float = 0.15) -> dict[str, object]:
@@ -119,15 +133,27 @@ class SignalDemandIntelligenceSystem:
         if should_retrain:
             base = self.training_data if self.training_data is not None else pd.DataFrame()
             combined = pd.concat([base, new_frame], ignore_index=True)
+            self.model_version += 1
             self.fit(combined)
             records_used = len(combined)
 
-        return AdaptiveLearningLog(
+        log = AdaptiveLearningLog(
             drift_score=float(drift["drift_score"]),
             drifted_features=list(drift["drifted_features"]),
             retraining_triggered=should_retrain,
             records_used=records_used,
+            model_version=self.model_version,
         )
+        self.retraining_logs.append(
+            {
+                "model_version": log.model_version,
+                "drift_score": log.drift_score,
+                "drifted_features": log.drifted_features,
+                "retraining_triggered": log.retraining_triggered,
+                "records_used": log.records_used,
+            }
+        )
+        return log
 
     def save(self, path: str | Path) -> None:
         output_path = Path(path)
@@ -167,7 +193,7 @@ def train_default_system(path: str | Path | None = None) -> SignalDemandIntellig
     return SignalDemandIntelligenceSystem().fit(frame)
 
 
-def build_market_dashboard(records: list[dict[str, object]]) -> dict[str, object]:
+def build_market_dashboard(records: list[dict[str, object]], model_version: int = 1) -> dict[str, object]:
     """Build dashboard-ready aggregate market intelligence outputs."""
 
     frame = pd.DataFrame(records)
@@ -184,11 +210,16 @@ def build_market_dashboard(records: list[dict[str, object]]) -> dict[str, object
             [
                 "county",
                 "category",
+                "country",
                 "opportunity_score",
                 "demand_classification",
                 "recommended_value_proposition",
                 "product_service_opportunity",
                 "revenue_model",
+                "market_entry_strategy",
+                "price_gap",
+                "service_gap",
+                "delivery_gap",
                 "supplier_recommendation",
                 "logistics_recommendation",
                 "payment_recommendation",
@@ -210,14 +241,24 @@ def build_market_dashboard(records: list[dict[str, object]]) -> dict[str, object
     )
 
     return {
+        "model_version": model_version,
         "national_aggregate_demand_index": round(float(frame["aggregate_demand_score"].mean()), 4),
         "county_demand_index": county_index,
         "category_preference_index": category_index,
+        "consumer_segment_index": _index_records(
+            frame,
+            "consumer_segment",
+            "aggregate_demand_score",
+            "consumer_segment_demand_index",
+        ),
         "demand_forecast": forecast,
         "trend_direction": _mode(frame["trend_direction"]),
         "market_opportunities": opportunities,
         "competitor_analysis": {
             "gaps": competitor,
+            "price_gaps": _gap_records(frame, "price_gap"),
+            "service_gaps": _gap_records(frame, "service_gap"),
+            "delivery_gaps": _gap_records(frame, "delivery_gap"),
             "customer_dissatisfaction_signals": _index_records(
                 frame,
                 "customer_dissatisfaction_signal",
@@ -278,7 +319,8 @@ def _regressor_pipeline(random_state: int) -> Pipeline:
 
 
 def _attach_context(frame: pd.DataFrame, predictions: pd.DataFrame) -> list[dict[str, object]]:
-    context = frame[["county", "category", "time_period", "anonymized_segment"]].reset_index(drop=True)
+    context = frame[["country", "county", "category", "time_period"]].reset_index(drop=True)
+    context["consumer_segment"] = frame["anonymized_segment"].reset_index(drop=True)
     combined = pd.concat([context, predictions.reset_index(drop=True)], axis=1)
     return combined.to_dict(orient="records")
 
@@ -295,3 +337,13 @@ def _index_records(frame: pd.DataFrame, group_column: str, value_column: str, ou
 def _mode(values: pd.Series) -> object:
     modes = values.mode()
     return modes.iloc[0] if not modes.empty else None
+
+
+def _gap_records(frame: pd.DataFrame, gap_column: str) -> list[dict[str, object]]:
+    return (
+        frame.groupby(["category", gap_column], as_index=False)["opportunity_score"].mean().round(4)
+        .rename(columns={"opportunity_score": "opportunity_strength"})
+        .sort_values("opportunity_strength", ascending=False)
+        .head(10)
+        .to_dict(orient="records")
+    )

@@ -147,10 +147,12 @@ def create_app(model_path: str | Path | None = None) -> FastAPI:
         app.state.market_system = system
         return {
             "status": "retrained",
+            "model_version": log.model_version,
             "drift_score": log.drift_score,
             "drifted_features": log.drifted_features,
             "retraining_triggered": log.retraining_triggered,
             "records_used": log.records_used,
+            "retraining_logs": system.retraining_logs,
         }
 
     @app.get("/dashboard", response_class=HTMLResponse)
@@ -205,6 +207,7 @@ def _dashboard_html(summary: dict[str, object]) -> str:
         f"<td>{item['opportunity_score']}</td>"
         f"<td>{item['demand_classification']}</td>"
         f"<td>{item['recommended_value_proposition']}</td>"
+        f"<td>{item['market_entry_strategy']}</td>"
         f"<td>{item['supplier_recommendation']}</td>"
         f"<td>{item['logistics_recommendation']}</td>"
         f"<td>{item['payment_recommendation']}</td>"
@@ -239,7 +242,7 @@ def _dashboard_html(summary: dict[str, object]) -> str:
           <thead>
             <tr>
               <th>County</th><th>Category</th><th>Opportunity</th><th>Demand</th>
-              <th>Value proposition</th><th>Supplier</th><th>Logistics</th><th>Payment</th>
+              <th>Value proposition</th><th>Market entry</th><th>Supplier</th><th>Logistics</th><th>Payment</th>
             </tr>
           </thead>
           <tbody>{opportunity_rows}</tbody>

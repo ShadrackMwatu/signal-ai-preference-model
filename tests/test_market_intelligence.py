@@ -16,6 +16,16 @@ from src.features import FEATURE_COLUMNS, BehavioralFeatureExtractor
 from src.models import SignalDemandIntelligenceSystem
 
 
+DEMAND_CLASSES = {
+    "High demand",
+    "Moderate demand",
+    "Low demand",
+    "Emerging demand",
+    "Declining demand",
+    "Unmet demand",
+}
+
+
 class MarketIntelligenceTests(unittest.TestCase):
     @classmethod
     def setUpClass(cls) -> None:
@@ -28,6 +38,7 @@ class MarketIntelligenceTests(unittest.TestCase):
         self.assertEqual(set(KENYA_COUNTIES), set(frame["county"].unique()))
         self.assertIn("clicks", frame.columns)
         self.assertIn("purchase_intent_phrases", frame.columns)
+        self.assertEqual(set(frame["country"]), {"Kenya"})
         self.assertNotIn("user_id", frame.columns)
         self.assertGreaterEqual(frame["segment_size"].min(), 30)
 
@@ -52,6 +63,12 @@ class MarketIntelligenceTests(unittest.TestCase):
         with_user_id["user_id"] = "person_001"
         with_email = self.frame.copy()
         with_email.loc[0, "text"] = "contact buyer@example.com"
+        with_phone = self.frame.copy()
+        with_phone.loc[0, "text"] = "call 0712345678"
+        with_gps = self.frame.copy()
+        with_gps["latitude"] = -1.286389
+        with_psychological_targeting = self.frame.copy()
+        with_psychological_targeting["personality_score"] = 0.7
         small_segment = self.frame.copy()
         small_segment.loc[0, "segment_size"] = 12
 
@@ -59,6 +76,12 @@ class MarketIntelligenceTests(unittest.TestCase):
             validate_privacy(with_user_id)
         with self.assertRaises(ValueError):
             validate_privacy(with_email)
+        with self.assertRaises(ValueError):
+            validate_privacy(with_phone)
+        with self.assertRaises(ValueError):
+            validate_privacy(with_gps)
+        with self.assertRaises(ValueError):
+            validate_privacy(with_psychological_targeting)
         with self.assertRaises(ValueError):
             validate_privacy(small_segment)
 
@@ -70,6 +93,7 @@ class MarketIntelligenceTests(unittest.TestCase):
             self.assertFalse(features[column].isna().any())
         self.assertTrue(features["sentiment_score"].between(0, 1).all())
         self.assertTrue(features["purchase_intent_score"].between(0, 1).all())
+        self.assertTrue(features["dissatisfaction_score"].between(0, 1).all())
 
     def test_clustering_identifies_segments_and_county_patterns(self) -> None:
         features = BehavioralFeatureExtractor().fit_transform(self.frame)
@@ -86,16 +110,34 @@ class MarketIntelligenceTests(unittest.TestCase):
         record = result["records"][0]
         dashboard = result["dashboard"]
 
-        self.assertIn(record["demand_classification"], {"high", "moderate", "low", "emerging", "declining", "unmet"})
+        self.assertEqual(record["country"], "Kenya")
+        self.assertIn("consumer_segment", record)
+        self.assertNotIn("user_id", record)
+        self.assertNotIn("anonymized_segment", record)
+        self.assertIn(record["demand_classification"], DEMAND_CLASSES)
         self.assertIn("behavioral_signal_score", record)
         self.assertIn("aggregate_demand_score", record)
         self.assertIn("opportunity_score", record)
+        self.assertIn("emerging_trend_probability", record)
+        self.assertIn("unmet_demand_probability", record)
+        self.assertIn("likely_market_gap", record)
         self.assertIn("recommended_value_proposition", record)
+        self.assertIn("product_service_opportunity", record)
+        self.assertIn("revenue_model", record)
+        self.assertIn("market_entry_strategy", record)
+        self.assertIn("price_gap", record)
+        self.assertIn("service_gap", record)
+        self.assertIn("delivery_gap", record)
         self.assertIn("supplier_recommendation", record)
         self.assertIn("logistics_recommendation", record)
         self.assertIn("payment_recommendation", record)
+        self.assertIn("model_version", dashboard)
         self.assertIn("national_aggregate_demand_index", dashboard)
+        self.assertIn("consumer_segment_index", dashboard)
         self.assertIn("competitor_analysis", dashboard)
+        self.assertIn("price_gaps", dashboard["competitor_analysis"])
+        self.assertIn("service_gaps", dashboard["competitor_analysis"])
+        self.assertIn("delivery_gaps", dashboard["competitor_analysis"])
         self.assertIn("unserved_counties", dashboard)
 
     def test_evaluation_reports_classification_and_regression_metrics(self) -> None:
@@ -118,6 +160,8 @@ class MarketIntelligenceTests(unittest.TestCase):
         self.assertGreaterEqual(log.drift_score, 0)
         self.assertTrue(log.retraining_triggered)
         self.assertGreaterEqual(log.records_used, len(drift_frame))
+        self.assertGreaterEqual(log.model_version, 2)
+        self.assertTrue(self.system.retraining_logs)
 
 
 if __name__ == "__main__":

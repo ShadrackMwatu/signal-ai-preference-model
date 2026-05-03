@@ -19,6 +19,7 @@ KENYA_COUNTIES = ("Nairobi", "Mombasa", "Kisumu", "Nakuru", "Machakos", "Kiambu"
 CATEGORIES = ("agri_inputs", "clean_energy", "digital_services", "retail", "transport")
 TIME_PERIODS = ("2026-Q1", "2026-Q2", "2026-Q3", "2026-Q4")
 ANONYMIZED_SEGMENTS = ("budget_seekers", "growth_smes", "urban_youth", "rural_producers")
+COUNTRY = "Kenya"
 
 BEHAVIOR_COLUMNS = (
     "clicks",
@@ -37,10 +38,16 @@ BEHAVIOR_COLUMNS = (
     "delayed_responses",
 )
 
-CONTEXT_COLUMNS = ("county", "category", "time_period", "anonymized_segment", "segment_size")
+CONTEXT_COLUMNS = ("country", "county", "category", "time_period", "anonymized_segment", "segment_size")
 TEXT_COLUMNS = ("text",)
 
-NLP_LABEL_COLUMNS = ("sentiment_label", "purchase_intent_label", "urgency_label", "topic_label")
+NLP_LABEL_COLUMNS = (
+    "sentiment_label",
+    "purchase_intent_label",
+    "urgency_label",
+    "dissatisfaction_label",
+    "topic_label",
+)
 
 TARGET_COLUMNS = (
     "demand_classification",
@@ -57,7 +64,11 @@ TARGET_COLUMNS = (
     "supplier_recommendation_label",
     "logistics_recommendation_label",
     "payment_recommendation_label",
+    "market_entry_strategy_label",
     "competitor_gap_label",
+    "price_gap_label",
+    "service_gap_label",
+    "delivery_gap_label",
     "customer_dissatisfaction_label",
     "pricing_power_target",
     "customer_reach_target",
@@ -80,6 +91,17 @@ PII_COLUMNS = {
     "device_id",
     "national_id",
     "passport",
+    "gps",
+    "gps_coordinates",
+    "latitude",
+    "longitude",
+    "lat",
+    "lon",
+    "psychological_profile",
+    "psychographic_segment",
+    "personality_score",
+    "personality_type",
+    "microtargeting_score",
 }
 
 PII_PATTERNS = (
@@ -183,6 +205,7 @@ def generate_behavioral_dataset(config: BehavioralDataConfig | None = None) -> p
                     rows.append(
                         {
                             "county": county,
+                            "country": COUNTRY,
                             "category": category,
                             "time_period": time_period,
                             "anonymized_segment": segment,
@@ -205,6 +228,7 @@ def generate_behavioral_dataset(config: BehavioralDataConfig | None = None) -> p
                             "sentiment_label": int(complaints < max(1, comments * 0.16)),
                             "purchase_intent_label": int(intent_count > max(2, searches * 0.12)),
                             "urgency_label": int((intent_count + complaints + delayed) > max(5, comments + saves)),
+                            "dissatisfaction_label": int(unmet_ratio > 0.2),
                             "topic_label": category,
                             "demand_classification": _demand_classification(
                                 aggregate_demand,
@@ -225,7 +249,11 @@ def generate_behavioral_dataset(config: BehavioralDataConfig | None = None) -> p
                             "supplier_recommendation_label": _supplier_recommendation(category, county),
                             "logistics_recommendation_label": _logistics_recommendation(county),
                             "payment_recommendation_label": _payment_recommendation(segment),
+                            "market_entry_strategy_label": _market_entry_strategy(county, category, opportunity, market_gap),
                             "competitor_gap_label": _competitor_gap(category, market_gap),
+                            "price_gap_label": _price_gap(category, unmet_ratio),
+                            "service_gap_label": _service_gap(category, market_gap),
+                            "delivery_gap_label": _delivery_gap(county, delayed, complaints),
                             "customer_dissatisfaction_label": _dissatisfaction_label(unmet_ratio),
                             "pricing_power_target": round(min(1.0, aggregate_demand * (1 - market_gap * 0.45)), 4),
                             "customer_reach_target": round(min(1.0, clicks / max(1, segment_size)), 4),
@@ -281,6 +309,9 @@ def validate_privacy(frame: pd.DataFrame) -> None:
     if "segment_size" in frame.columns and (frame["segment_size"] < 30).any():
         raise ValueError("segment_size must be at least 30 to preserve aggregation privacy")
 
+    if "country" in frame.columns and set(frame["country"].dropna()) != {COUNTRY}:
+        raise ValueError("only country-level aggregate Kenya records are supported")
+
     if "text" in frame.columns:
         text = " ".join(frame["text"].astype(str).tolist())
         for pattern in PII_PATTERNS:
@@ -325,16 +356,16 @@ def _demand_classification(
     period_index: int,
 ) -> str:
     if market_gap >= 0.62 and aggregate_demand >= 0.45:
-        return "unmet"
+        return "Unmet demand"
     if opportunity >= 0.72 and period_index >= 2:
-        return "emerging"
+        return "Emerging demand"
     if aggregate_demand >= 0.72:
-        return "high"
+        return "High demand"
     if aggregate_demand >= 0.52:
-        return "moderate"
+        return "Moderate demand"
     if aggregate_demand < 0.34:
-        return "declining"
-    return "low"
+        return "Declining demand"
+    return "Low demand"
 
 
 def _trend_label(latent_demand: float, period_index: int) -> str:
@@ -395,12 +426,44 @@ def _payment_recommendation(segment: str) -> str:
     return "mobile money checkout"
 
 
+def _market_entry_strategy(county: str, category: str, opportunity: float, market_gap: float) -> str:
+    if market_gap > 0.58 and opportunity > 0.55:
+        return f"partner-led entry for {category.replace('_', ' ')} in underserved {county}"
+    if opportunity > 0.62:
+        return f"digital-first launch for {category.replace('_', ' ')} in {county}"
+    return f"pilot and validate {category.replace('_', ' ')} demand in {county}"
+
+
 def _competitor_gap(category: str, market_gap: float) -> str:
     if market_gap > 0.58:
         return f"weak fulfillment in {category.replace('_', ' ')}"
     if market_gap > 0.36:
         return f"pricing transparency gap in {category.replace('_', ' ')}"
     return f"service differentiation needed in {category.replace('_', ' ')}"
+
+
+def _price_gap(category: str, unmet_ratio: float) -> str:
+    if unmet_ratio > 0.42:
+        return f"high affordability gap in {category.replace('_', ' ')}"
+    if unmet_ratio > 0.2:
+        return f"moderate pricing transparency gap in {category.replace('_', ' ')}"
+    return f"limited price gap in {category.replace('_', ' ')}"
+
+
+def _service_gap(category: str, market_gap: float) -> str:
+    if market_gap > 0.58:
+        return f"major service availability gap in {category.replace('_', ' ')}"
+    if market_gap > 0.36:
+        return f"service quality gap in {category.replace('_', ' ')}"
+    return f"low service gap in {category.replace('_', ' ')}"
+
+
+def _delivery_gap(county: str, delayed: int, complaints: int) -> str:
+    if county == "Turkana" or delayed > complaints:
+        return f"last mile delivery gap in {county}"
+    if county in {"Nairobi", "Kiambu"}:
+        return f"speed and reliability gap in {county}"
+    return f"moderate delivery coordination gap in {county}"
 
 
 def _dissatisfaction_label(unmet_ratio: float) -> str:

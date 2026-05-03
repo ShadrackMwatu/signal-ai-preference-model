@@ -23,6 +23,8 @@ Endpoints:
 Prediction responses include interpretable drivers, policy signal labels,
 CGE/SAM account mapping, centered shock values, and publication notes.
 
-Market intelligence endpoints train from anonymized county/category/segment
-behavioral signals and expose revealed demand, opportunities, competitor gaps,
-and supplier/logistics/payment recommendations.
+Market intelligence endpoints train from anonymized
+country/county/category/consumer-segment/time-period behavioral signals and
+expose revealed demand, opportunities, model versioning, drift/retraining logs,
+competitor gaps, price/service/delivery gaps, market-entry strategy, and
+supplier/logistics/payment recommendations.
