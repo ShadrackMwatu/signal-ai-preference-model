@@ -1,7 +1,4 @@
-.venv/
-__pycache__/
-*.py[cod]
-.pytest_cache/
-tests/_tmp/
-models/*.joblib
-!models/README.md
+.venv/ 
+__pycache__/ 
+*.py[cod] 
+.pytest_cache/ 
