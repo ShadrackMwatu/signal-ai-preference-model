@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import os
+from dataclasses import asdict
 from pathlib import Path
 
 from fastapi import FastAPI, HTTPException
@@ -10,6 +11,7 @@ from pydantic import BaseModel, Field
 
 from src.data import load_examples
 from src.model import PreferenceModel
+from src.research import cge_sam_row
 from src.schemas import PreferenceRequest
 
 
@@ -27,10 +29,22 @@ class PreferencePayload(BaseModel):
     popularity: float = Field(ge=0, le=1)
 
 
+class FeatureContributionResponse(BaseModel):
+    feature: str
+    value: str
+    contribution: float
+    direction: str
+
+
 class PredictionResponse(BaseModel):
     item_id: str
     score: float
     preferred: bool
+    drivers: list[FeatureContributionResponse]
+    policy_signal: str
+    cge_sam_account: str
+    cge_sam_shock: float
+    publication_notes: list[str]
 
 
 class BatchPreferencePayload(BaseModel):
@@ -39,6 +53,28 @@ class BatchPreferencePayload(BaseModel):
 
 class BatchPredictionResponse(BaseModel):
     predictions: list[PredictionResponse]
+
+
+class CgeSamExportPayload(BaseModel):
+    scenario_id: str = Field(default="baseline", min_length=1)
+    items: list[PreferencePayload] = Field(min_length=1)
+
+
+class CgeSamRowResponse(BaseModel):
+    scenario_id: str
+    user_id: str
+    item_id: str
+    category: str
+    sam_account: str
+    preference_score: float
+    preferred: bool
+    shock_value: float
+    shock_direction: str
+    top_driver: str
+
+
+class CgeSamExportResponse(BaseModel):
+    rows: list[CgeSamRowResponse]
 
 
 def create_app(model_path: str | Path | None = None) -> FastAPI:
@@ -58,15 +94,25 @@ def create_app(model_path: str | Path | None = None) -> FastAPI:
     @app.post("/predict", response_model=PredictionResponse)
     def predict(payload: PreferencePayload) -> PredictionResponse:
         prediction = app.state.model.predict(_payload_to_request(payload))
-        return PredictionResponse(**prediction.__dict__)
+        return PredictionResponse(**asdict(prediction))
 
     @app.post("/predict/batch", response_model=BatchPredictionResponse)
     def predict_batch(payload: BatchPreferencePayload) -> BatchPredictionResponse:
         requests = [_payload_to_request(item) for item in payload.items]
         predictions = app.state.model.predict_many(requests)
         return BatchPredictionResponse(
-            predictions=[PredictionResponse(**prediction.__dict__) for prediction in predictions]
+            predictions=[PredictionResponse(**asdict(prediction)) for prediction in predictions]
         )
+
+    @app.post("/export/cge-sam", response_model=CgeSamExportResponse)
+    def export_cge_sam(payload: CgeSamExportPayload) -> CgeSamExportResponse:
+        requests = [_payload_to_request(item) for item in payload.items]
+        predictions = app.state.model.predict_many(requests)
+        rows = [
+            CgeSamRowResponse(**cge_sam_row(request, prediction, payload.scenario_id))
+            for request, prediction in zip(requests, predictions, strict=True)
+        ]
+        return CgeSamExportResponse(rows=rows)
 
     @app.post("/train")
     def train() -> dict[str, float | str]:

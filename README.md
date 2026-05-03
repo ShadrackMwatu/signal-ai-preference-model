@@ -9,7 +9,21 @@ preference scores through a FastAPI API.
 - A scikit-learn logistic regression pipeline with categorical and numeric features.
 - Model evaluation, persistence, and reload support.
 - FastAPI endpoints for health checks, prediction, batch prediction, and retraining.
+- Interpretable drivers, policy signal labels, and CGE/SAM-ready export rows.
 - Sample preference data and tests.
+
+## Research outputs
+
+Every model prediction includes:
+
+- `drivers`: coefficient-weighted feature contributions for interpretation.
+- `policy_signal`: a policy-facing label for the preference strength and direction.
+- `cge_sam_account`: a stable account mapping for CGE/SAM workflows.
+- `cge_sam_shock`: a centered shock value that can feed scenario analysis.
+- `publication_notes`: method and validation notes for academic reporting.
+
+The `src.research.export_cge_sam_csv` helper writes export-ready CSV files for
+integration with CGE/SAM pipelines.
 
 ## Run locally
 

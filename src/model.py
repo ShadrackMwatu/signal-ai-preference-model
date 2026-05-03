@@ -13,7 +13,13 @@ from sklearn.metrics import accuracy_score, roc_auc_score
 from sklearn.pipeline import Pipeline
 from sklearn.preprocessing import OneHotEncoder, StandardScaler
 
-from .schemas import PreferenceExample, PreferencePrediction, PreferenceRequest
+from .research import (
+    PUBLICATION_NOTES,
+    cge_sam_shock,
+    policy_signal,
+    sam_account_for_category,
+)
+from .schemas import FeatureContribution, PreferenceExample, PreferencePrediction, PreferenceRequest
 
 
 CATEGORICAL_FEATURES = ["user_id", "category"]
@@ -39,10 +45,17 @@ class PreferenceModel:
     def predict(self, request: PreferenceRequest) -> PreferencePrediction:
         frame = _requests_to_frame([request])
         probability = float(self.pipeline.predict_proba(frame)[0][1])
+        score = round(probability, 4)
+        preferred = probability >= 0.5
         return PreferencePrediction(
             item_id=request.item_id,
-            score=round(probability, 4),
-            preferred=probability >= 0.5,
+            score=score,
+            preferred=preferred,
+            drivers=tuple(self.explain(request)),
+            policy_signal=policy_signal(score, preferred),
+            cge_sam_account=sam_account_for_category(request.category),
+            cge_sam_shock=cge_sam_shock(score),
+            publication_notes=PUBLICATION_NOTES,
         )
 
     def predict_many(self, requests: Iterable[PreferenceRequest]) -> list[PreferencePrediction]:
@@ -52,13 +65,48 @@ class PreferenceModel:
 
         frame = _requests_to_frame(request_list)
         probabilities = self.pipeline.predict_proba(frame)[:, 1]
-        return [
-            PreferencePrediction(
-                item_id=request.item_id,
-                score=round(float(probability), 4),
-                preferred=float(probability) >= 0.5,
+        predictions = []
+        for request, probability in zip(request_list, probabilities, strict=True):
+            score = round(float(probability), 4)
+            preferred = float(probability) >= 0.5
+            predictions.append(
+                PreferencePrediction(
+                    item_id=request.item_id,
+                    score=score,
+                    preferred=preferred,
+                    drivers=tuple(self.explain(request)),
+                    policy_signal=policy_signal(score, preferred),
+                    cge_sam_account=sam_account_for_category(request.category),
+                    cge_sam_shock=cge_sam_shock(score),
+                    publication_notes=PUBLICATION_NOTES,
+                )
             )
-            for request, probability in zip(request_list, probabilities, strict=True)
+        return predictions
+
+    def explain(self, request: PreferenceRequest, top_n: int = 5) -> list[FeatureContribution]:
+        """Return the largest coefficient-weighted feature drivers for a request."""
+
+        frame = _requests_to_frame([request])
+        preprocessor = self.pipeline.named_steps["preprocessor"]
+        classifier = self.pipeline.named_steps["classifier"]
+        transformed = preprocessor.transform(frame)
+        row = transformed.toarray()[0] if hasattr(transformed, "toarray") else transformed[0]
+        feature_names = preprocessor.get_feature_names_out()
+        contributions = row * classifier.coef_[0]
+
+        ranked = sorted(
+            zip(feature_names, contributions, strict=True),
+            key=lambda item: abs(float(item[1])),
+            reverse=True,
+        )
+        return [
+            FeatureContribution(
+                feature=_clean_feature_name(name),
+                value=_feature_value(name, request),
+                contribution=round(float(contribution), 4),
+                direction="supports_preference" if float(contribution) >= 0 else "reduces_preference",
+            )
+            for name, contribution in ranked[:top_n]
         ]
 
     def evaluate(self, examples: Iterable[PreferenceExample]) -> dict[str, float]:
@@ -71,6 +119,8 @@ class PreferenceModel:
         predictions = self.pipeline.predict(features)
         probabilities = self.pipeline.predict_proba(features)[:, 1]
         metrics = {"accuracy": round(float(accuracy_score(labels, predictions)), 4)}
+        metrics["n_examples"] = float(len(frame))
+        metrics["positive_rate"] = round(float(labels.mean()), 4)
         if labels.nunique() > 1:
             metrics["roc_auc"] = round(float(roc_auc_score(labels, probabilities)), 4)
         return metrics
@@ -131,3 +181,21 @@ def _requests_to_frame(requests: Iterable[PreferenceRequest]) -> pd.DataFrame:
             for request in requests
         ]
     )
+
+
+def _clean_feature_name(name: str) -> str:
+    cleaned = name.split("__", maxsplit=1)[-1]
+    if cleaned.startswith("user_id_"):
+        return "user_id"
+    if cleaned.startswith("category_"):
+        return "category"
+    return cleaned
+
+
+def _feature_value(name: str, request: PreferenceRequest) -> str:
+    cleaned = name.split("__", maxsplit=1)[-1]
+    if cleaned.startswith("user_id_"):
+        return request.user_id
+    if cleaned.startswith("category_"):
+        return request.category
+    return str(getattr(request, cleaned))

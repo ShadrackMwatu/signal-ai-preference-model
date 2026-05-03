@@ -26,7 +26,11 @@ class ModelTests(unittest.TestCase):
         self.assertEqual(prediction.item_id, "dashboard_plus")
         self.assertGreaterEqual(prediction.score, 0)
         self.assertLessEqual(prediction.score, 1)
+        self.assertTrue(prediction.drivers)
+        self.assertIn("preference", prediction.policy_signal)
+        self.assertNotEqual(prediction.cge_sam_account, "unmapped")
         self.assertIn("accuracy", metrics)
+        self.assertIn("positive_rate", metrics)
 
     def test_model_persistence_round_trip(self) -> None:
         examples = load_examples(Path("data/sample_preferences.csv"))

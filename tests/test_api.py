@@ -1,7 +1,7 @@
 import unittest
 from pathlib import Path
 
-from api.main import BatchPreferencePayload, PreferencePayload, create_app
+from api.main import BatchPreferencePayload, CgeSamExportPayload, PreferencePayload, create_app
 
 
 class ApiTests(unittest.TestCase):
@@ -32,6 +32,8 @@ class ApiTests(unittest.TestCase):
         self.assertEqual(response.item_id, "dashboard_plus")
         self.assertGreaterEqual(response.score, 0)
         self.assertLessEqual(response.score, 1)
+        self.assertTrue(response.drivers)
+        self.assertEqual(response.cge_sam_account, "DIGITAL_SERVICES")
         self.assertIsInstance(response.preferred, bool)
 
     def test_batch_predict_endpoint(self) -> None:
@@ -60,6 +62,49 @@ class ApiTests(unittest.TestCase):
         )
 
         self.assertEqual(len(response.predictions), 2)
+
+    def test_cge_sam_export_endpoint(self) -> None:
+        endpoint = _route_endpoint(self.app, "/export/cge-sam")
+        response = endpoint(
+            CgeSamExportPayload(
+                scenario_id="policy_scenario_1",
+                items=[
+                    PreferencePayload(
+                        user_id="user_001",
+                        item_id="dashboard_plus",
+                        category="analytics",
+                        price=24.0,
+                        rating=4.7,
+                        popularity=0.8,
+                    )
+                ],
+            )
+        )
+
+        self.assertEqual(response.rows[0].scenario_id, "policy_scenario_1")
+        self.assertEqual(response.rows[0].sam_account, "DIGITAL_SERVICES")
+
+    def test_cge_sam_export_endpoint_accepts_dict_payload(self) -> None:
+        payload = CgeSamExportPayload.model_validate(
+            {
+                "scenario_id": "policy_scenario_1",
+                "items": [
+                    {
+                        "user_id": "user_001",
+                        "item_id": "dashboard_plus",
+                        "category": "analytics",
+                        "price": 24.0,
+                        "rating": 4.7,
+                        "popularity": 0.8,
+                    }
+                ]
+            }
+        )
+        endpoint = _route_endpoint(self.app, "/export/cge-sam")
+        response = endpoint(payload)
+
+        self.assertEqual(response.rows[0].scenario_id, "policy_scenario_1")
+        self.assertEqual(response.rows[0].sam_account, "DIGITAL_SERVICES")
 
 
 def _route_endpoint(app, path: str):

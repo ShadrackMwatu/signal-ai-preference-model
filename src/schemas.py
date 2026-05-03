@@ -41,9 +41,24 @@ class PreferenceRequest:
 
 
 @dataclass(frozen=True)
+class FeatureContribution:
+    """Human-readable contribution of a feature to a preference score."""
+
+    feature: str
+    value: str
+    contribution: float
+    direction: str
+
+
+@dataclass(frozen=True)
 class PreferencePrediction:
     """Preference score returned by the model."""
 
     item_id: str
     score: float
     preferred: bool
+    drivers: tuple[FeatureContribution, ...] = ()
+    policy_signal: str = "unclassified"
+    cge_sam_account: str = "unmapped"
+    cge_sam_shock: float = 0.0
+    publication_notes: tuple[str, ...] = ()
