@@ -75,21 +75,23 @@ Modular API endpoints:
 
 The deployed app entrypoint, `app.py`, loads a saved scikit-learn
 `RandomForestClassifier` from `models/saved_models/signal_demand_classifier.joblib`.
-It predicts `High`, `Moderate`, or `Low` demand from:
+It trains from a deterministic 1000+ row synthetic behavioral dataset and
+predicts `High`, `Moderate`, or `Low` demand from:
 
 - `likes`
 - `comments`
 - `shares`
 - `searches`
-- `engagement_intensity`
-- `purchase_intent_score`
-- `trend_growth`
 
 Regenerate the deployed model artifact:
 
 ```powershell
 .\.venv\Scripts\python.exe -m src.models.signal_demand_model
 ```
+
+The Gradio app returns the predicted demand classification, aggregate demand
+score, and opportunity score. The scores are scaled from the model's highest
+class probability.
 
 ## Run locally
 

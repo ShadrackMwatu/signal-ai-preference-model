@@ -11,7 +11,7 @@ class TrainingPipelineTests(unittest.TestCase):
         raw = load_behavioral_signals("data/sample_behavioral_signals.csv")
         features = aggregate_features(build_feature_table(raw))
 
-        bundle = train_demand_models(features, "tests/_scratch/test_training_bundle.joblib")
+        bundle = train_demand_models(features, "tests/_tmp/test_training_bundle.joblib")
 
         self.assertEqual(bundle.training_rows, len(features))
         self.assertEqual(bundle.model_version, 1)

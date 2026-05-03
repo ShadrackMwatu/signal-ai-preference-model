@@ -2,10 +2,27 @@
 
 from __future__ import annotations
 
-from src.models.signal_demand_model import load_signal_model, predict_signal_demand
+from pathlib import Path
+
+from joblib import load
+
+from src.models.signal_demand_model import FEATURE_COLUMNS, MODEL_PATH, train_signal_model
 
 
-MODEL_BUNDLE = load_signal_model()
+def _load_deployed_model():
+    model_path = Path(MODEL_PATH)
+    if not model_path.exists():
+        train_signal_model(model_path=model_path)
+    loaded_model = load(model_path)
+    if isinstance(loaded_model, dict) and "model" in loaded_model:
+        loaded_model = loaded_model["model"]
+    if getattr(loaded_model, "n_features_in_", len(FEATURE_COLUMNS)) != len(FEATURE_COLUMNS):
+        train_signal_model(model_path=model_path)
+        loaded_model = load(model_path)
+    return loaded_model
+
+
+model = _load_deployed_model()
 
 
 def signal_model(
@@ -17,24 +34,14 @@ def signal_model(
     purchase_intent_score: float,
     trend_growth: float,
 ) -> tuple[str, float, float]:
-    """Predict demand class and learned probability scores using the trained model."""
+    """Predict demand class from the trained four-signal ML model."""
 
-    prediction = predict_signal_demand(
-        {
-            "likes": likes,
-            "comments": comments,
-            "shares": shares,
-            "searches": searches,
-            "engagement_intensity": engagement_intensity,
-            "purchase_intent_score": purchase_intent_score,
-            "trend_growth": trend_growth,
-        }
-    )
-    return (
-        str(prediction["demand_class"]),
-        float(prediction["confidence_score"]),
-        float(prediction["opportunity_score"]),
-    )
+    features = [[likes, comments, shares, searches]]
+    prediction = str(model.predict(features)[0])
+    confidence = float(model.predict_proba(features).max())
+    aggregate_demand_score = round(confidence * 100, 2)
+    opportunity_score = round(confidence * 100, 2)
+    return prediction, aggregate_demand_score, opportunity_score
 
 
 try:
@@ -57,7 +64,7 @@ if gr is not None:
         ],
         outputs=[
             gr.Textbox(label="Predicted Demand Class"),
-            gr.Number(label="Confidence Score"),
+            gr.Number(label="Aggregate Demand Score"),
             gr.Number(label="Opportunity Score"),
         ],
         title="Signal Demand Prediction",

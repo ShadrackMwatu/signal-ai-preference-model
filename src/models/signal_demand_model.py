@@ -14,18 +14,16 @@ from sklearn.model_selection import train_test_split
 
 ROOT_DIR = Path(__file__).resolve().parents[2]
 TRAINING_DATA_PATH = ROOT_DIR / "data" / "signal_training_dataset.csv"
-MODEL_PATH = ROOT_DIR / "model.pkl"
+MODEL_PATH = ROOT_DIR / "models" / "saved_models" / "signal_demand_classifier.joblib"
 FEATURE_COLUMNS = [
     "likes",
     "comments",
     "shares",
     "searches",
-    "engagement_intensity",
-    "purchase_intent_score",
-    "trend_growth",
 ]
 TARGET_COLUMN = "demand_class"
 DEMAND_CLASSES = ("High", "Moderate", "Low")
+MIN_TRAINING_ROWS = 1000
 
 
 def generate_training_dataset(
@@ -85,9 +83,12 @@ def train_signal_model(
     if not data_path.exists():
         generate_training_dataset(data_path, random_state=random_state)
     frame = pd.read_csv(data_path)
+    required_columns = set(FEATURE_COLUMNS + [TARGET_COLUMN])
+    if len(frame) < MIN_TRAINING_ROWS or not required_columns.issubset(frame.columns):
+        frame = generate_training_dataset(data_path, n_rows=1200, random_state=random_state)
     model = RandomForestClassifier(n_estimators=120, min_samples_leaf=3, random_state=random_state)
     x_train, x_test, y_train, y_test = train_test_split(
-        frame[FEATURE_COLUMNS],
+        frame[FEATURE_COLUMNS].to_numpy(),
         frame[TARGET_COLUMN],
         test_size=0.25,
         random_state=random_state,
@@ -97,7 +98,7 @@ def train_signal_model(
     accuracy = accuracy_score(y_test, model.predict(x_test))
     save_path = Path(model_path)
     save_path.parent.mkdir(parents=True, exist_ok=True)
-    joblib.dump({"model": model, "feature_columns": FEATURE_COLUMNS}, save_path)
+    joblib.dump(model, save_path)
     return {
         "model_path": str(save_path),
         "training_rows": len(frame),
@@ -105,36 +106,38 @@ def train_signal_model(
     }
 
 
-def load_signal_model(model_path: str | Path = MODEL_PATH) -> dict[str, object]:
+def load_signal_model(model_path: str | Path = MODEL_PATH) -> RandomForestClassifier:
     """Load the saved classifier, training it first if needed."""
 
     model_path = Path(model_path)
     if not model_path.exists():
         train_signal_model(model_path=model_path)
-    return joblib.load(model_path)
+    artifact = joblib.load(model_path)
+    if isinstance(artifact, dict) and "model" in artifact:
+        artifact = artifact["model"]
+    if getattr(artifact, "n_features_in_", len(FEATURE_COLUMNS)) != len(FEATURE_COLUMNS):
+        train_signal_model(model_path=model_path)
+        artifact = joblib.load(model_path)
+    return artifact
 
 
 def predict_signal_demand(features: dict[str, float | int], model_path: str | Path = MODEL_PATH) -> dict[str, float | str]:
     """Predict demand class, confidence, and opportunity from behavioral features."""
 
-    bundle = load_signal_model(model_path)
-    model = bundle["model"]
-    feature_columns = bundle["feature_columns"]
-    missing = [column for column in feature_columns if column not in features]
+    model = load_signal_model(model_path)
+    missing = [column for column in FEATURE_COLUMNS if column not in features]
     if missing:
         raise ValueError(f"Missing required feature(s): {', '.join(missing)}")
-    frame = pd.DataFrame([{column: features[column] for column in feature_columns}])
-    predicted_class = str(model.predict(frame)[0])
-    probabilities = {
-        str(class_name): float(probability)
-        for class_name, probability in zip(model.classes_, model.predict_proba(frame)[0], strict=True)
-    }
-    confidence_score = probabilities[predicted_class]
-    opportunity_score = probabilities.get("High", 0.0)
+    feature_vector = [[features[column] for column in FEATURE_COLUMNS]]
+    predicted_class = str(model.predict(feature_vector)[0])
+    confidence_score = float(model.predict_proba(feature_vector).max())
+    scaled_score = round(confidence_score * 100, 2)
     return {
         "demand_class": predicted_class,
+        "demand_classification": predicted_class,
+        "aggregate_demand_score": scaled_score,
         "confidence_score": round(confidence_score, 4),
-        "opportunity_score": round(opportunity_score, 4),
+        "opportunity_score": scaled_score,
         "score": round(confidence_score, 4),
     }
 
