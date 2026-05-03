@@ -14,6 +14,7 @@ from src.features.aggregation import aggregate_features
 from src.features.feature_engineering import build_feature_table
 from src.models.clustering_model import SegmentClusterer
 from src.models.predict_demand import DemandPredictor
+from src.models.signal_demand_model import load_signal_model, predict_signal_demand
 from src.models.train_demand_model import DemandModelBundle, train_demand_models
 
 
@@ -26,7 +27,36 @@ def health() -> dict[str, str]:
 
 
 @app.get("/predict-demand")
-def predict_demand() -> list[dict[str, object]]:
+def predict_demand(
+    likes: int | None = None,
+    comments: int | None = None,
+    shares: int | None = None,
+    searches: int | None = None,
+    engagement_intensity: float | None = None,
+    purchase_intent_score: float | None = None,
+    trend_growth: float | None = None,
+) -> list[dict[str, object]] | dict[str, float | str]:
+    if None not in {
+        likes,
+        comments,
+        shares,
+        searches,
+        engagement_intensity,
+        purchase_intent_score,
+        trend_growth,
+    }:
+        return predict_signal_demand(
+            {
+                "likes": likes,
+                "comments": comments,
+                "shares": shares,
+                "searches": searches,
+                "engagement_intensity": engagement_intensity,
+                "purchase_intent_score": purchase_intent_score,
+                "trend_growth": trend_growth,
+            }
+        )
+
     predictor = DemandPredictor(_model_bundle())
     predictions = predictor.predict(_signals(), _competitors())
     return _safe_records(predictions)
@@ -111,6 +141,11 @@ def _model_bundle() -> DemandModelBundle:
     signals = _signals()
     features = aggregate_features(build_feature_table(signals))
     return train_demand_models(features)
+
+
+@lru_cache(maxsize=1)
+def _deployed_signal_model() -> dict[str, object]:
+    return load_signal_model()
 
 
 @lru_cache(maxsize=1)

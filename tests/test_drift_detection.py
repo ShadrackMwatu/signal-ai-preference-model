@@ -14,7 +14,7 @@ class DriftDetectionTests(unittest.TestCase):
     def test_detects_feature_drift_and_retraining_trigger(self) -> None:
         raw = load_behavioral_signals("data/sample_behavioral_signals.csv")
         features = aggregate_features(build_feature_table(raw))
-        bundle = train_demand_models(features, "tests/_tmp/test_drift_bundle.joblib")
+        bundle = train_demand_models(features, "tests/_scratch/test_drift_bundle.joblib")
         drifted = raw.copy()
         drifted["clicks"] = drifted["clicks"] * 4
         drifted["searches"] = drifted["searches"] * 3
@@ -22,7 +22,7 @@ class DriftDetectionTests(unittest.TestCase):
         feedback = pd.read_csv("data/sample_feedback.csv")
 
         drift = detect_drift(bundle.feature_baseline, drifted_features, threshold=0.05)
-        decision = AdaptiveRetrainingLoop(bundle, "tests/_tmp/test_drift_bundle.joblib").run(
+        decision = AdaptiveRetrainingLoop(bundle, "tests/_scratch/test_drift_bundle.joblib").run(
             drifted,
             feedback,
             threshold=0.05,

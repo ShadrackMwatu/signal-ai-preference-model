@@ -15,7 +15,7 @@ class PredictionOutputTests(unittest.TestCase):
         cls.raw = load_behavioral_signals("data/sample_behavioral_signals.csv")
         cls.competitors = pd.read_csv("data/sample_competitors.csv")
         cls.features = aggregate_features(build_feature_table(cls.raw))
-        cls.bundle = train_demand_models(cls.features, "tests/_tmp/test_prediction_bundle.joblib")
+        cls.bundle = train_demand_models(cls.features, "tests/_scratch/test_prediction_bundle.joblib")
 
     def test_prediction_outputs_include_dashboard_fields(self) -> None:
         predictions = DemandPredictor(self.bundle).predict(self.raw.head(30), self.competitors)

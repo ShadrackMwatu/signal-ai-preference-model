@@ -71,6 +71,26 @@ Modular API endpoints:
 - `GET /segments`
 - `GET /market-access`
 
+## Deployed ML Demand Model
+
+The deployed app entrypoint, `app.py`, loads a saved scikit-learn
+`RandomForestClassifier` from `models/saved_models/signal_demand_classifier.joblib`.
+It predicts `High`, `Moderate`, or `Low` demand from:
+
+- `likes`
+- `comments`
+- `shares`
+- `searches`
+- `engagement_intensity`
+- `purchase_intent_score`
+- `trend_growth`
+
+Regenerate the deployed model artifact:
+
+```powershell
+.\.venv\Scripts\python.exe -m src.models.signal_demand_model
+```
+
 ## Run locally
 
 ```powershell
