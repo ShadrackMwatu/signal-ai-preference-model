@@ -1,0 +1,13 @@
+category,item_id,label,popularity,price,rating,user_id
+analytics,dashboard_basic,1,0.82,19.0,4.5,user_001
+analytics,dashboard_enterprise,0,0.48,199.0,3.7,user_001
+automation,workflow_starter,1,0.74,29.0,4.2,user_001
+automation,workflow_enterprise,0,0.35,249.0,3.5,user_001
+research,policy_brief,1,0.91,9.0,4.8,user_002
+research,raw_archive,0,0.22,4.0,2.9,user_002
+forecasting,macro_model,1,0.77,49.0,4.6,user_002
+forecasting,beta_indicator,0,0.27,39.0,3.0,user_002
+analytics,dashboard_basic,1,0.82,19.0,4.4,user_003
+automation,workflow_enterprise,1,0.35,249.0,4.7,user_003
+research,raw_archive,0,0.22,4.0,2.6,user_003
+forecasting,beta_indicator,0,0.27,39.0,3.1,user_003
