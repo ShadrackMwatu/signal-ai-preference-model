@@ -1,19 +1,10 @@
-# Core UI
 gradio
-
-# ML / data
 scikit-learn
 pandas
 numpy
 joblib
-
-# File handling
 openpyxl
-
-# Optional Gradio/audio dependency support
 pydub
-
-# Backend / API support
 fastapi
 pydantic
 requests
