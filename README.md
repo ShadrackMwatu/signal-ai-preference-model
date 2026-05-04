@@ -167,6 +167,12 @@ learning modes:
 Every learned rule is linked to a source run, observed error/result, correction
 made, and validation status. High-risk fixes are flagged for user review.
 
+The explicit learning workflow is:
+
+```text
+Observe -> Diagnose -> Store -> Recommend -> Validate -> Implement -> Re-test -> Remember
+```
+
 ## Run locally
 
 ```powershell

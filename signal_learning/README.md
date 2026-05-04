@@ -4,6 +4,12 @@ Signal Learning extends the CGE workflow so it learns from model files, SAM
 structures, GAMS logs, solver outcomes, validation errors, scenario results, and
 user corrections.
 
+The core workflow is:
+
+```text
+Observe -> Diagnose -> Store -> Recommend -> Validate -> Implement -> Re-test -> Remember
+```
+
 Default mode: `recommend`.
 
 Modes:

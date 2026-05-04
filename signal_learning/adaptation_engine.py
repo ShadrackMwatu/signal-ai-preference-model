@@ -15,7 +15,7 @@ DEFAULT_VERSION_ROOT = Path("learning_versions")
 def propose_adaptations(store_data: dict[str, Any], version_root: str | Path = DEFAULT_VERSION_ROOT) -> list[AdaptationProposal]:
     """Convert recurring patterns into versioned adaptation proposals."""
 
-    existing_versions = len(store_data.get("adaptations", []))
+    existing_versions = max(len(store_data.get("adaptations", [])), _max_existing_version(version_root))
     proposals: list[AdaptationProposal] = []
     for index, pattern in enumerate(extract_patterns(store_data), start=existing_versions + 1):
         risk = _risk_for_issue(pattern.issue_type)
@@ -136,6 +136,17 @@ def _risk_for_issue(issue_type: str) -> str:
     if issue_type in {"sam_imbalance", "gams_error", "validation_error"}:
         return "medium"
     return "high"
+
+
+def _max_existing_version(version_root: str | Path) -> int:
+    root = Path(version_root)
+    if not root.exists():
+        return 0
+    versions: list[int] = []
+    for child in root.iterdir():
+        if child.is_dir() and child.name.startswith("v") and child.name[1:].isdigit():
+            versions.append(int(child.name[1:]))
+    return max(versions, default=0)
 
 
 def _affected_rules(issue_type: str) -> list[str]:

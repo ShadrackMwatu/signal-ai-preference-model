@@ -15,10 +15,7 @@ from cge_core.sam import balance_check, export_balance_check, load_sam
 from cge_core.shocks import aggregate_shock_size, shock_table
 from learning_memory.memory import capture_run_memory
 from policy_intelligence.report_generator import generate_policy_report
-from signal_learning.adaptation_engine import generate_learning_report, propose_adaptations
-from signal_learning.feedback_collector import build_run_snapshot, collect_run_feedback
-from signal_learning.implementation_engine import implement_adaptation
-from signal_learning.learning_store import LearningStore
+from signal_learning.workflow import run_learning_cycle
 from signal_modeling_language.parser import parse_sml_file, parse_sml_text
 from signal_modeling_language.schema import SMLModel
 from signal_modeling_language.validator import validate_model
@@ -94,6 +91,7 @@ class SignalRunner:
             "gams_file": str(gms_path),
             "solver_result": solver_result,
             "metrics": solver_result.get("metrics", {}),
+            "learning_mode": self.config.learning_mode,
         }
         report_path = self._report_path(model, run_dir)
         result["report_path"] = generate_policy_report(result, report_path)
@@ -140,46 +138,10 @@ class SignalRunner:
         return run_dir / "policy_report.md"
 
     def _learn_from_result(self, result: dict[str, Any]) -> dict[str, Any]:
-        store = LearningStore(self.config.learning_store_path)
-        store.add_run_snapshot(build_run_snapshot(result))
-        feedback_entries = collect_run_feedback(result)
-        for entry in feedback_entries:
-            store.add_feedback(entry)
-
-        store_data = store.load()
-        proposals = propose_adaptations(store_data, self.config.learning_version_root)
-        implementation_results = []
-        for proposal in proposals:
-            store.add_adaptation(proposal)
-            implementation = implement_adaptation(
-                proposal,
-                mode=self.config.learning_mode,
-                version_root=self.config.learning_version_root,
-            )
-            store.add_implementation(implementation)
-            implementation_results.append(implementation.to_dict())
-
-        report_path = generate_learning_report(
+        return run_learning_cycle(
             result,
-            [entry.to_dict() for entry in feedback_entries],
-            proposals,
-            implementation_results,
-            self.config.output_dir,
+            store_path=self.config.learning_store_path,
+            output_dir=self.config.output_dir,
+            version_root=self.config.learning_version_root,
+            mode=self.config.learning_mode,
         )
-        store.add_report(
-            str(result.get("run_id", "")),
-            report_path,
-            {
-                "feedback_entries": len(feedback_entries),
-                "adaptation_proposals": len(proposals),
-                "mode": self.config.learning_mode,
-            },
-        )
-        return {
-            "mode": self.config.learning_mode,
-            "store_path": str(self.config.learning_store_path),
-            "learning_report_path": report_path,
-            "feedback_entries": [entry.to_dict() for entry in feedback_entries],
-            "adaptation_proposals": [proposal.to_dict() for proposal in proposals],
-            "implementation_results": implementation_results,
-        }
