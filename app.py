@@ -19,20 +19,23 @@ from signal_modeling_language.parser import parse_sml_text
 from signal_modeling_language.validator import validate_model
 
 
-def _load_deployed_model():
+def _load_deployed_model() -> tuple[object | None, str]:
     model_path = Path(MODEL_PATH)
-    if not model_path.exists():
-        train_signal_model(model_path=model_path)
-    loaded_model = load(model_path)
-    if isinstance(loaded_model, dict) and "model" in loaded_model:
-        loaded_model = loaded_model["model"]
-    if getattr(loaded_model, "n_features_in_", len(FEATURE_COLUMNS)) != len(FEATURE_COLUMNS):
-        train_signal_model(model_path=model_path)
+    try:
+        if not model_path.exists():
+            raise FileNotFoundError(f"Trained model not found: {model_path}")
         loaded_model = load(model_path)
-    return loaded_model
+        if isinstance(loaded_model, dict) and "model" in loaded_model:
+            loaded_model = loaded_model["model"]
+        if getattr(loaded_model, "n_features_in_", len(FEATURE_COLUMNS)) != len(FEATURE_COLUMNS):
+            train_signal_model(model_path=model_path)
+            loaded_model = load(model_path)
+        return loaded_model, ""
+    except Exception as exc:
+        return None, str(exc)
 
 
-model = _load_deployed_model()
+model, MODEL_LOAD_ERROR = _load_deployed_model()
 SML_EXAMPLE_PATH = Path("signal_modeling_language/examples/basic_cge.sml")
 DEFAULT_SML_TEXT = SML_EXAMPLE_PATH.read_text(encoding="utf-8") if SML_EXAMPLE_PATH.exists() else ""
 
@@ -48,12 +51,17 @@ def signal_model(
 ) -> tuple[str, float, float]:
     """Predict demand class from the trained four-signal ML model."""
 
+    if model is None:
+        return "Model not loaded", 0.0, 0.0
     features = [[likes, comments, shares, searches]]
-    prediction = str(model.predict(features)[0])
-    confidence = float(model.predict_proba(features).max())
-    aggregate_demand_score = round(confidence * 100, 2)
-    opportunity_score = round(confidence * 100, 2)
-    return prediction, aggregate_demand_score, opportunity_score
+    try:
+        prediction = str(model.predict(features)[0])
+        confidence = float(model.predict_proba(features).max())
+        aggregate_demand_score = round(confidence * 100, 2)
+        opportunity_score = round(confidence * 100, 2)
+        return prediction, aggregate_demand_score, opportunity_score
+    except Exception:
+        return "Model not loaded", 0.0, 0.0
 
 
 def cge_model(scenario_text: str) -> tuple[str, str, str]:
