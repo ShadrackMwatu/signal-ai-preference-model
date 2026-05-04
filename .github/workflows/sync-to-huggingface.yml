@@ -16,6 +16,8 @@ jobs:
       - name: Sync to Hugging Face
         uses: huggingface/hub-sync@v0.1.0
         with:
-          github: .
-          huggingface: spaces/Signal-ai/signal-ai-dashboard
-          token: ${{ secrets.HF_TOKEN }}
+          github_repo_id: ShadrackMwatu/signal-ai-preference-model
+          huggingface_repo_id: Signal-ai/signal-ai-dashboard
+          hf_token: ${{ secrets.HF_TOKEN }}
+          repo_type: space
+          space_sdk: gradio
