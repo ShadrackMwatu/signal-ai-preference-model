@@ -18,14 +18,14 @@ httptools==0.7.1
 idna==3.13
 itsdangerous==2.2.0
 Jinja2==3.1.6
-joblib==1.5.3
+joblib
 jsonschema==4.26.0
 jsonschema-specifications==2025.9.1
 MarkupSafe==3.0.3
 narwhals==2.20.0
-numpy==2.4.4
+numpy
 packaging==26.2
-pandas==3.0.2
+pandas
 pillow==12.2.0
 plotly==6.7.0
 protobuf==7.34.1
@@ -38,7 +38,7 @@ python-multipart==0.0.27
 referencing==0.37.0
 requests==2.33.1
 rpds-py==0.30.0
-scikit-learn==1.8.0
+scikit-learn
 scipy==1.17.1
 six==1.17.0
 smmap==5.0.3
