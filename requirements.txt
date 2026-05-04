@@ -1,6 +1,32 @@
 gradio
-pyaudioop
-joblib
 scikit-learn
 pandas
 numpy
+joblib
+openpyxl
+pydub
+fastapi
+pydantic
+requests
+# Core UI
+gradio
+# ML / data
+scikit-learn
+pandas
+numpy
+joblib
+
+# File handling
+openpyxl
+
+# Optional (safe for Gradio audio deps)
+pydub
+
+# FastAPI (your backend logic uses it)
+fastapi
+
+# JSON + validation helpers (lightweight)
+pydantic
+
+# HTTP / API calls (future integrations)
+requests
