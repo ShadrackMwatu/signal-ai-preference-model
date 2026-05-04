@@ -11,6 +11,8 @@ pinned: false
 
 # Signal AI Preference Model
 
+# Signal AI Preference Model
+
 Signal is a small Python prototype for learning user-item preferences and serving
 preference scores through a FastAPI API.
 
