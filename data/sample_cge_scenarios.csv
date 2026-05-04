@@ -1,0 +1,13 @@
+scenario_id,description,scenario_text
+kenya_logistics_push,Aggregate demand and transport productivity scenario,"name: Kenya aggregate demand and logistics scenario
+closure: savings_driven
+numeraire: consumer_price_index
+shock demand agriculture by 6%
+shock productivity transport by 3%
+shock tax manufacturing by -1%"
+services_market_access,Services market access expansion,"name: Services market access expansion
+closure: investment_driven
+numeraire: consumer_price_index
+shock demand services by 4%
+shock productivity services by 2%
+shock export services by 3%"

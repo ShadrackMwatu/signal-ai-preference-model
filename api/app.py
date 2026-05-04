@@ -8,6 +8,10 @@ from pathlib import Path
 import pandas as pd
 from fastapi import FastAPI
 
+from api.routes_learning import router as learning_router
+from api.routes_models import router as models_router
+from api.routes_results import router as results_router
+from api.routes_scenarios import router as scenarios_router
 from src.data_pipeline.data_loader import load_behavioral_signals
 from src.data_pipeline.synthetic_data import SAMPLE_BEHAVIORAL_PATH, SAMPLE_COMPETITOR_PATH, write_sample_data
 from src.features.aggregation import aggregate_features
@@ -19,6 +23,10 @@ from src.models.train_demand_model import DemandModelBundle, train_demand_models
 
 
 app = FastAPI(title="Signal Market Intelligence", version="1.0.0")
+app.include_router(learning_router)
+app.include_router(models_router)
+app.include_router(scenarios_router)
+app.include_router(results_router)
 
 
 @app.get("/health")

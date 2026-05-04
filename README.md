@@ -93,6 +93,80 @@ The Gradio app returns the predicted demand classification, aggregate demand
 score, and opportunity score. The scores are scaled from the model's highest
 class probability.
 
+## Signal CGE Modelling Framework
+
+Signal now has a second, complementary module for policy modelling:
+
+1. Behavioral Signals AI for revealed demand and market intelligence.
+2. Signal CGE Modelling Framework for AI-assisted CGE scenario language,
+   local execution, GAMS-compatible exports, and policy intelligence.
+
+The CGE framework is additive and does not replace the behavioral-signal model.
+The core principle is that GAMS is a modelling language and execution
+environment, while solvers are mathematical engines. Signal is developing its
+own modelling language and execution environment first, while initially relying
+on GAMS and Python solver backends for computation.
+It includes:
+
+- Long-format SAM loading, validation, privacy checks, and calibration.
+- A compact scenario language such as `shock demand agriculture by 6%`.
+- A transparent local comparative-static simulation runner.
+- Policy intelligence summaries for GDP, welfare, prices, fiscal balance,
+  external balance, sector impacts, risks, and recommended actions.
+- GAMS-compatible model text export with sets, SAM parameters, shock scalars,
+  equations, model declaration, and solve block.
+
+Sample CGE data lives in:
+
+- `data/sample_sam.csv`
+- `data/sample_cge_scenarios.csv`
+
+Run a default scenario locally:
+
+```powershell
+.\.venv\Scripts\python.exe -c "from src.cge.framework import run_policy_scenario; print(run_policy_scenario()['macro_results'])"
+```
+
+The production-shaped CGE stack is organized as:
+
+- `signal_modeling_language/` for SML grammar, parser, schema, validation, and examples.
+- `signal_execution/` for local workflow execution, logs, diagnostics, and outputs.
+- `backends/gams/` for GAMS-compatible `.gms`, `.lst`, and GDX helpers.
+- `solvers/` for GAMS, experimental Python NLP, and fixed-point backends.
+- `cge_core/` for SAM, calibration, accounts, closures, shocks, equations, and results.
+- `policy_intelligence/` for reports, scenario comparison, and Kenya policy templates.
+- `learning_memory/` for local run-memory records and template/rule recommendations.
+- `signal_learning/` for structured learning from SAM structures, model files,
+  GAMS logs, solver outcomes, validation errors, user corrections, and final reports.
+
+Run the SML example:
+
+```powershell
+.\.venv\Scripts\python.exe -c "from signal_execution.runner import SignalRunner; print(SignalRunner().run('signal_modeling_language/examples/basic_cge.sml')['summary'])"
+```
+
+More documentation is available in `docs/`.
+
+Learning memory captures the loop:
+
+```text
+model runs -> errors/results/logs -> learning memory -> improved templates/rules -> better future runs
+```
+
+It stores aggregate run diagnostics locally as JSONL and proposes template or
+validation-rule improvements without silently rewriting source files.
+
+The richer `signal_learning/` layer stores evidence-linked lessons in JSON,
+generates `outputs/learning_report.md` after model runs, and supports three
+learning modes:
+
+- `observe_only`: record lessons only.
+- `recommend`: record lessons and recommend improvements. This is the default.
+- `safe_apply`: apply low-risk fixes as versioned adapted templates only.
+
+Every learned rule is linked to a source run, observed error/result, correction
+made, and validation status. High-risk fixes are flagged for user review.
+
 ## Run locally
 
 ```powershell

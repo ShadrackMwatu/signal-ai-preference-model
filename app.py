@@ -2,11 +2,21 @@
 
 from __future__ import annotations
 
+import json
 from pathlib import Path
 
 from joblib import load
 
+from src.cge.framework import DEFAULT_SCENARIO, run_policy_scenario
 from src.models.signal_demand_model import FEATURE_COLUMNS, MODEL_PATH, train_signal_model
+from signal_learning.adaptation_engine import propose_adaptations
+from signal_learning.implementation_engine import implement_adaptation, rollback_adaptation
+from signal_learning.learning_store import LearningStore
+from signal_learning.memory_schema import AdaptationProposal
+from signal_learning.pattern_extractor import recurring_issue_summary
+from signal_execution.runner import SignalRunner
+from signal_modeling_language.parser import parse_sml_text
+from signal_modeling_language.validator import validate_model
 
 
 def _load_deployed_model():
@@ -23,6 +33,8 @@ def _load_deployed_model():
 
 
 model = _load_deployed_model()
+SML_EXAMPLE_PATH = Path("signal_modeling_language/examples/basic_cge.sml")
+DEFAULT_SML_TEXT = SML_EXAMPLE_PATH.read_text(encoding="utf-8") if SML_EXAMPLE_PATH.exists() else ""
 
 
 def signal_model(
@@ -44,6 +56,170 @@ def signal_model(
     return prediction, aggregate_demand_score, opportunity_score
 
 
+def cge_model(scenario_text: str) -> tuple[str, str, str]:
+    """Run the Signal CGE framework and return dashboard-ready outputs."""
+
+    result = run_policy_scenario(scenario_text or DEFAULT_SCENARIO)
+    macro = result["macro_results"]
+    intelligence = result["policy_intelligence"]
+    summary = (
+        f"{intelligence['summary']}\n\n"
+        f"Baseline GDP index: {macro['baseline_gdp']}\n"
+        f"Simulated GDP index: {macro['simulated_gdp']}\n"
+        f"GDP change: {macro['gdp_change_percent']}%\n"
+        f"Household welfare change: {macro['household_welfare_change_percent']}%\n"
+        f"Price index change: {macro['price_index_change_percent']}%"
+    )
+    policy_output = {
+        "priority_sectors": intelligence["priority_sectors"],
+        "recommended_policy_actions": intelligence["recommended_policy_actions"],
+        "risks": intelligence["risks"],
+        "diagnostics": result["diagnostics"],
+        "publication_note": intelligence["publication_note"],
+    }
+    gams_preview = "\n".join(str(result["gams_model"]).splitlines()[:32])
+    return summary, json.dumps(policy_output, indent=2), gams_preview
+
+
+def validate_sml_dashboard(sml_text: str, sml_file: object | None = None) -> str:
+    """Validate SML from dashboard text or upload."""
+
+    try:
+        text = _uploaded_text(sml_file) or sml_text or DEFAULT_SML_TEXT
+        validation = validate_model(parse_sml_text(text))
+        status = "Valid" if validation.valid else "Invalid"
+        parts = [f"Status: {status}"]
+        if validation.errors:
+            parts.append("Errors:\n" + "\n".join(f"- {error}" for error in validation.errors))
+        if validation.warnings:
+            parts.append("Warnings:\n" + "\n".join(f"- {warning}" for warning in validation.warnings))
+        return "\n\n".join(parts)
+    except Exception as exc:
+        return f"Invalid\n\nErrors:\n- {exc}"
+
+
+def run_sml_dashboard(
+    sml_text: str,
+    sml_file: object | None = None,
+    sam_file: object | None = None,
+) -> tuple[str, str, str, str | None]:
+    """Run SML from the dashboard and return validation, balance, results, and report file."""
+
+    try:
+        text = _uploaded_text(sml_file) or sml_text or DEFAULT_SML_TEXT
+        sam_path = _uploaded_path(sam_file)
+        result = SignalRunner().run(sml_text=text, sam_override=sam_path)
+        validation = result["validation"]
+        balance_rows = validation["balance_check"]
+        balance_text = _balance_rows_to_markdown(balance_rows[:12])
+        result_view = {
+            "run_id": result["run_id"],
+            "status": result["status"],
+            "backend": result["backend"],
+            "requested_backend": result["requested_backend"],
+            "message": result["message"],
+            "gams_message": result["gams_message"],
+            "metrics": result["metrics"],
+            "gams_file": result["gams_file"],
+            "balance_check_paths": result["balance_check_paths"],
+            "learning_memory": result["learning_memory"],
+        }
+        validation_text = "Status: Valid" if validation["valid"] else "Status: Invalid"
+        if validation["warnings"]:
+            validation_text += "\n\nWarnings:\n" + "\n".join(f"- {warning}" for warning in validation["warnings"])
+        return validation_text, balance_text, json.dumps(result_view, indent=2), str(result["report_path"])
+    except Exception as exc:
+        return f"Status: Failed\n\nErrors:\n- {exc}", "", "{}", None
+
+
+def refresh_learning_dashboard() -> tuple[str, str, str]:
+    """Return recent lessons, recurring issues, and recommended fixes."""
+
+    store = LearningStore()
+    data = store.load()
+    lessons = store.lessons()[-10:]
+    recurring = recurring_issue_summary(data)
+    proposals = propose_adaptations(data)
+    recommended = [
+        {
+            "version_id": proposal.version_id,
+            "change_summary": proposal.change_summary,
+            "risk_level": proposal.risk_level,
+            "confidence_score": proposal.confidence_score,
+            "evidence_run_ids": proposal.evidence_run_ids,
+        }
+        for proposal in proposals[-10:]
+    ]
+    return (
+        json.dumps(lessons, indent=2),
+        json.dumps(recurring, indent=2),
+        json.dumps(recommended, indent=2),
+    )
+
+
+def apply_latest_learning_dashboard() -> str:
+    """Apply the latest low-risk adaptation as a versioned template."""
+
+    data = LearningStore().load()
+    proposals = propose_adaptations(data)
+    if not proposals:
+        return "No recommended fixes are available yet."
+    low_risk = [proposal for proposal in proposals if proposal.risk_level == "low"]
+    proposal = low_risk[-1] if low_risk else proposals[-1]
+    result = implement_adaptation(proposal, mode="safe_apply" if proposal.risk_level == "low" else "recommend")
+    LearningStore().add_implementation(result)
+    return json.dumps(result.to_dict(), indent=2)
+
+
+def ignore_latest_learning_dashboard() -> str:
+    return "Latest recommendation ignored for now. No files were changed."
+
+
+def rollback_learning_dashboard(version_id: str) -> str:
+    if not str(version_id).strip():
+        return "Enter a learning version id such as v001."
+    result = rollback_adaptation(str(version_id).strip())
+    LearningStore().add_implementation(result)
+    return json.dumps(result.to_dict(), indent=2)
+
+
+def _proposal_from_dict(values: dict[str, object]) -> AdaptationProposal:
+    return AdaptationProposal(
+        version_id=str(values["version_id"]),
+        change_summary=str(values["change_summary"]),
+        reason_for_change=str(values["reason_for_change"]),
+        affected_templates_or_rules=list(values.get("affected_templates_or_rules", [])),
+        confidence_score=float(values.get("confidence_score", 0.0)),
+        risk_level=str(values.get("risk_level", "high")),  # type: ignore[arg-type]
+        recommended_mode=str(values.get("recommended_mode", "recommend")),  # type: ignore[arg-type]
+        evidence_run_ids=list(values.get("evidence_run_ids", [])),
+        rollback_instructions=str(values.get("rollback_instructions", "")),
+    )
+
+
+def _uploaded_path(file_obj: object | None) -> str | None:
+    if file_obj is None:
+        return None
+    return str(getattr(file_obj, "name", file_obj))
+
+
+def _uploaded_text(file_obj: object | None) -> str:
+    path = _uploaded_path(file_obj)
+    if not path:
+        return ""
+    return Path(path).read_text(encoding="utf-8")
+
+
+def _balance_rows_to_markdown(rows: list[dict[str, object]]) -> str:
+    lines = ["| Account | Row Total | Column Total | Imbalance | Percentage Imbalance |", "|---|---:|---:|---:|---:|"]
+    for row in rows:
+        lines.append(
+            f"| {row['account']} | {row['row_total']} | {row['column_total']} | "
+            f"{row['imbalance']} | {row['percentage_imbalance']} |"
+        )
+    return "\n".join(lines)
+
+
 try:
     import gradio as gr
 except ImportError:
@@ -51,24 +227,122 @@ except ImportError:
 
 
 if gr is not None:
-    demo = gr.Interface(
-        fn=signal_model,
-        inputs=[
-            gr.Number(label="Likes", value=120, precision=0),
-            gr.Number(label="Comments", value=35, precision=0),
-            gr.Number(label="Shares", value=24, precision=0),
-            gr.Number(label="Searches", value=160, precision=0),
-            gr.Slider(0, 1, value=0.55, label="Engagement Intensity"),
-            gr.Slider(0, 1, value=0.7, label="Purchase Intent Score"),
-            gr.Slider(0, 1, value=0.35, label="Trend Growth"),
-        ],
-        outputs=[
-            gr.Textbox(label="Predicted Demand Class"),
-            gr.Number(label="Aggregate Demand Score"),
-            gr.Number(label="Opportunity Score"),
-        ],
-        title="Signal Demand Prediction",
-    )
+    with gr.Blocks(title="Signal AI Market Intelligence") as demo:
+        gr.Markdown("# Signal")
+        gr.Markdown(
+            "Behavioral Signals AI for revealed demand intelligence, plus a Signal CGE "
+            "Modelling Framework for policy simulation and GAMS-compatible exports."
+        )
+        with gr.Tab("Behavioral Signals AI"):
+            with gr.Row():
+                with gr.Column():
+                    likes_input = gr.Number(label="Likes", value=120, precision=0)
+                    comments_input = gr.Number(label="Comments", value=35, precision=0)
+                    shares_input = gr.Number(label="Shares", value=24, precision=0)
+                    searches_input = gr.Number(label="Searches", value=160, precision=0)
+                    engagement_input = gr.Slider(0, 1, value=0.55, label="Engagement Intensity")
+                    intent_input = gr.Slider(0, 1, value=0.7, label="Purchase Intent Score")
+                    trend_input = gr.Slider(0, 1, value=0.35, label="Trend Growth")
+                    predict_button = gr.Button("Predict Demand")
+                with gr.Column():
+                    demand_output = gr.Textbox(label="Predicted Demand Class")
+                    aggregate_output = gr.Number(label="Aggregate Demand Score")
+                    opportunity_output = gr.Number(label="Opportunity Score")
+            predict_button.click(
+                fn=signal_model,
+                inputs=[
+                    likes_input,
+                    comments_input,
+                    shares_input,
+                    searches_input,
+                    engagement_input,
+                    intent_input,
+                    trend_input,
+                ],
+                outputs=[demand_output, aggregate_output, opportunity_output],
+            )
+        with gr.Tab("Signal CGE Framework"):
+            gr.Markdown(
+                "AI-assisted CGE scenario language, local execution, SAM diagnostics, "
+                "policy intelligence, and GAMS-compatible model text."
+            )
+            scenario_input = gr.Textbox(
+                label="CGE Scenario",
+                value=DEFAULT_SCENARIO,
+                lines=8,
+            )
+            run_cge_button = gr.Button("Run CGE Scenario")
+            with gr.Row():
+                cge_summary_output = gr.Textbox(label="CGE Simulation Summary", lines=9)
+                cge_policy_output = gr.Code(label="Policy Intelligence", language="json", lines=14)
+            gams_output = gr.Code(label="GAMS Compatibility Preview", language="python", lines=18)
+            run_cge_button.click(
+                fn=cge_model,
+                inputs=[scenario_input],
+                outputs=[cge_summary_output, cge_policy_output, gams_output],
+            )
+        with gr.Tab("SML CGE Workbench"):
+            gr.Markdown(
+                "Upload a SAM, upload or edit an SML model file, validate the model, "
+                "run the scenario, inspect SAM balance, and download the policy report."
+            )
+            with gr.Row():
+                sam_upload = gr.File(label="Upload SAM CSV/XLSX", file_types=[".csv", ".xlsx", ".xls"])
+                sml_upload = gr.File(label="Upload SML Model", file_types=[".sml", ".txt"])
+            sml_editor = gr.Textbox(label="Signal Modelling Language", value=DEFAULT_SML_TEXT, lines=20)
+            with gr.Row():
+                validate_sml_button = gr.Button("Validate Model")
+                run_sml_button = gr.Button("Run Scenario")
+            validation_output = gr.Textbox(label="Validation", lines=8)
+            balance_output = gr.Markdown(label="Balance Check")
+            sml_results_output = gr.Code(label="Results", language="json", lines=16)
+            report_download = gr.File(label="Download Policy Report")
+            validate_sml_button.click(
+                fn=validate_sml_dashboard,
+                inputs=[sml_editor, sml_upload],
+                outputs=[validation_output],
+            )
+            run_sml_button.click(
+                fn=run_sml_dashboard,
+                inputs=[sml_editor, sml_upload, sam_upload],
+                outputs=[validation_output, balance_output, sml_results_output, report_download],
+            )
+        with gr.Tab("Learning"):
+            gr.Markdown(
+                "Review evidence-linked lessons, recurring issues, recommended fixes, "
+                "confidence scores, safe apply actions, ignored recommendations, and rollback."
+            )
+            refresh_learning_button = gr.Button("Refresh Learning")
+            with gr.Row():
+                recent_lessons_output = gr.Code(label="Recent Lessons", language="json", lines=16)
+                recurring_issues_output = gr.Code(label="Recurring Issues", language="json", lines=16)
+            recommended_fixes_output = gr.Code(label="Recommended Fixes", language="json", lines=14)
+            with gr.Row():
+                apply_learning_button = gr.Button("Apply Latest Low-Risk Fix")
+                ignore_learning_button = gr.Button("Ignore Latest Recommendation")
+            learning_action_output = gr.Code(label="Learning Action Result", language="json", lines=10)
+            rollback_version_input = gr.Textbox(label="Rollback Version", value="v001")
+            rollback_learning_button = gr.Button("Rollback")
+            refresh_learning_button.click(
+                fn=refresh_learning_dashboard,
+                inputs=[],
+                outputs=[recent_lessons_output, recurring_issues_output, recommended_fixes_output],
+            )
+            apply_learning_button.click(
+                fn=apply_latest_learning_dashboard,
+                inputs=[],
+                outputs=[learning_action_output],
+            )
+            ignore_learning_button.click(
+                fn=ignore_latest_learning_dashboard,
+                inputs=[],
+                outputs=[learning_action_output],
+            )
+            rollback_learning_button.click(
+                fn=rollback_learning_dashboard,
+                inputs=[rollback_version_input],
+                outputs=[learning_action_output],
+            )
 else:
     demo = None
 
