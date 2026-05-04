@@ -1,11 +1,20 @@
+# Core UI (stable combo)
 gradio==4.44.1
 huggingface_hub==0.25.2
+
+# Data + ML
 scikit-learn
 pandas
 numpy
 joblib
+
+# File handling
 openpyxl
+
+# Optional audio (safe)
 pydub
+
+# Backend / APIs
 fastapi
 pydantic
 requests
