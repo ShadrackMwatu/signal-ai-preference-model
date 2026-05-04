@@ -18,3 +18,4 @@ jobs:
         with:
           repo: Signal-ai/signal-ai-dashboard
           token: ${{ secrets.HF_TOKEN }}
+          private: false
