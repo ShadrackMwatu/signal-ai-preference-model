@@ -100,7 +100,6 @@ else:
         else ""
     )
 
-
 def signal_model(
     likes,
     comments,
@@ -111,6 +110,9 @@ def signal_model(
     trend_growth,
 ):
     try:
+        # =========================
+        # 1. INPUT PROCESSING
+        # =========================
         likes = float(likes)
         comments = float(comments)
         shares = float(shares)
@@ -119,8 +121,13 @@ def signal_model(
         purchase_intent_score = float(purchase_intent_score)
         trend_growth = float(trend_growth)
 
+        # =========================
+        # 2. FEATURE ENGINEERING
+        # =========================
+        engagement_volume = (likes + comments + shares + searches) / 4
+
         aggregate_demand_score = round(
-            ((likes + comments + shares + searches) / 4) * engagement_intensity,
+            engagement_volume * engagement_intensity,
             2,
         )
 
@@ -129,9 +136,13 @@ def signal_model(
             2,
         )
 
-        prediction_source = "Fallback logic"
+        # =========================
+        # 3. ML PREDICTION (PRIMARY)
+        # =========================
+        demand_class = None
+        confidence_score = 0.0
+        prediction_source = "Fallback"
 
-        # ✅ Try ML model first
         if model is not None:
             try:
                 features = [[
@@ -144,96 +155,101 @@ def signal_model(
                     trend_growth,
                 ]]
 
-                raw_prediction = model.predict(features)[0]
-                demand_class = str(raw_prediction)
-                prediction_source = "ML model"
+                pred = model.predict(features)[0]
+                demand_class = str(pred)
+
+                if hasattr(model, "predict_proba"):
+                    confidence_score = float(max(model.predict_proba(features)[0]))
+                else:
+                    confidence_score = 0.6  # default fallback
+
+                prediction_source = "ML Model"
 
             except Exception:
                 demand_class = None
-        else:
-            demand_class = None
 
-        # ✅ Fallback if ML fails
+        # =========================
+        # 4. FALLBACK LOGIC (SAFE)
+        # =========================
         if demand_class is None:
-            if purchase_intent_score >= 0.70 and trend_growth >= 0.50:
+            if purchase_intent_score >= 0.7 and trend_growth >= 0.5:
                 demand_class = "High Demand"
-            elif purchase_intent_score >= 0.40 or engagement_intensity >= 0.50:
+            elif purchase_intent_score >= 0.4 or engagement_intensity >= 0.5:
                 demand_class = "Moderate Demand"
             else:
                 demand_class = "Low Demand"
 
-        # 🔥 Guardrail logic (THIS is the upgrade)
+            confidence_score = 0.5
+
+        # =========================
+        # 5. ANOMALY DETECTION
+        # =========================
+        anomaly_flag = False
+
+        if demand_class == "Low Demand" and opportunity_score > 65:
+            anomaly_flag = True
+
+        if engagement_volume < 20 and purchase_intent_score > 0.7:
+            anomaly_flag = True
+
+        # =========================
+        # 6. GUARDRAIL INTELLIGENCE
+        # =========================
         if demand_class == "High Demand" and opportunity_score >= 60:
-            final_signal = "Strong Investment Opportunity"
+            signal = "Strong Investment Opportunity"
+
+        elif demand_class == "Moderate Demand" and opportunity_score >= 55:
+            signal = "Emerging Opportunity"
+
         elif demand_class == "Low Demand" and opportunity_score >= 60:
-            final_signal = "Unmet Demand / Investigate Market Gap"
-        elif demand_class == "Moderate Demand" and opportunity_score >= 50:
-            final_signal = "Emerging Opportunity"
+            signal = "Unmet Demand / Market Gap"
+
         elif demand_class == "Low Demand" and opportunity_score < 50:
-            final_signal = "Weak Signal"
-        else:
-            final_signal = "Monitor Signal"
+            signal = "Weak Signal"
 
-        demand_output = (
-            f"{demand_class} | {final_signal} | Source: {prediction_source}"
+        else:
+            signal = "Monitor"
+
+        # =========================
+        # 7. POLICY-GRADE INTERPRETATION
+        # =========================
+        if signal == "Strong Investment Opportunity":
+            recommendation = "Scale investment, expand supply, prioritize financing"
+
+        elif signal == "Emerging Opportunity":
+            recommendation = "Monitor growth, pilot investments, validate demand"
+
+        elif signal == "Unmet Demand / Market Gap":
+            recommendation = "Investigate barriers (pricing, access, awareness)"
+
+        elif signal == "Weak Signal":
+            recommendation = "Do not allocate resources, low priority"
+
+        else:
+            recommendation = "Collect more data before acting"
+
+        # =========================
+        # 8. OUTPUT (CLEAN + POLICY READY)
+        # =========================
+        output_text = (
+            f"Demand Class: {demand_class}\n"
+            f"Signal: {signal}\n"
+            f"Recommendation: {recommendation}\n"
+            f"Confidence: {round(confidence_score * 100, 2)}%\n"
+            f"Opportunity Score: {opportunity_score}\n"
+            f"Aggregate Demand Score: {aggregate_demand_score}\n"
+            f"Anomaly Detected: {'YES' if anomaly_flag else 'NO'}\n"
+            f"Prediction Source: {prediction_source}"
         )
 
-        return demand_output, aggregate_demand_score, opportunity_score
-
-    except Exception as exc:
-        return f"Signal error: {exc}", 0, 0
-  
-        # Compute engagement score
-        engagement_score = (likes + comments + shares + searches) / 4
-
-        # If model is available, try to use it
-        if model is not None:
-            try:
-                features = [[
-                    likes,
-                    comments,
-                    shares,
-                    searches,
-                    engagement_intensity,
-                    purchase_intent_score,
-                    trend_growth
-                ]]
-
-                prediction = str(model.predict(features)[0])
-
-                confidence = (
-                    float(model.predict_proba(features).max())
-                    if hasattr(model, "predict_proba")
-                    else 0.5
-                )
-
-                aggregate_demand_score = round(confidence * 100, 2)
-                opportunity_score = round(
-                    (purchase_intent_score + trend_growth) / 2 * 100, 2
-                )
-
-                return prediction, aggregate_demand_score, opportunity_score
-
-            except Exception:
-                pass  # fall back if model fails
-
-        # 🔥 Fallback logic (guaranteed to work)
-        if purchase_intent_score > 0.7 and trend_growth > 0.5:
-            demand = "High Demand"
-        elif purchase_intent_score > 0.4:
-            demand = "Moderate Demand"
-        else:
-            demand = "Low Demand"
-
-        aggregate_demand_score = round(engagement_score, 2)
-        opportunity_score = round(
-            (purchase_intent_score + trend_growth) / 2 * 100, 2
-        )
-
-        return demand, aggregate_demand_score, opportunity_score
+        return output_text, aggregate_demand_score, opportunity_score
 
     except Exception as e:
-        return f"Error: {str(e)}", 0, 0
+        return f"Signal system error: {str(e)}", 0, 0
+
+
+
+
 
 
     def cge_model(scenario_text):
