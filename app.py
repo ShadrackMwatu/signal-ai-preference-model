@@ -480,4 +480,7 @@ if __name__ == "__main__":
     try:
         demo.launch()
     except NameError:
-        gr.Blocks(title="Signal AI Dashboard").launch()
+        with gr.Blocks(title="Signal AI Dashboard") as demo:
+            gr.Markdown("# Signal AI Dashboard")
+            gr.Markdown("Fallback dashboard loaded because the main dashboard was not initialized.")
+        demo.launch()
