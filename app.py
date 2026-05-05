@@ -490,6 +490,61 @@ def signal_model(
                 outputs=[learning_action_output],
             )
 
+try:
+    demo
+except NameError:
+    def _safe_signal_model(likes, comments, shares, searches, engagement, purchase, trend):
+        likes = float(likes)
+        comments = float(comments)
+        shares = float(shares)
+        searches = float(searches)
+        purchase = float(purchase)
+        trend = float(trend)
+
+        aggregate_score = round((likes + comments + shares + searches) / 4, 2)
+        opportunity_score = round(((purchase + trend) / 2) * 100, 2)
+
+        if purchase > 0.7 and trend > 0.5:
+            demand = "High Demand"
+        elif purchase > 0.4:
+            demand = "Moderate Demand"
+        else:
+            demand = "Low Demand"
+
+        return demand, aggregate_score, opportunity_score
+
+    with gr.Blocks(title="Signal AI Market Intelligence") as demo:
+        gr.Markdown("# Signal AI Market Intelligence")
+
+        with gr.Tab("Behavioral Signals AI"):
+            likes = gr.Number(label="Likes", value=120)
+            comments = gr.Number(label="Comments", value=35)
+            shares = gr.Number(label="Shares", value=24)
+            searches = gr.Number(label="Searches", value=160)
+            engagement = gr.Slider(0, 1, value=0.55, label="Engagement Intensity")
+            purchase = gr.Slider(0, 1, value=0.7, label="Purchase Intent Score")
+            trend = gr.Slider(0, 1, value=0.35, label="Trend Growth")
+
+            btn = gr.Button("Predict Demand")
+            demand = gr.Textbox(label="Predicted Demand Class")
+            aggregate = gr.Number(label="Aggregate Demand Score")
+            opportunity = gr.Number(label="Opportunity Score")
+
+            btn.click(
+                fn=_safe_signal_model,
+                inputs=[likes, comments, shares, searches, engagement, purchase, trend],
+                outputs=[demand, aggregate, opportunity],
+            )
+
+        with gr.Tab("Signal CGE Framework"):
+            gr.Markdown("CGE framework will load here.")
+
+        with gr.Tab("SML CGE Workbench"):
+            gr.Markdown("SML workbench will load here.")
+
+        with gr.Tab("Learning"):
+            gr.Markdown("Learning system will load here.")
+
 
 if __name__ == "__main__":
     demo.launch()
