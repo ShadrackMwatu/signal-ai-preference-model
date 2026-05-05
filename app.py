@@ -231,26 +231,26 @@ def signal_model(
         # =========================
         # 8. OUTPUT (CLEAN + POLICY READY)
         # =========================
-        output_text = (
-            f"Demand Class: {demand_class}\n"
-            f"Signal: {signal}\n"
-            f"Recommendation: {recommendation}\n"
-            f"Confidence: {round(confidence_score * 100, 2)}%\n"
-            f"Opportunity Score: {opportunity_score}\n"
-            f"Aggregate Demand Score: {aggregate_demand_score}\n"
-            f"Anomaly Detected: {'YES' if anomaly_flag else 'NO'}\n"
-            f"Prediction Source: {prediction_source}"
-        )
 
+
+
+      output_text = f"""
+      ### 📊 Signal Result
+
+     **Demand Level:** {demand_class}  
+     **Opportunity Classification:** {signal}  
+     **Recommendation:** {recommendation}  
+    ---
+    **📈 Aggregate Demand Score:** {aggregate_demand_score}  
+    **🚀 Opportunity Score:** {opportunity_score}  
+    **📊 Confidence:** {round(confidence_score * 100, 2)}%  
+    **⚠️ Anomaly Detected:** {'YES' if anomaly_flag else 'NO'}  
+    **🧠 Source:** {prediction_source}
+    """
         return output_text, aggregate_demand_score, opportunity_score
 
     except Exception as e:
         return f"Signal system error: {str(e)}", 0, 0
-
-
-
-
-
 
     def cge_model(scenario_text):
         try:
@@ -459,7 +459,7 @@ def signal_model(
                     predict_button = gr.Button("Predict Demand")
 
                 with gr.Column():
-                    demand_output = gr.Textbox(label="Predicted Demand Class")
+                    demand_output = gr.Markdown(label="Signal Output")
                     aggregate_output = gr.Number(label="Aggregate Demand Score")
                     opportunity_output = gr.Number(label="Opportunity Score")
 
