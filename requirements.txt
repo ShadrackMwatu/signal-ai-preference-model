@@ -1,20 +1,5 @@
-# Core UI (stable combo)
-gradio==4.44.1
-huggingface_hub==0.25.2
-
-# Data + ML
-scikit-learn
-pandas
+gradio==5.13.0
 numpy
+pandas
+scikit-learn
 joblib
-
-# File handling
-openpyxl
-
-# Optional audio (safe)
-pydub
-
-# Backend / APIs
-fastapi
-pydantic
-requests
