@@ -477,4 +477,4 @@ def signal_model(
 
 
 if __name__ == "__main__":
-    demo.launch()
+   app.launch()
