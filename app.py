@@ -28,6 +28,21 @@ except Exception as exc:
     ADVANCED_AVAILABLE = False
     ADVANCED_IMPORT_ERROR = str(exc)
 
+if not ADVANCED_AVAILABLE:
+    FEATURE_COLUMNS = [
+        "likes",
+        "comments",
+        "shares",
+        "searches",
+        "engagement_intensity",
+        "purchase_intent_score",
+        "trend_growth",
+    ]
+    MODEL_PATH = "model.pkl"
+    DEFAULT_SCENARIO = "Baseline policy scenario"
+
+    def train_signal_model(*args, **kwargs):
+        return None
 
 def fallback_signal_dashboard(topic, county):
     return (
@@ -39,7 +54,7 @@ def fallback_signal_dashboard(topic, county):
     )
 
 
-if not ADVANCED_AVAILABLE:
+if False:
     with gr.Blocks(title="Signal AI Dashboard") as demo:
         gr.Markdown("# Signal AI Dashboard")
         gr.Markdown(
