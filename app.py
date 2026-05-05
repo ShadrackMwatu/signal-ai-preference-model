@@ -231,23 +231,24 @@ def signal_model(
         # =========================
         # 8. OUTPUT (CLEAN + POLICY READY)
         # =========================
+        output_text = f"""
+### 📊 Signal Result
 
+**Demand Level:** {demand_class}  
+**Opportunity Classification:** {signal}  
+**Recommendation:** {recommendation}  
 
+---
 
-      output_text = f"""
-      ### 📊 Signal Result
-
-     **Demand Level:** {demand_class}  
-     **Opportunity Classification:** {signal}  
-     **Recommendation:** {recommendation}  
-    ---
-    **📈 Aggregate Demand Score:** {aggregate_demand_score}  
-    **🚀 Opportunity Score:** {opportunity_score}  
-    **📊 Confidence:** {round(confidence_score * 100, 2)}%  
-    **⚠️ Anomaly Detected:** {'YES' if anomaly_flag else 'NO'}  
-    **🧠 Source:** {prediction_source}
+**📈 Aggregate Demand Score:** {aggregate_demand_score}  
+**🚀 Opportunity Score:** {opportunity_score}  
+**📊 Confidence:** {round(confidence_score * 100, 2)}%  
+**⚠️ Anomaly Detected:** {'YES' if anomaly_flag else 'NO'}  
+**🧠 Source:** {prediction_source}
+"""
     """
-        return output_text, aggregate_demand_score, opportunity_score
+   
+return output_text, aggregate_demand_score, opportunity_score
 
     except Exception as e:
         return f"Signal system error: {str(e)}", 0, 0
