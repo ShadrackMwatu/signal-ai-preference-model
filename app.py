@@ -182,17 +182,7 @@ def signal_model(
 
     except Exception as exc:
         return f"Signal error: {exc}", 0, 0
-):
-    try:
-        # Convert inputs safely
-        likes = float(likes)
-        comments = float(comments)
-        shares = float(shares)
-        searches = float(searches)
-        engagement_intensity = float(engagement_intensity)
-        purchase_intent_score = float(purchase_intent_score)
-        trend_growth = float(trend_growth)
-
+  
         # Compute engagement score
         engagement_score = (likes + comments + shares + searches) / 4
 
