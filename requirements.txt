@@ -1,5 +1,23 @@
 gradio==5.13.0
 numpy
 pandas
+scipy
 scikit-learn
+statsmodels
+xgboost
 joblib
+openpyxl
+matplotlib
+plotly
+spacy
+nltk
+transformers
+sentence-transformers
+torch
+tensorflow; python_version < "3.14"
+datasets
+evaluate
+pyyaml
+pydantic
+fastapi
+uvicorn
