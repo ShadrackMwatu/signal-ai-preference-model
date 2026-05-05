@@ -477,4 +477,7 @@ def signal_model(
 
 
 if __name__ == "__main__":
-   demo.launch()
+    try:
+        demo.launch()
+    except NameError:
+        gr.Blocks(title="Signal AI Dashboard").launch()
