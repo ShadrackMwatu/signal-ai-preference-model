@@ -111,6 +111,79 @@ def signal_model(
     trend_growth,
 ):
     try:
+        likes = float(likes)
+        comments = float(comments)
+        shares = float(shares)
+        searches = float(searches)
+        engagement_intensity = float(engagement_intensity)
+        purchase_intent_score = float(purchase_intent_score)
+        trend_growth = float(trend_growth)
+
+        aggregate_demand_score = round(
+            ((likes + comments + shares + searches) / 4) * engagement_intensity,
+            2,
+        )
+
+        opportunity_score = round(
+            ((purchase_intent_score + trend_growth) / 2) * 100,
+            2,
+        )
+
+        prediction_source = "Fallback logic"
+
+        # ✅ Try ML model first
+        if model is not None:
+            try:
+                features = [[
+                    likes,
+                    comments,
+                    shares,
+                    searches,
+                    engagement_intensity,
+                    purchase_intent_score,
+                    trend_growth,
+                ]]
+
+                raw_prediction = model.predict(features)[0]
+                demand_class = str(raw_prediction)
+                prediction_source = "ML model"
+
+            except Exception:
+                demand_class = None
+        else:
+            demand_class = None
+
+        # ✅ Fallback if ML fails
+        if demand_class is None:
+            if purchase_intent_score >= 0.70 and trend_growth >= 0.50:
+                demand_class = "High Demand"
+            elif purchase_intent_score >= 0.40 or engagement_intensity >= 0.50:
+                demand_class = "Moderate Demand"
+            else:
+                demand_class = "Low Demand"
+
+        # 🔥 Guardrail logic (THIS is the upgrade)
+        if demand_class == "High Demand" and opportunity_score >= 60:
+            final_signal = "Strong Investment Opportunity"
+        elif demand_class == "Low Demand" and opportunity_score >= 60:
+            final_signal = "Unmet Demand / Investigate Market Gap"
+        elif demand_class == "Moderate Demand" and opportunity_score >= 50:
+            final_signal = "Emerging Opportunity"
+        elif demand_class == "Low Demand" and opportunity_score < 50:
+            final_signal = "Weak Signal"
+        else:
+            final_signal = "Monitor Signal"
+
+        demand_output = (
+            f"{demand_class} | {final_signal} | Source: {prediction_source}"
+        )
+
+        return demand_output, aggregate_demand_score, opportunity_score
+
+    except Exception as exc:
+        return f"Signal error: {exc}", 0, 0
+):
+    try:
         # Convert inputs safely
         likes = float(likes)
         comments = float(comments)
