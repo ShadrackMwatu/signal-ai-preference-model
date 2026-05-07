@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+from html import escape
 from pathlib import Path
 from typing import Any
 
@@ -12,7 +13,7 @@ import pandas as pd
 
 import gradio as gr
 
-from explainability import format_key_drivers_markdown, generate_prediction_explanation
+from explainability import generate_prediction_explanation
 from privacy import PRIVACY_NOTICE
 from trend_intelligence import analyze_trend_batch, summarize_trend_batch
 from x_trends import fetch_x_trends
@@ -44,6 +45,20 @@ PRIMARY_MODEL_PATH = ROOT_DIR / "models" / "model.pkl"
 LEGACY_MODEL_PATH = ROOT_DIR / "model.pkl"
 PRIMARY_MODEL_METADATA_PATH = ROOT_DIR / "models" / "metadata.json"
 
+DISPLAY_LABELS = {
+    "Validate Signal Quality": "Emerging Signal — Further Monitoring Recommended",
+    "Monitor Further": "Emerging Signal — Further Monitoring Recommended",
+    "Weak Signal": "Limited Market Momentum",
+    "Possible Noise": "Signal Volatility Detected",
+    "Investigate Anomaly / Possible Unmet Demand": "Potential Unmet Demand Opportunity",
+    "Moderate Demand": "Developing Market Interest",
+    "High Demand": "Strong Demand Momentum",
+    "Low Demand": "Limited Demand Signal",
+    "Emerging Demand": "Emerging Demand Signal",
+    "Declining Demand": "Limited Market Momentum",
+    "Unmet Demand": "Potential Unmet Demand Opportunity",
+}
+
 
 def predict_demand_details(
     likes: float,
@@ -72,6 +87,9 @@ def predict_demand_details(
         guarded["key_drivers"] = explanation["key_drivers"]
         guarded["key_driver_summary"] = explanation["driver_summary"]
         guarded["policy_note"] = explanation["policy_note"]
+        guarded["risk_signals"] = _build_risk_signals(features, guarded)
+        guarded.update(_calculate_intelligence_scores(features, guarded))
+        guarded["why_this_matters"] = _build_why_this_matters(features, guarded)
         return guarded
     except Exception as exc:
         return {
@@ -88,7 +106,15 @@ def predict_demand_details(
             "explanation_note": f"Prediction pipeline failed: {exc}",
             "key_drivers": ["prediction error"],
             "key_driver_summary": f"Signal could not complete the prediction: {exc}",
+            "risk_signals": ["Prediction pipeline failed before validation could complete."],
             "policy_note": "Check model availability and input validity before interpreting this signal.",
+            "why_this_matters": "Signal could not complete the assessment, so the current output should not be used for decision-making.",
+            "signal_strength_score": 0.0,
+            "momentum_score": 0.0,
+            "volatility_noise_score": 0.0,
+            "persistence_score": 0.0,
+            "adoption_probability": 0.0,
+            "viral_probability": 0.0,
             "model_version": "unavailable",
         }
 
@@ -157,6 +183,51 @@ def signal_model(
     legacy_aggregate_score = max(0.0, min(100.0, float(aggregate_score)))
     legacy_opportunity_score = float(opportunity_score) * 100 if opportunity_score <= 1 else float(opportunity_score)
     return legacy_label, legacy_aggregate_score, max(0.0, min(100.0, legacy_opportunity_score))
+
+
+def update_behavioral_dashboard(
+    likes: float,
+    comments: float,
+    shares: float,
+    searches: float,
+    engagement_intensity: float,
+    purchase_intent_score: float,
+    trend_growth: float,
+) -> tuple[Any, ...]:
+    """Return the full live dashboard payload for the Behavioral Signals AI tab."""
+
+    result = predict_demand_details(
+        likes,
+        comments,
+        shares,
+        searches,
+        engagement_intensity,
+        purchase_intent_score,
+        trend_growth,
+    )
+    visuals = _build_visual_components(result)
+    return (
+        str(result["demand_classification"]),
+        round(float(result["confidence_score"]) * 100, 2),
+        round(float(result["aggregate_demand_score"]), 2),
+        round(float(result["opportunity_score"]), 2),
+        round(float(result["emerging_trend_probability"]) * 100, 2),
+        round(float(result["unmet_demand_probability"]) * 100, 2),
+        str(result["investment_opportunity_interpretation"]),
+        _format_panel_explanation(result),
+        round(float(result["signal_strength_score"]), 2),
+        round(float(result["momentum_score"]), 2),
+        round(float(result["volatility_noise_score"]), 2),
+        round(float(result["persistence_score"]), 2),
+        round(float(result["adoption_probability"]), 2),
+        round(float(result["viral_probability"]), 2),
+        str(result["why_this_matters"]),
+        visuals["confidence_gauge_html"],
+        visuals["signal_strength_gauge_html"],
+        visuals["momentum_indicator_html"],
+        visuals["opportunity_radar_html"],
+        visuals["key_driver_cards_html"],
+    )
 
 
 def cge_model(scenario_text: str) -> tuple[str, str, str]:
@@ -389,6 +460,10 @@ def _safe_float(value: Any) -> float:
     return float(value or 0)
 
 
+def _display_label(label: str) -> str:
+    return DISPLAY_LABELS.get(label, label)
+
+
 def _build_signal_features(
     likes: float,
     comments: float,
@@ -470,7 +545,7 @@ def _predict_with_model(features: dict[str, float]) -> dict[str, Any]:
     feature_columns = artifact.get("feature_columns") or list(features.keys())
     model = artifact.get("model", artifact)
     frame = pd.DataFrame([{column: float(features.get(column, 0.0)) for column in feature_columns}])
-    prediction = _map_demand_label(model.predict(frame)[0])
+    raw_prediction = _map_demand_label(model.predict(frame)[0])
     probabilities = model.predict_proba(frame)[0] if hasattr(model, "predict_proba") else np.array([1.0])
     classes = [_map_demand_label(label) for label in getattr(model, "classes_", ["Low Demand", "Moderate Demand", "High Demand"])]
     class_probabilities = {label: float(prob) for label, prob in zip(classes, probabilities)}
@@ -509,8 +584,9 @@ def _predict_with_model(features: dict[str, float]) -> dict[str, Any]:
     )
 
     return {
-        "demand_classification": prediction,
-        "demand_band": _normalize_demand_band(prediction),
+        "raw_demand_classification": raw_prediction,
+        "demand_classification": _display_label(raw_prediction),
+        "demand_band": _normalize_demand_band(raw_prediction),
         "confidence_score": round(confidence_score, 4),
         "aggregate_demand_score": round(aggregate_demand_score, 2),
         "opportunity_score": round(opportunity_score, 2),
@@ -536,17 +612,17 @@ def _predict_with_fallback(features: dict[str, float]) -> dict[str, Any]:
         1,
     )
     if features["searches"] >= 160 and features["engagement_intensity"] < 0.45 and features["purchase_intent_score"] >= 0.6:
-        demand = "Unmet Demand"
+        raw_demand = "Unmet Demand"
     elif features["trend_growth"] <= -0.08 and features["engagement_intensity"] < 0.5:
-        demand = "Declining Demand"
+        raw_demand = "Declining Demand"
     elif features["trend_growth"] >= 0.48 and features["engagement_intensity"] >= 0.46:
-        demand = "Emerging Demand"
+        raw_demand = "Emerging Demand"
     elif latent >= 0.68:
-        demand = "High Demand"
+        raw_demand = "High Demand"
     elif latent >= 0.42:
-        demand = "Moderate Demand"
+        raw_demand = "Moderate Demand"
     else:
-        demand = "Low Demand"
+        raw_demand = "Low Demand"
 
     unmet_probability = float(np.clip(features["unmet_need_signal"], 0, 1))
     emerging_probability = float(np.clip(features["trend_momentum"], 0, 1))
@@ -562,8 +638,9 @@ def _predict_with_fallback(features: dict[str, float]) -> dict[str, Any]:
         )
     )
     return {
-        "demand_classification": demand,
-        "demand_band": _normalize_demand_band(demand),
+        "raw_demand_classification": raw_demand,
+        "demand_classification": _display_label(raw_demand),
+        "demand_band": _normalize_demand_band(raw_demand),
         "confidence_score": round(confidence_score, 4),
         "aggregate_demand_score": round(aggregate_demand_score, 2),
         "opportunity_score": round(opportunity_score, 2),
@@ -578,8 +655,8 @@ def _predict_with_fallback(features: dict[str, float]) -> dict[str, Any]:
 
 
 def _apply_guardrails(result: dict[str, Any], features: dict[str, float]) -> dict[str, Any]:
-    demand = str(result["demand_classification"])
-    demand_band = str(result.get("demand_band", _normalize_demand_band(demand)))
+    raw_demand = str(result.get("raw_demand_classification", result["demand_classification"]))
+    demand_band = str(result.get("demand_band", _normalize_demand_band(raw_demand)))
     opportunity = float(result["opportunity_score"])
     confidence = float(result["confidence_score"])
     unmet_probability = float(result["unmet_demand_probability"])
@@ -588,18 +665,18 @@ def _apply_guardrails(result: dict[str, Any], features: dict[str, float]) -> dic
     source_components = list(result.get("model_source_components", []))
 
     if demand_band == "High Demand" and opportunity >= 70:
-        interpretation = "Strong Investment Opportunity"
+        raw_interpretation = "Strong Investment Opportunity"
     elif demand_band == "Moderate Demand" and opportunity >= 55:
-        interpretation = "Emerging Opportunity"
+        raw_interpretation = "Emerging Opportunity"
     elif demand_band == "Low Demand" and opportunity >= 55:
-        interpretation = "Investigate Anomaly / Possible Unmet Demand"
+        raw_interpretation = "Investigate Anomaly / Possible Unmet Demand"
         unmet_probability = max(unmet_probability, float(np.clip(features["unmet_need_signal"], 0, 1)))
         notes.append("Guardrail flagged a contradiction between low demand and elevated opportunity.")
     else:
-        interpretation = "Weak Signal"
+        raw_interpretation = "Weak Signal"
 
     if demand_band == "High Demand" and confidence < 0.62:
-        interpretation = "Monitor Further"
+        raw_interpretation = "Monitor Further"
         notes.append("High-demand classification arrived with low confidence and should be monitored further.")
     if features.get("searches", 0) >= 160 and features.get("engagement_intensity", 0) < 0.45:
         unmet_probability = max(unmet_probability, 0.72)
@@ -607,7 +684,7 @@ def _apply_guardrails(result: dict[str, Any], features: dict[str, float]) -> dic
         if "Anomaly / Unmet Demand Detection" not in source_components:
             source_components.append("Anomaly / Unmet Demand Detection")
     if features.get("noise_score", 0) >= 0.75:
-        interpretation = "Validate Signal Quality" if opportunity >= 45 else interpretation
+        raw_interpretation = "Validate Signal Quality" if opportunity >= 45 else raw_interpretation
         notes.append("High noise score suggests more data quality review before acting.")
     if features.get("engagement_intensity", 0) >= 0.72 and features.get("noise_score", 0) >= 0.6:
         notes.append("High engagement is present, but signal quality should be validated because noise is also elevated.")
@@ -617,7 +694,10 @@ def _apply_guardrails(result: dict[str, Any], features: dict[str, float]) -> dic
         source_components.append("Guardrail Adjustment")
 
     result = dict(result)
-    result["investment_opportunity_interpretation"] = interpretation
+    result["raw_demand_classification"] = raw_demand
+    result["demand_classification"] = _display_label(raw_demand)
+    result["raw_investment_opportunity_interpretation"] = raw_interpretation
+    result["investment_opportunity_interpretation"] = _display_label(raw_interpretation)
     result["unmet_demand_flag"] = bool(unmet_probability >= 0.6)
     result["emerging_trend_flag"] = bool(emerging_probability >= 0.55)
     result["explanation_note"] = " ".join(notes)
@@ -625,7 +705,7 @@ def _apply_guardrails(result: dict[str, Any], features: dict[str, float]) -> dic
     result["unmet_demand_probability"] = round(unmet_probability, 4)
     result["model_source_components"] = source_components
     result["prediction_source"] = " | ".join(source_components) if source_components else str(result["prediction_source"])
-    result["model_source_label"] = result["prediction_source"]
+    result["model_source_label"] = result["prediction_source"].replace("â€”", "—")
     return result
 
 
@@ -662,32 +742,234 @@ def _metadata_value(key: str, default: str) -> str:
         return default
     return str(payload.get(key, default))
 
+def _format_panel_explanation(result: dict[str, Any]) -> str:
+    key_drivers = result.get("key_drivers", [])[:3]
+    risk_signals = result.get("risk_signals", [])[:3]
+    lines = [
+        "AI Intelligence Brief",
+        "",
+        "1. Classification",
+        f"Demand classification: {result['demand_classification']}",
+        f"Confidence level: {float(result['confidence_score']) * 100:.1f}%",
+        f"Aggregate demand score: {float(result['aggregate_demand_score']):.2f}",
+        f"Opportunity score: {float(result['opportunity_score']):.2f}",
+        "",
+        "2. Key Drivers",
+    ]
+    lines.extend(f"- {driver}" for driver in key_drivers or ["No dominant drivers identified."])
+    lines.extend(["", "3. Risk / Validation Signals"])
+    lines.extend(f"- {risk}" for risk in risk_signals or ["No major validation risks were detected."])
+    lines.extend(
+        [
+            "",
+            "4. Strategic Interpretation",
+            str(result["why_this_matters"]),
+            "",
+            "5. Model Source",
+            str(result["model_source_label"]),
+        ]
+    )
+    return "\n".join(lines)
 
-def _format_intelligence_summary(result: dict[str, Any]) -> str:
+
+def _calculate_intelligence_scores(features: dict[str, float], result: dict[str, Any]) -> dict[str, float]:
+    weighted_engagement_normalized = float(np.clip(features["weighted_engagement_score"] / 10, 0, 1))
+    signal_strength = np.clip(
+        (
+            features["engagement_intensity"] * 0.28
+            + features["purchase_intent_score"] * 0.22
+            + features["engagement_rate"] * 0.14
+            + weighted_engagement_normalized * 0.14
+            + max(features["sentiment_score"], 0) * 0.08
+            + float(result["confidence_score"]) * 0.14
+        )
+        * 100,
+        0,
+        100,
+    )
+    momentum_score = np.clip(
+        (
+            features["trend_momentum"] * 0.48
+            + max(features["trend_growth"], 0) * 0.24
+            + float(result["emerging_trend_probability"]) * 0.18
+            + features["urgency_score"] * 0.1
+        )
+        * 100,
+        0,
+        100,
+    )
+    volatility_noise_score = np.clip(
+        (
+            features["noise_score"] * 0.7
+            + abs(features["trend_growth"] - features["engagement_intensity"]) * 0.2
+            + max(-features["sentiment_score"], 0) * 0.1
+        )
+        * 100,
+        0,
+        100,
+    )
+    persistence_score = np.clip(
+        (features["repetition_score"] * 0.65 + features["engagement_intensity"] * 0.2 + features["engagement_rate"] * 0.15)
+        * 100,
+        0,
+        100,
+    )
+    adoption_probability = np.clip(
+        signal_strength * 0.3
+        + momentum_score * 0.18
+        + features["purchase_intent_score"] * 100 * 0.2
+        + float(result["aggregate_demand_score"]) * 0.16
+        + float(result["confidence_score"]) * 100 * 0.16,
+        0,
+        100,
+    )
+    viral_probability = np.clip(
+        (
+            min(features["shares_count"] / max(features["likes_count"] + 1, 1), 1) * 0.26
+            + min(features["comments_count"] / max(features["likes_count"] + 1, 1), 1) * 0.12
+            + min(features["searches_count"] / max(features["likes_count"] + 1, 1), 1) * 0.16
+            + max(features["trend_growth"], 0) * 0.24
+            + features["engagement_intensity"] * 0.12
+            + features["urgency_score"] * 0.1
+        )
+        * 100,
+        0,
+        100,
+    )
+    return {
+        "signal_strength_score": round(float(signal_strength), 2),
+        "momentum_score": round(float(momentum_score), 2),
+        "volatility_noise_score": round(float(volatility_noise_score), 2),
+        "persistence_score": round(float(persistence_score), 2),
+        "adoption_probability": round(float(adoption_probability), 2),
+        "viral_probability": round(float(viral_probability), 2),
+    }
+
+
+def _build_risk_signals(features: dict[str, float], result: dict[str, Any]) -> list[str]:
+    risks: list[str] = []
+    if float(result["confidence_score"]) < 0.6:
+        risks.append("Low confidence means this signal should be monitored before large commitments.")
+    if features["noise_score"] >= 0.7:
+        risks.append("Signal Volatility Detected: elevated noise suggests additional validation is needed.")
+    if bool(result.get("unmet_demand_flag")):
+        risks.append("Potential unmet demand may reflect access, delivery, or affordability gaps.")
+    if features["sentiment_score"] < 0:
+        risks.append("Soft sentiment may limit conversion even if attention remains elevated.")
+    if features["price_sensitivity"] >= 0.68:
+        risks.append("High price sensitivity suggests affordability could slow adoption.")
+    if not risks:
+        risks.append("No major validation risks were detected in the current aggregate signal.")
+    return risks[:3]
+
+
+def _build_why_this_matters(features: dict[str, float], result: dict[str, Any]) -> str:
+    classification = str(result["demand_classification"])
+    interpretation = str(result["investment_opportunity_interpretation"])
+    confidence = float(result["confidence_score"]) * 100
+    if result.get("unmet_demand_flag"):
+        return (
+            "Rising search activity and uneven engagement suggest latent demand that may not yet be fully served. "
+            "This can point to delivery, pricing, or access gaps that deserve targeted market validation or policy support. "
+            f"The current signal is classified as {classification.lower()} with {confidence:.1f}% confidence."
+        )
+    if features["trend_growth"] >= 0.45:
+        return (
+            "Momentum is building quickly, which can signal a near-term opening for investment, product positioning, or targeted outreach. "
+            f"Signal currently reads as {classification.lower()}, and the dashboard interpretation is {interpretation.lower()}. "
+            "This is useful for prioritizing early action while monitoring conversion quality."
+        )
     return (
-        "## Signal Intelligence Brief\n"
-        f"**Demand Classification:** {result['demand_classification']}  \n"
-        f"**Confidence Score:** {float(result['confidence_score']) * 100:.1f}%  \n"
-        f"**Aggregate Demand Score:** {float(result['aggregate_demand_score']):.2f}  \n"
-        f"**Opportunity Score:** {float(result['opportunity_score']):.2f}  \n"
-        f"**Emerging Trend Probability:** {float(result['emerging_trend_probability']) * 100:.1f}%  \n"
-        f"**Unmet Demand Probability:** {float(result['unmet_demand_probability']) * 100:.1f}%  \n"
-        f"**Investment / Policy Interpretation:** {result['investment_opportunity_interpretation']}  \n"
-        f"**Model Source:** {result['model_source_label']}  \n"
-        f"**Model Version:** {result.get('model_version', 'unavailable')}"
+        "Current activity shows the market is moving, but the strength and quality of participation still matter. "
+        f"Signal currently reads as {classification.lower()}, which helps frame whether this is a scaling opportunity, a monitoring case, or a policy watchpoint. "
+        "Use this view alongside sector context and follow-on evidence before making large commitments."
     )
 
 
-def _format_panel_explanation(result: dict[str, Any]) -> str:
-    drivers_markdown = format_key_drivers_markdown({"key_drivers": result.get("key_drivers", [])})
-    summary = _format_intelligence_summary(result)
+def _build_visual_components(result: dict[str, Any]) -> dict[str, str]:
+    return {
+        "confidence_gauge_html": _render_gauge_card("Confidence Gauge", float(result["confidence_score"]) * 100, "#2563eb"),
+        "signal_strength_gauge_html": _render_gauge_card("Signal Strength Gauge", float(result["signal_strength_score"]), "#16a34a"),
+        "momentum_indicator_html": _render_gauge_card("Trend Momentum Indicator", float(result["momentum_score"]), "#d97706"),
+        "opportunity_radar_html": _render_radar_chart(
+            {
+                "Opportunity": float(result["opportunity_score"]),
+                "Momentum": float(result["momentum_score"]),
+                "Adoption": float(result["adoption_probability"]),
+                "Persistence": float(result["persistence_score"]),
+                "Viral": float(result["viral_probability"]),
+            }
+        ),
+        "key_driver_cards_html": _render_key_driver_cards(
+            result.get("key_drivers", []),
+            result.get("risk_signals", []),
+        ),
+    }
+
+
+def _render_gauge_card(title: str, value: float, color: str) -> str:
+    safe_title = escape(title)
+    width = max(0.0, min(float(value), 100.0))
     return (
-        f"{result['model_source_label']}\n\n"
-        f"{summary}\n\n"
-        f"Key Drivers:\n{drivers_markdown}\n\n"
-        f"{result['key_driver_summary']}\n\n"
-        f"{result['explanation_note']}\n\n"
-        f"{result['policy_note']}"
+        "<div style='border:1px solid #dbe3ef;border-radius:8px;padding:12px;background:#ffffff;'>"
+        f"<div style='font-size:13px;font-weight:600;color:#1f2937;margin-bottom:8px;'>{safe_title}</div>"
+        f"<div style='font-size:24px;font-weight:700;color:#111827;margin-bottom:8px;'>{width:.1f}</div>"
+        "<div style='height:12px;background:#eef2f7;border-radius:999px;overflow:hidden;'>"
+        f"<div style='height:12px;width:{width:.1f}%;background:{color};border-radius:999px;'></div>"
+        "</div>"
+        "</div>"
+    )
+
+
+def _render_radar_chart(values: dict[str, float]) -> str:
+    labels = list(values.keys())
+    points: list[tuple[float, float]] = []
+    center_x = 120.0
+    center_y = 120.0
+    radius = 84.0
+    for index, label in enumerate(labels):
+        angle = (-np.pi / 2) + (2 * np.pi * index / len(labels))
+        scale = max(0.0, min(float(values[label]), 100.0)) / 100
+        x = center_x + np.cos(angle) * radius * scale
+        y = center_y + np.sin(angle) * radius * scale
+        points.append((x, y))
+    polygon = " ".join(f"{x:.1f},{y:.1f}" for x, y in points)
+    axis_labels = []
+    for index, label in enumerate(labels):
+        angle = (-np.pi / 2) + (2 * np.pi * index / len(labels))
+        outer_x = center_x + np.cos(angle) * 102
+        outer_y = center_y + np.sin(angle) * 102
+        axis_labels.append(
+            f"<text x='{outer_x:.1f}' y='{outer_y:.1f}' text-anchor='middle' font-size='11' fill='#334155'>{escape(label)}</text>"
+        )
+    return (
+        "<div style='border:1px solid #dbe3ef;border-radius:8px;padding:12px;background:#ffffff;'>"
+        "<div style='font-size:13px;font-weight:600;color:#1f2937;margin-bottom:8px;'>Opportunity Radar Chart</div>"
+        "<svg viewBox='0 0 240 240' width='100%' height='240'>"
+        "<circle cx='120' cy='120' r='84' fill='none' stroke='#e2e8f0' stroke-width='1' />"
+        "<circle cx='120' cy='120' r='56' fill='none' stroke='#e2e8f0' stroke-width='1' />"
+        "<circle cx='120' cy='120' r='28' fill='none' stroke='#e2e8f0' stroke-width='1' />"
+        f"<polygon points='{polygon}' fill='rgba(37,99,235,0.25)' stroke='#2563eb' stroke-width='2' />"
+        + "".join(axis_labels)
+        + "</svg></div>"
+    )
+
+
+def _render_key_driver_cards(drivers: list[str], risks: list[str]) -> str:
+    driver_cards = []
+    for driver in (drivers or ["Balanced aggregate demand profile"])[:3]:
+        driver_cards.append(
+            "<div style='flex:1;min-width:140px;border:1px solid #dbe3ef;border-radius:8px;padding:10px;background:#f8fafc;'>"
+            f"<div style='font-size:12px;color:#475569;'>Key Driver</div><div style='font-size:14px;font-weight:600;color:#0f172a;'>{escape(driver)}</div></div>"
+        )
+    risk_markup = "".join(f"<li>{escape(risk)}</li>" for risk in (risks or [])[:2])
+    return (
+        "<div style='border:1px solid #dbe3ef;border-radius:8px;padding:12px;background:#ffffff;'>"
+        "<div style='font-size:13px;font-weight:600;color:#1f2937;margin-bottom:8px;'>Key Driver Summary Cards</div>"
+        f"<div style='display:flex;gap:8px;flex-wrap:wrap;margin-bottom:10px;'>{''.join(driver_cards)}</div>"
+        "<div style='font-size:12px;color:#475569;'>Validation Signals</div>"
+        f"<ul style='margin:6px 0 0 18px;color:#0f172a;font-size:13px;'>{risk_markup}</ul>"
+        "</div>"
     )
 
 
@@ -747,7 +1029,25 @@ with gr.Blocks(title="Signal AI Market Intelligence") as demo:
                     emerging_output = gr.Number(label="Emerging Trend Probability (%)", interactive=False)
                     unmet_output = gr.Number(label="Unmet Demand Probability (%)", interactive=False)
                 interpretation_output = gr.Textbox(label="Investment / Policy Interpretation", lines=2, interactive=False)
-                source_output = gr.Textbox(label="Model Source and Explanation", lines=12, interactive=False)
+                with gr.Row():
+                    signal_strength_output = gr.Number(label="Signal Strength Score", interactive=False)
+                    momentum_score_output = gr.Number(label="Momentum Score", interactive=False)
+                    volatility_output = gr.Number(label="Volatility / Noise Score", interactive=False)
+                with gr.Row():
+                    persistence_output = gr.Number(label="Persistence Score", interactive=False)
+                    adoption_output = gr.Number(label="Adoption Probability", interactive=False)
+                    viral_output = gr.Number(label="Viral Probability", interactive=False)
+                why_matters_output = gr.Textbox(label="Why This Matters", lines=4, interactive=False)
+                source_output = gr.Textbox(label="Model Source and Explanation", lines=16, interactive=False)
+
+        with gr.Row():
+            confidence_gauge_output = gr.HTML(label="Confidence Gauge")
+            signal_strength_gauge_output = gr.HTML(label="Signal Strength Gauge")
+            momentum_indicator_output = gr.HTML(label="Trend Momentum Indicator")
+
+        with gr.Row():
+            opportunity_radar_output = gr.HTML(label="Opportunity Radar Chart")
+            key_driver_cards_output = gr.HTML(label="Key Driver Summary Cards")
 
         live_inputs = [
             likes,
@@ -767,20 +1067,32 @@ with gr.Blocks(title="Signal AI Market Intelligence") as demo:
             unmet_output,
             interpretation_output,
             source_output,
+            signal_strength_output,
+            momentum_score_output,
+            volatility_output,
+            persistence_output,
+            adoption_output,
+            viral_output,
+            why_matters_output,
+            confidence_gauge_output,
+            signal_strength_gauge_output,
+            momentum_indicator_output,
+            opportunity_radar_output,
+            key_driver_cards_output,
         ]
         for input_component in live_inputs:
             input_component.change(
-                fn=predict_demand,
+                fn=update_behavioral_dashboard,
                 inputs=live_inputs,
                 outputs=live_outputs,
             )
         predict_button.click(
-            fn=predict_demand,
+            fn=update_behavioral_dashboard,
             inputs=live_inputs,
             outputs=live_outputs,
         )
         demo.load(
-            fn=predict_demand,
+            fn=update_behavioral_dashboard,
             inputs=live_inputs,
             outputs=live_outputs,
         )

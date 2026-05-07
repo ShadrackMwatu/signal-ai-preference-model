@@ -20,7 +20,7 @@ class ExplainabilityTests(unittest.TestCase):
                 "unmet_need_signal": 0.18,
             },
             {
-                "demand_classification": "High Demand",
+                "demand_classification": "Strong Demand Momentum",
                 "confidence_score": 0.88,
                 "investment_opportunity_interpretation": "Strong Investment Opportunity",
                 "unmet_demand_flag": False,

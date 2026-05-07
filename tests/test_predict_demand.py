@@ -10,7 +10,17 @@ class PredictDemandTests(unittest.TestCase):
         result = app.predict_demand(180, 50, 35, 220, 0.68, 0.82, 0.6)
 
         self.assertEqual(len(result), 8)
-        self.assertIn(result[0], {"High Demand", "Moderate Demand", "Low Demand", "Emerging Demand", "Declining Demand", "Unmet Demand"})
+        self.assertIn(
+            result[0],
+            {
+                "Strong Demand Momentum",
+                "Developing Market Interest",
+                "Limited Demand Signal",
+                "Emerging Demand Signal",
+                "Limited Market Momentum",
+                "Potential Unmet Demand Opportunity",
+            },
+        )
         self.assertIsInstance(result[1], float)
         self.assertIsInstance(result[2], float)
         self.assertIsInstance(result[3], float)
@@ -48,6 +58,16 @@ class PredictDemandTests(unittest.TestCase):
             ),
         )
         self.assertEqual(live_panel[0], details["demand_classification"])
+
+    def test_auto_update_payload_includes_new_scores_and_visuals(self) -> None:
+        result = app.update_behavioral_dashboard(180, 50, 35, 220, 0.68, 0.82, 0.6)
+
+        self.assertEqual(len(result), 20)
+        self.assertIsInstance(result[8], float)
+        self.assertIsInstance(result[13], float)
+        self.assertIsInstance(result[14], str)
+        self.assertIn("<div", result[15])
+        self.assertIn("<svg", result[18])
 
 
 if __name__ == "__main__":

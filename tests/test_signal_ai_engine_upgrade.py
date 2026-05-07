@@ -55,13 +55,21 @@ class SignalAIMLEngineUpgradeTests(unittest.TestCase):
         self.assertIn("Fallback Logic", details["prediction_source"])
         self.assertIn(
             details["demand_classification"],
-            {"Low Demand", "Moderate Demand", "High Demand", "Emerging Demand", "Declining Demand", "Unmet Demand"},
+            {
+                "Limited Demand Signal",
+                "Developing Market Interest",
+                "Strong Demand Momentum",
+                "Emerging Demand Signal",
+                "Limited Market Momentum",
+                "Potential Unmet Demand Opportunity",
+            },
         )
 
     def test_guardrails_flag_low_demand_high_opportunity_contradiction(self) -> None:
         guarded = app._apply_guardrails(  # noqa: SLF001 - targeted test for guardrail behavior.
             {
                 "demand_classification": "Low Demand",
+                "raw_demand_classification": "Low Demand",
                 "confidence_score": 0.61,
                 "aggregate_demand_score": 32.0,
                 "opportunity_score": 74.0,
@@ -76,7 +84,7 @@ class SignalAIMLEngineUpgradeTests(unittest.TestCase):
             },
         )
 
-        self.assertEqual(guarded["investment_opportunity_interpretation"], "Investigate Anomaly / Possible Unmet Demand")
+        self.assertEqual(guarded["investment_opportunity_interpretation"], "Potential Unmet Demand Opportunity")
         self.assertTrue(guarded["unmet_demand_flag"])
 
     def test_feedback_log_remains_aggregate_and_blocks_individual_fields(self) -> None:

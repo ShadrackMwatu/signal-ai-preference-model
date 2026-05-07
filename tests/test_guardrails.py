@@ -10,6 +10,7 @@ class GuardrailTests(unittest.TestCase):
         result = app._apply_guardrails(  # noqa: SLF001
             {
                 "demand_classification": "Low Demand",
+                "raw_demand_classification": "Low Demand",
                 "demand_band": "Low Demand",
                 "confidence_score": 0.74,
                 "aggregate_demand_score": 30.0,
@@ -22,13 +23,14 @@ class GuardrailTests(unittest.TestCase):
             },
             {"unmet_need_signal": 0.84, "noise_score": 0.22, "searches": 180, "engagement_intensity": 0.34},
         )
-        self.assertEqual(result["investment_opportunity_interpretation"], "Investigate Anomaly / Possible Unmet Demand")
+        self.assertEqual(result["investment_opportunity_interpretation"], "Potential Unmet Demand Opportunity")
         self.assertIn("Guardrail Adjustment", result["model_source_label"])
 
     def test_high_demand_low_confidence_becomes_monitor_further(self) -> None:
         result = app._apply_guardrails(  # noqa: SLF001
             {
                 "demand_classification": "High Demand",
+                "raw_demand_classification": "High Demand",
                 "demand_band": "High Demand",
                 "confidence_score": 0.51,
                 "aggregate_demand_score": 68.0,
@@ -41,7 +43,7 @@ class GuardrailTests(unittest.TestCase):
             },
             {"noise_score": 0.18, "searches": 80, "engagement_intensity": 0.82},
         )
-        self.assertEqual(result["investment_opportunity_interpretation"], "Monitor Further")
+        self.assertEqual(result["investment_opportunity_interpretation"], "Emerging Signal — Further Monitoring Recommended")
 
 
 if __name__ == "__main__":

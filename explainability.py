@@ -60,6 +60,10 @@ def _policy_note(prediction: dict[str, Any]) -> str:
         return "This signal supports near-term commercial scaling and targeted policy facilitation."
     if "Emerging Opportunity" in interpretation:
         return "This signal suggests a growing market that merits monitoring, pilot investments, and light-touch support."
-    if "Possible Unmet Demand" in interpretation or prediction.get("unmet_demand_flag"):
+    if "Potential Unmet Demand Opportunity" in interpretation or "Possible Unmet Demand" in interpretation or prediction.get("unmet_demand_flag"):
         return "This signal points to a gap between expressed interest and available supply, delivery, or affordability."
+    if "Emerging Signal" in interpretation:
+        return "This signal is worth monitoring further because momentum exists, but the evidence is not yet strong enough for major commitments."
+    if "Limited Market Momentum" in interpretation:
+        return "This signal suggests demand remains soft or fragmented, so follow-on validation is recommended before scaling."
     return "This signal should be monitored further before major investment or policy commitments."

@@ -13,6 +13,7 @@ class AppImportTests(unittest.TestCase):
         self.assertTrue(callable(app.predict_demand))
         self.assertTrue(callable(app.predict_demand_details))
         self.assertTrue(callable(app.refresh_live_trends))
+        self.assertTrue(callable(app.update_behavioral_dashboard))
 
     def test_live_trend_modules_import(self) -> None:
         self.assertTrue(callable(x_trends.fetch_x_trends))
