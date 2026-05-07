@@ -117,6 +117,32 @@ def predict_demand(
     )
 
 
+def calculate_live_scores(
+    likes: float,
+    comments: float,
+    shares: float,
+    searches: float,
+    engagement_intensity: float,
+    purchase_intent_score: float,
+    trend_growth: float,
+) -> tuple[float, float]:
+    """Update aggregate demand and opportunity scores as inputs change."""
+
+    result = predict_demand_details(
+        likes,
+        comments,
+        shares,
+        searches,
+        engagement_intensity,
+        purchase_intent_score,
+        trend_growth,
+    )
+    return (
+        round(float(result["aggregate_demand_score"]), 2),
+        round(float(result["opportunity_score"]), 2),
+    )
+
+
 def predict_demand_dashboard(
     likes: float,
     comments: float,
@@ -709,8 +735,8 @@ with gr.Blocks(title="Signal AI Market Intelligence") as demo:
                     demand_output = gr.Textbox(label="Demand Classification")
                     confidence_output = gr.Number(label="Confidence Score (%)")
                 with gr.Row():
-                    aggregate_output = gr.Number(label="Aggregate Demand Score")
-                    opportunity_output = gr.Number(label="Opportunity Score")
+                    aggregate_output = gr.Number(label="Aggregate Demand Score", interactive=False)
+                    opportunity_output = gr.Number(label="Opportunity Score", interactive=False)
                 with gr.Row():
                     emerging_output = gr.Number(label="Emerging Trend Probability (%)")
                     unmet_output = gr.Number(label="Unmet Demand Probability (%)")
@@ -742,6 +768,22 @@ with gr.Blocks(title="Signal AI Market Intelligence") as demo:
                 source_output,
             ],
         )
+
+        live_score_inputs = [
+            likes,
+            comments,
+            shares,
+            searches,
+            engagement_intensity,
+            purchase_intent_score,
+            trend_growth,
+        ]
+        for input_component in live_score_inputs:
+            input_component.change(
+                fn=calculate_live_scores,
+                inputs=live_score_inputs,
+                outputs=[aggregate_output, opportunity_output],
+            )
 
     with gr.Tab("Signal CGE Framework"):
         scenario_input = gr.Textbox(label="CGE Scenario", value=DEFAULT_SCENARIO, lines=8)
