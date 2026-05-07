@@ -1,0 +1,14 @@
+{
+  "Kenya": {
+    "woeid": 23424863,
+    "location_relevance": 0.82
+  },
+  "Nairobi": {
+    "woeid": 1528488,
+    "location_relevance": 0.91
+  },
+  "Global": {
+    "woeid": 1,
+    "location_relevance": 0.65
+  }
+}

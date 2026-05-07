@@ -13,6 +13,9 @@ import pandas as pd
 import gradio as gr
 
 from explainability import format_key_drivers_markdown, generate_prediction_explanation
+from privacy import PRIVACY_NOTICE
+from trend_intelligence import analyze_trend_batch, summarize_trend_batch
+from x_trends import fetch_x_trends
 
 
 ADVANCED_IMPORT_ERROR = ""
@@ -268,6 +271,51 @@ def refresh_learning_dashboard() -> tuple[str, str, str]:
         return json.dumps(lessons, indent=2), json.dumps(recurring, indent=2), json.dumps(recommended, indent=2)
     except Exception as exc:
         return "[]", "{}", json.dumps({"error": str(exc)}, indent=2)
+
+
+def refresh_live_trends(location: str, trend_limit: float) -> tuple[pd.DataFrame, pd.DataFrame, str]:
+    """Fetch public aggregate X/Twitter trends and convert them into Signal intelligence."""
+
+    try:
+        records = fetch_x_trends(location=location, limit=int(trend_limit))
+        analyses = analyze_trend_batch(records)
+        trends_frame = pd.DataFrame(records)
+        intelligence_frame = pd.DataFrame(analyses)
+        summary = summarize_trend_batch(location, analyses)
+        return trends_frame, intelligence_frame, summary
+    except Exception as exc:
+        empty_trends = pd.DataFrame(
+            [
+                {
+                    "trend_name": "Unavailable",
+                    "rank": None,
+                    "tweet_volume": None,
+                    "location": location,
+                    "fetched_at": "",
+                    "source": "Demo fallback - X API not connected",
+                }
+            ]
+        )
+        empty_intelligence = pd.DataFrame(
+            [
+                {
+                    "trend_name": "Unavailable",
+                    "location": location,
+                    "rank": None,
+                    "tweet_volume": None,
+                    "source": "Demo fallback - X API not connected",
+                    "demand_classification": "Unavailable",
+                    "confidence_score": 0.0,
+                    "aggregate_demand_score": 0.0,
+                    "opportunity_score": 0.0,
+                    "emerging_trend_probability": 0.0,
+                    "unmet_demand_probability": 0.0,
+                    "investment_policy_interpretation": "Trend refresh failed",
+                    "model_source_explanation": f"Trend refresh failed: {exc}",
+                }
+            ]
+        )
+        return empty_trends, empty_intelligence, f"Live trends refresh failed for {location}: {exc}"
 
 
 def apply_latest_learning_dashboard() -> str:
@@ -735,6 +783,56 @@ with gr.Blocks(title="Signal AI Market Intelligence") as demo:
             fn=predict_demand,
             inputs=live_inputs,
             outputs=live_outputs,
+        )
+
+    with gr.Tab("Live Trends"):
+        gr.Markdown(
+            "Public aggregate X/Twitter trends are converted into Signal demand and opportunity intelligence. "
+            "If the X API is not connected, Signal falls back to safe demo trends."
+        )
+        gr.Markdown(PRIVACY_NOTICE)
+        with gr.Row():
+            trends_location = gr.Dropdown(
+                label="Trend Location",
+                choices=["Kenya", "Nairobi", "Global"],
+                value="Kenya",
+            )
+            trends_limit = gr.Slider(label="Number of Trends", minimum=3, maximum=10, step=1, value=5)
+            refresh_trends_button = gr.Button("Refresh Trends")
+        trends_table = gr.Dataframe(
+            label="Trends Table",
+            headers=["trend_name", "rank", "tweet_volume", "location", "fetched_at", "source"],
+            interactive=False,
+        )
+        trend_intelligence_table = gr.Dataframe(
+            label="Signal Intelligence Table",
+            headers=[
+                "trend_name",
+                "location",
+                "rank",
+                "tweet_volume",
+                "source",
+                "demand_classification",
+                "confidence_score",
+                "aggregate_demand_score",
+                "opportunity_score",
+                "emerging_trend_probability",
+                "unmet_demand_probability",
+                "investment_policy_interpretation",
+                "model_source_explanation",
+            ],
+            interactive=False,
+        )
+        trends_summary = gr.Textbox(label="Interpretation Summary", lines=6, interactive=False)
+        refresh_trends_button.click(
+            fn=refresh_live_trends,
+            inputs=[trends_location, trends_limit],
+            outputs=[trends_table, trend_intelligence_table, trends_summary],
+        )
+        demo.load(
+            fn=refresh_live_trends,
+            inputs=[trends_location, trends_limit],
+            outputs=[trends_table, trend_intelligence_table, trends_summary],
         )
 
     with gr.Tab("Signal CGE Framework"):
