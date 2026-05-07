@@ -17,6 +17,12 @@ from explainability import generate_prediction_explanation
 from privacy import PRIVACY_NOTICE
 from trend_intelligence import analyze_trend_batch, summarize_trend_batch
 from x_trends import fetch_x_trends
+from sml_workbench.exporters.gams_exporter import export_to_gams
+from sml_workbench.exporters.pyomo_exporter import export_to_pyomo
+from sml_workbench.parser.sml_parser import load_sml_text as load_sml_workbench_text
+from sml_workbench.parser.sml_parser import parse_sml
+from sml_workbench.validators.sml_validator import validate_sml
+from learning.ai_teaching.explainer import explain_concept
 
 
 ADVANCED_IMPORT_ERROR = ""
@@ -28,8 +34,6 @@ try:
     from signal_learning.implementation_engine import implement_adaptation, rollback_adaptation
     from signal_learning.learning_store import LearningStore
     from signal_learning.pattern_extractor import recurring_issue_summary
-    from signal_modeling_language.parser import parse_sml_text
-    from signal_modeling_language.validator import validate_model
 
     ADVANCED_AVAILABLE = True
 except Exception as exc:  # pragma: no cover - exercised in constrained Space runtimes.
@@ -38,8 +42,8 @@ except Exception as exc:  # pragma: no cover - exercised in constrained Space ru
     DEFAULT_SCENARIO = "Baseline policy scenario"
 
 
-SML_EXAMPLE_PATH = Path("signal_modeling_language/examples/basic_cge.sml")
-DEFAULT_SML_TEXT = SML_EXAMPLE_PATH.read_text(encoding="utf-8") if SML_EXAMPLE_PATH.exists() else ""
+SML_EXAMPLE_PATH = Path("sml_workbench/examples/kenya_basic_cge_example.sml")
+DEFAULT_SML_TEXT = load_sml_workbench_text(SML_EXAMPLE_PATH) if SML_EXAMPLE_PATH.exists() else ""
 ROOT_DIR = Path(__file__).resolve().parent
 PRIMARY_MODEL_PATH = ROOT_DIR / "models" / "model.pkl"
 LEGACY_MODEL_PATH = ROOT_DIR / "model.pkl"
@@ -265,17 +269,15 @@ def validate_sml_dashboard(sml_text: str, sml_file: Any | None = None) -> str:
     """Validate SML from dashboard text or upload."""
 
     try:
-        if not ADVANCED_AVAILABLE:
-            raise RuntimeError(f"Advanced Signal modules unavailable: {ADVANCED_IMPORT_ERROR}")
-
         text = _uploaded_text(sml_file) or sml_text or DEFAULT_SML_TEXT
-        validation = validate_model(parse_sml_text(text))
-        status = "Valid" if validation.valid else "Invalid"
+        parsed = parse_sml(text)
+        validation = validate_sml(parsed)
+        status = "Valid" if validation["valid"] else "Invalid"
         parts = [f"Status: {status}"]
-        if validation.errors:
-            parts.append("Errors:\n" + "\n".join(f"- {error}" for error in validation.errors))
-        if validation.warnings:
-            parts.append("Warnings:\n" + "\n".join(f"- {warning}" for warning in validation.warnings))
+        if validation["errors"]:
+            parts.append("Errors:\n" + "\n".join(f"- {error}" for error in validation["errors"]))
+        if validation["warnings"]:
+            parts.append("Warnings:\n" + "\n".join(f"- {warning}" for warning in validation["warnings"]))
         return "\n\n".join(parts)
     except Exception as exc:
         return f"Invalid\n\nErrors:\n- {exc}"
@@ -293,6 +295,8 @@ def run_sml_dashboard(
             raise RuntimeError(f"Advanced Signal modules unavailable: {ADVANCED_IMPORT_ERROR}")
 
         text = _uploaded_text(sml_file) or sml_text or DEFAULT_SML_TEXT
+        parsed = parse_sml(text)
+        workbench_validation = validate_sml(parsed)
         sam_path = _uploaded_path(sam_file)
         result = SignalRunner().run(sml_text=text, sam_override=sam_path)
         validation = result["validation"]
@@ -308,6 +312,9 @@ def run_sml_dashboard(
             "gams_file": result["gams_file"],
             "balance_check_paths": result["balance_check_paths"],
             "learning_memory": result["learning_memory"],
+            "workbench_validation": workbench_validation,
+            "gams_export_preview": export_to_gams(parsed),
+            "pyomo_export_preview": export_to_pyomo(parsed),
         }
         validation_text = "Status: Valid" if validation["valid"] else "Status: Invalid"
         if validation["warnings"]:
@@ -387,6 +394,12 @@ def refresh_live_trends(location: str, trend_limit: float) -> tuple[pd.DataFrame
             ]
         )
         return empty_trends, empty_intelligence, f"Live trends refresh failed for {location}: {exc}"
+
+
+def explain_learning_topic(topic: str) -> str:
+    """Return a readable learning note for the selected concept."""
+
+    return explain_concept(topic)
 
 
 def apply_latest_learning_dashboard() -> str:
@@ -1182,6 +1195,24 @@ with gr.Blocks(title="Signal AI Market Intelligence") as demo:
         )
 
     with gr.Tab("Learning"):
+        learning_topic = gr.Dropdown(
+            label="Learning Topic",
+            choices=[
+                "Signal",
+                "Revealed Preference Intelligence",
+                "Behavioral Signals",
+                "Demand Classification",
+                "Opportunity Scoring",
+                "Unmet Demand",
+                "Emerging Trends",
+                "SAMs",
+                "CGE Models",
+                "SML",
+                "Policy Simulation",
+            ],
+            value="Signal",
+        )
+        learning_explanation_output = gr.Textbox(label="Learning Explanation", lines=6, interactive=False)
         refresh_learning_button = gr.Button("Refresh Learning")
         with gr.Row():
             recent_lessons_output = gr.Code(label="Recent Lessons", language="json", lines=16)
@@ -1204,6 +1235,8 @@ with gr.Blocks(title="Signal AI Market Intelligence") as demo:
             inputs=[rollback_version_input],
             outputs=[learning_action_output],
         )
+        learning_topic.change(fn=explain_learning_topic, inputs=[learning_topic], outputs=[learning_explanation_output])
+        demo.load(fn=explain_learning_topic, inputs=[learning_topic], outputs=[learning_explanation_output])
 
 
 if __name__ == "__main__":
