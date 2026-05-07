@@ -1,0 +1,35 @@
+{
+  "training_date": "2026-05-07T19:57:45.110473+00:00",
+  "features_used": [
+    "engagement_intensity",
+    "mentions_count",
+    "comments_count",
+    "shares_count",
+    "likes_count",
+    "searches_count",
+    "sentiment_score",
+    "urgency_score",
+    "trend_growth",
+    "repetition_score",
+    "location_relevance",
+    "price_sensitivity",
+    "noise_score",
+    "engagement_rate",
+    "weighted_engagement_score",
+    "trend_momentum",
+    "unmet_need_signal",
+    "opportunity_index"
+  ],
+  "model_type": "RandomForestClassifier pipeline",
+  "accuracy_score": 0.8167,
+  "cross_validation_score": 0.7987,
+  "package_versions": {
+    "numpy": "2.4.4",
+    "pandas": "2.3.3",
+    "scikit-learn": "1.8.0",
+    "joblib": "1.5.3"
+  },
+  "training_rows": 1500,
+  "artifact_path": "C:\\Users\\smwatu\\OneDrive - Kenya Institute for Public Policy Research and Analysis\\Documents\\Signal\\models\\model.pkl",
+  "data_path": "C:\\Users\\smwatu\\OneDrive - Kenya Institute for Public Policy Research and Analysis\\Documents\\Signal\\data\\training\\signal_training_data.csv"
+}

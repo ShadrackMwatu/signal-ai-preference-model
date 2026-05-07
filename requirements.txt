@@ -1,24 +1,8 @@
 gradio==5.13.0
-gradio_client==1.6.0
 numpy
 pandas
-scipy
 scikit-learn
-statsmodels
-xgboost
 joblib
 openpyxl
-matplotlib
-plotly
-spacy
-nltk
-transformers
-sentence-transformers
-torch
-tensorflow; python_version < "3.14"
-datasets
-evaluate
-pyyaml
-pydantic<2.11
 fastapi<0.116
-uvicorn
+pydantic<2.11

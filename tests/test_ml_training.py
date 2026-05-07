@@ -10,9 +10,6 @@ from ml.model_registry import ModelRegistry
 from ml.model_training import train_county_topic_clusterer, train_demand_classifier, train_regression_model
 
 
-TMP_ROOT = Path("tests") / "_tmp"
-
-
 def _sample_frame(rows: int = 72) -> pd.DataFrame:
     records = []
     classes = ["Low", "Moderate", "High"]
@@ -42,24 +39,29 @@ def _sample_frame(rows: int = 72) -> pd.DataFrame:
 class MLTrainingTests(unittest.TestCase):
     def test_classifier_regression_and_clustering_train(self) -> None:
         frame = _sample_frame()
-        TMP_ROOT.mkdir(parents=True, exist_ok=True)
-        with tempfile.TemporaryDirectory(dir=TMP_ROOT) as tmp:
-            registry = ModelRegistry(Path(tmp) / "registry.json")
-            classifier = train_demand_classifier(frame, output_dir=tmp, registry=registry)
-            regressor = train_regression_model(
-                frame,
-                target_column="aggregate_demand_score",
-                output_dir=tmp,
-                registry=registry,
-            )
-            clusterer = train_county_topic_clusterer(frame, n_clusters=3)
-
-            self.assertTrue(Path(classifier["model_path"]).exists())
-            self.assertGreaterEqual(classifier["metrics"]["accuracy"], 0.8)
-            self.assertTrue(Path(regressor["model_path"]).exists())
-            self.assertIn("rmse", regressor["metrics"])
-            self.assertEqual(len(clusterer["labels"]), len(frame))
-            self.assertEqual(classifier["prediction_source"], "trained ML model")
+        scratch = Path("tests") / "_scratch" / "ml_training"
+        scratch.mkdir(parents=True, exist_ok=True)
+        registry = ModelRegistry(scratch / "registry.json")
+        classifier = train_demand_classifier(
+            frame,
+            output_dir=scratch,
+            registry=registry,
+            model_name="signal_demand_classifier_ml_training",
+        )
+        regressor = train_regression_model(
+            frame,
+            target_column="aggregate_demand_score",
+            output_dir=scratch,
+            registry=registry,
+            model_name="signal_regression_model_ml_training",
+        )
+        clusterer = train_county_topic_clusterer(frame, n_clusters=3)
+        self.assertTrue(Path(classifier["model_path"]).exists())
+        self.assertGreaterEqual(classifier["metrics"]["accuracy"], 0.8)
+        self.assertTrue(Path(regressor["model_path"]).exists())
+        self.assertIn("rmse", regressor["metrics"])
+        self.assertEqual(len(clusterer["labels"]), len(frame))
+        self.assertEqual(classifier["prediction_source"], "trained ML model")
 
 
 if __name__ == "__main__":

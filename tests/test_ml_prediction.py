@@ -11,9 +11,6 @@ from ml.model_training import train_demand_classifier
 from ml.prediction_engine import PredictionEngine
 
 
-TMP_ROOT = Path("tests") / "_tmp"
-
-
 class MLPredictionTests(unittest.TestCase):
     def test_prediction_engine_reports_source(self) -> None:
         frame = pd.DataFrame(
@@ -26,14 +23,19 @@ class MLPredictionTests(unittest.TestCase):
                 "demand_class": ["Low"] * 4 + ["Moderate"] * 4 + ["High"] * 4,
             }
         )
-        TMP_ROOT.mkdir(parents=True, exist_ok=True)
-        with tempfile.TemporaryDirectory(dir=TMP_ROOT) as tmp:
-            result = train_demand_classifier(frame, output_dir=tmp, registry=ModelRegistry(Path(tmp) / "registry.json"))
-            prediction = PredictionEngine(
-                result["model_path"],
-                feature_columns=result["feature_columns"],
-            ).predict(frame.head(2))
-            fallback = PredictionEngine(model_path=Path(tmp) / "missing.joblib").predict(frame.head(2))
+        scratch = Path("tests") / "_scratch" / "ml_prediction"
+        scratch.mkdir(parents=True, exist_ok=True)
+        result = train_demand_classifier(
+            frame,
+            output_dir=scratch,
+            registry=ModelRegistry(scratch / "registry.json"),
+            model_name="signal_demand_classifier_ml_prediction",
+        )
+        prediction = PredictionEngine(
+            result["model_path"],
+            feature_columns=result["feature_columns"],
+        ).predict(frame.head(2))
+        fallback = PredictionEngine(model_path=scratch / "missing.joblib").predict(frame.head(2))
 
         self.assertEqual(prediction["prediction_source"], "trained ML model")
         self.assertTrue(prediction["model_loaded"])

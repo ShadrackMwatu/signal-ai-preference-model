@@ -6,6 +6,10 @@ import json
 from pathlib import Path
 from typing import Any
 
+import joblib
+import numpy as np
+import pandas as pd
+
 import gradio as gr
 
 
@@ -30,6 +34,48 @@ except Exception as exc:  # pragma: no cover - exercised in constrained Space ru
 
 SML_EXAMPLE_PATH = Path("signal_modeling_language/examples/basic_cge.sml")
 DEFAULT_SML_TEXT = SML_EXAMPLE_PATH.read_text(encoding="utf-8") if SML_EXAMPLE_PATH.exists() else ""
+ROOT_DIR = Path(__file__).resolve().parent
+PRIMARY_MODEL_PATH = ROOT_DIR / "models" / "model.pkl"
+LEGACY_MODEL_PATH = ROOT_DIR / "model.pkl"
+PRIMARY_MODEL_METADATA_PATH = ROOT_DIR / "models" / "metadata.json"
+
+
+def predict_demand_details(
+    likes: float,
+    comments: float,
+    shares: float,
+    searches: float,
+    engagement_intensity: float,
+    purchase_intent_score: float,
+    trend_growth: float,
+) -> dict[str, Any]:
+    """Return the full Signal demand interpretation while staying crash-resistant."""
+
+    try:
+        features = _build_signal_features(
+            likes,
+            comments,
+            shares,
+            searches,
+            engagement_intensity,
+            purchase_intent_score,
+            trend_growth,
+        )
+        model_result = _predict_with_model(features)
+        guarded = _apply_guardrails(model_result, features)
+        return guarded
+    except Exception as exc:
+        return {
+            "demand_classification": f"Error: {exc}",
+            "confidence_score": 0.0,
+            "aggregate_demand_score": 0.0,
+            "opportunity_score": 0.0,
+            "investment_opportunity_interpretation": "Prediction failed",
+            "unmet_demand_flag": False,
+            "emerging_trend_flag": False,
+            "prediction_source": "error",
+            "explanation_note": f"Prediction pipeline failed: {exc}",
+        }
 
 
 def predict_demand(
@@ -41,61 +87,22 @@ def predict_demand(
     purchase_intent_score: float,
     trend_growth: float,
 ) -> tuple[str, float, float]:
-    """Return demand label, aggregate demand score, and opportunity score without crashing."""
+    """Backward-compatible Gradio callback with model-first behavior."""
 
-    try:
-        likes = float(likes or 0)
-        comments = float(comments or 0)
-        shares = float(shares or 0)
-        searches = float(searches or 0)
-        engagement_intensity = float(engagement_intensity or 0)
-        purchase_intent_score = float(purchase_intent_score or 0)
-        trend_growth = float(trend_growth or 0)
-
-        # Step A: Compute engagement score
-        engagement_score = (likes + comments + shares + searches) / 4
-
-        # Step B: Prepare feature vector
-        features = [[
-            float(engagement_score),
-            float(engagement_intensity),
-            float(purchase_intent_score),
-            float(trend_growth),
-        ]]
-
-        # Step C: Try loading model
-        try:
-            import joblib
-
-            model = joblib.load("model.pkl")
-            prediction = model.predict(features)[0]
-        except Exception:
-            # Fallback rule-based logic
-            if purchase_intent_score > 0.7 and trend_growth > 0.5:
-                prediction = 2
-            elif purchase_intent_score > 0.4:
-                prediction = 1
-            else:
-                prediction = 0
-
-        # Step D: Map labels
-        demand_label = _map_demand_label(prediction)
-
-        # Step E: Opportunity score
-        opportunity_score = (purchase_intent_score + trend_growth) / 2
-
-        return (
-            demand_label,
-            round(engagement_score, 2),
-            round(opportunity_score, 2),
-        )
-
-    except Exception as exc:
-        return (
-            f"Error: {str(exc)}",
-            0,
-            0,
-        )
+    result = predict_demand_details(
+        likes,
+        comments,
+        shares,
+        searches,
+        engagement_intensity,
+        purchase_intent_score,
+        trend_growth,
+    )
+    return (
+        str(result["demand_classification"]),
+        round(float(result["aggregate_demand_score"]), 2),
+        round(float(result["opportunity_score"]), 2),
+    )
 
 
 def signal_model(
@@ -289,6 +296,236 @@ def _map_demand_label(prediction: Any) -> str:
     if prediction == 1 or text in {"1", "moderate", "moderate demand"}:
         return "Moderate Demand"
     return "Low Demand"
+
+
+def _safe_float(value: Any) -> float:
+    return float(value or 0)
+
+
+def _build_signal_features(
+    likes: float,
+    comments: float,
+    shares: float,
+    searches: float,
+    engagement_intensity: float,
+    purchase_intent_score: float,
+    trend_growth: float,
+) -> dict[str, float]:
+    likes = _safe_float(likes)
+    comments = _safe_float(comments)
+    shares = _safe_float(shares)
+    searches = _safe_float(searches)
+    engagement_intensity = _safe_float(engagement_intensity)
+    purchase_intent_score = _safe_float(purchase_intent_score)
+    trend_growth = _safe_float(trend_growth)
+
+    total_engagement = likes + comments + shares + searches
+    mentions_count = comments + (shares * 0.5)
+    sentiment_score = np.clip((purchase_intent_score * 0.75) - 0.15 + trend_growth * 0.2, -1, 1)
+    urgency_score = np.clip((searches / max(total_engagement, 1)) * 1.5 + trend_growth * 0.45, 0, 1)
+    repetition_score = np.clip(searches / max(likes + comments + 1, 1), 0, 1)
+    location_relevance = 0.55
+    price_sensitivity = np.clip(0.65 - purchase_intent_score * 0.35 + (1 - engagement_intensity) * 0.15, 0, 1)
+    noise_score = np.clip(1 - min((comments + shares + 1) / max(likes + searches + 1, 1), 1), 0, 1)
+    engagement_rate = np.clip(total_engagement / max(total_engagement + 100, 1), 0, 1)
+    weighted_engagement_score = np.clip(
+        (likes + comments * 1.8 + shares * 2.4 + searches * 1.6 + mentions_count) / 100,
+        0,
+        10,
+    )
+    trend_momentum = np.clip(trend_growth * 0.6 + urgency_score * 0.4, 0, 1)
+    unmet_need_signal = np.clip(urgency_score * 0.45 + price_sensitivity * 0.25 + (1 - sentiment_score) * 0.1, 0, 1)
+    opportunity_index = np.clip(
+        engagement_intensity * 0.22
+        + purchase_intent_score * 0.22
+        + trend_growth * 0.18
+        + urgency_score * 0.14
+        + repetition_score * 0.08
+        + unmet_need_signal * 0.12
+        + location_relevance * 0.06
+        - noise_score * 0.08,
+        0,
+        1,
+    )
+
+    return {
+        "engagement_intensity": round(float(np.clip(engagement_intensity, 0, 1)), 4),
+        "mentions_count": round(float(max(mentions_count, 0)), 4),
+        "comments_count": round(float(max(comments, 0)), 4),
+        "shares_count": round(float(max(shares, 0)), 4),
+        "likes_count": round(float(max(likes, 0)), 4),
+        "searches_count": round(float(max(searches, 0)), 4),
+        "likes": round(float(max(likes, 0)), 4),
+        "comments": round(float(max(comments, 0)), 4),
+        "shares": round(float(max(shares, 0)), 4),
+        "searches": round(float(max(searches, 0)), 4),
+        "sentiment_score": round(float(sentiment_score), 4),
+        "urgency_score": round(float(urgency_score), 4),
+        "trend_growth": round(float(np.clip(trend_growth, -1, 1)), 4),
+        "repetition_score": round(float(repetition_score), 4),
+        "location_relevance": round(float(location_relevance), 4),
+        "price_sensitivity": round(float(price_sensitivity), 4),
+        "noise_score": round(float(noise_score), 4),
+        "engagement_rate": round(float(engagement_rate), 4),
+        "weighted_engagement_score": round(float(weighted_engagement_score), 4),
+        "trend_momentum": round(float(trend_momentum), 4),
+        "unmet_need_signal": round(float(unmet_need_signal), 4),
+        "opportunity_index": round(float(opportunity_index), 4),
+    }
+
+
+def _predict_with_model(features: dict[str, float]) -> dict[str, Any]:
+    artifact = _load_prediction_artifact()
+    if artifact is None:
+        return _predict_with_fallback(features)
+
+    feature_columns = artifact.get("feature_columns") or list(features.keys())
+    model = artifact.get("model", artifact)
+    frame = pd.DataFrame([{column: float(features.get(column, 0.0)) for column in feature_columns}])
+    prediction = _map_demand_label(model.predict(frame)[0])
+    probabilities = model.predict_proba(frame)[0] if hasattr(model, "predict_proba") else np.array([1.0])
+    classes = [str(label) for label in getattr(model, "classes_", ["Low Demand", "Moderate Demand", "High Demand"])]
+    class_probabilities = {label: float(prob) for label, prob in zip(classes, probabilities)}
+    confidence_score = float(max(class_probabilities.values(), default=1.0))
+    aggregate_demand_score = float(
+        np.clip(
+            (
+                class_probabilities.get("High Demand", 0.0) * 1.0
+                + class_probabilities.get("Moderate Demand", 0.0) * 0.6
+                + class_probabilities.get("Low Demand", 0.0) * 0.25
+            )
+            * 100,
+            0,
+            100,
+        )
+    )
+
+    unmet_model = artifact.get("unmet_model")
+    emerging_model = artifact.get("emerging_model")
+    unmet_probability = _positive_probability(unmet_model, frame)
+    emerging_probability = _positive_probability(emerging_model, frame)
+    opportunity_score = float(
+        np.clip(
+            (
+                aggregate_demand_score * 0.5
+                + features["opportunity_index"] * 100 * 0.25
+                + unmet_probability * 100 * 0.15
+                + emerging_probability * 100 * 0.1
+            ),
+            0,
+            100,
+        )
+    )
+
+    return {
+        "demand_classification": prediction,
+        "confidence_score": round(confidence_score, 4),
+        "aggregate_demand_score": round(aggregate_demand_score, 2),
+        "opportunity_score": round(opportunity_score, 2),
+        "unmet_demand_probability": round(unmet_probability, 4),
+        "emerging_trend_probability": round(emerging_probability, 4),
+        "prediction_source": "trained model",
+        "explanation_note": "Primary prediction produced by the trained local Signal model.",
+    }
+
+
+def _predict_with_fallback(features: dict[str, float]) -> dict[str, Any]:
+    latent = np.clip(
+        features["engagement_intensity"] * 0.28
+        + features["trend_growth"] * 0.2
+        + features["urgency_score"] * 0.16
+        + features["repetition_score"] * 0.1
+        + features["opportunity_index"] * 0.26,
+        0,
+        1,
+    )
+    if latent >= 0.68:
+        demand = "High Demand"
+    elif latent >= 0.42:
+        demand = "Moderate Demand"
+    else:
+        demand = "Low Demand"
+
+    unmet_probability = float(np.clip(features["unmet_need_signal"], 0, 1))
+    emerging_probability = float(np.clip(features["trend_momentum"], 0, 1))
+    confidence_score = float(np.clip(0.52 + abs(latent - 0.5) * 0.4, 0, 0.95))
+    aggregate_demand_score = float(np.clip(latent * 100, 0, 100))
+    opportunity_score = float(
+        np.clip(
+            aggregate_demand_score * 0.58
+            + unmet_probability * 100 * 0.22
+            + emerging_probability * 100 * 0.2,
+            0,
+            100,
+        )
+    )
+    return {
+        "demand_classification": demand,
+        "confidence_score": round(confidence_score, 4),
+        "aggregate_demand_score": round(aggregate_demand_score, 2),
+        "opportunity_score": round(opportunity_score, 2),
+        "unmet_demand_probability": round(unmet_probability, 4),
+        "emerging_trend_probability": round(emerging_probability, 4),
+        "prediction_source": "fallback model",
+        "explanation_note": "Fallback scoring used because the trained model artifact was unavailable.",
+    }
+
+
+def _apply_guardrails(result: dict[str, Any], features: dict[str, float]) -> dict[str, Any]:
+    demand = str(result["demand_classification"])
+    opportunity = float(result["opportunity_score"])
+    unmet_probability = float(result["unmet_demand_probability"])
+    emerging_probability = float(result["emerging_trend_probability"])
+    notes = [str(result["explanation_note"])]
+
+    if demand == "High Demand" and opportunity >= 70:
+        interpretation = "Strong Investment Opportunity"
+    elif demand == "Moderate Demand" and opportunity >= 55:
+        interpretation = "Emerging Opportunity"
+    elif demand == "Low Demand" and opportunity >= 55:
+        interpretation = "Investigate Anomaly / Possible Unmet Demand"
+        unmet_probability = max(unmet_probability, float(np.clip(features["unmet_need_signal"], 0, 1)))
+        notes.append("Guardrail flagged a contradiction between low demand and elevated opportunity.")
+    else:
+        interpretation = "Weak Signal"
+
+    if features["noise_score"] >= 0.75:
+        notes.append("High noise score suggests more data quality review before acting.")
+    if demand == "Moderate Demand" and emerging_probability >= 0.6:
+        notes.append("Guardrail marked this as a near-term emerging trend candidate.")
+
+    result = dict(result)
+    result["investment_opportunity_interpretation"] = interpretation
+    result["unmet_demand_flag"] = bool(unmet_probability >= 0.6)
+    result["emerging_trend_flag"] = bool(emerging_probability >= 0.55)
+    result["explanation_note"] = " ".join(notes)
+    if len(notes) > 1:
+        result["prediction_source"] = f"{result['prediction_source']} + rule-based guardrail"
+    return result
+
+
+def _load_prediction_artifact() -> dict[str, Any] | None:
+    for candidate in (PRIMARY_MODEL_PATH, LEGACY_MODEL_PATH):
+        resolved = candidate.resolve()
+        try:
+            resolved.relative_to(ROOT_DIR)
+        except ValueError:
+            continue
+        if resolved.exists():
+            artifact = joblib.load(resolved)
+            if isinstance(artifact, dict):
+                return artifact
+            return {"model": artifact, "feature_columns": ["likes", "comments", "shares", "searches"]}
+    return None
+
+
+def _positive_probability(model: Any | None, vector: pd.DataFrame) -> float:
+    if model is None or not hasattr(model, "predict_proba"):
+        return 0.0
+    probabilities = model.predict_proba(vector)[0]
+    if len(probabilities) == 1:
+        return float(probabilities[0])
+    return float(probabilities[-1])
 
 
 def _uploaded_path(file_obj: Any | None) -> str | None:
