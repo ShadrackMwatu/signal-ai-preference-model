@@ -98,8 +98,8 @@ def predict_demand(
     engagement_intensity: float,
     purchase_intent_score: float,
     trend_growth: float,
-) -> tuple[str, float, float]:
-    """Backward-compatible Gradio callback with model-first behavior."""
+) -> tuple[str, float, float, float, float, float, str, str]:
+    """Primary Gradio callback for both live updates and button-triggered refresh."""
 
     result = predict_demand_details(
         likes,
@@ -110,64 +110,8 @@ def predict_demand(
         purchase_intent_score,
         trend_growth,
     )
+    explanation = _format_panel_explanation(result)
     return (
-        str(result["demand_band"]),
-        round(float(result["aggregate_demand_score"]), 2),
-        round(float(result["opportunity_score"]), 2),
-    )
-
-
-def calculate_live_scores(
-    likes: float,
-    comments: float,
-    shares: float,
-    searches: float,
-    engagement_intensity: float,
-    purchase_intent_score: float,
-    trend_growth: float,
-) -> tuple[float, float]:
-    """Update aggregate demand and opportunity scores as inputs change."""
-
-    result = predict_demand_details(
-        likes,
-        comments,
-        shares,
-        searches,
-        engagement_intensity,
-        purchase_intent_score,
-        trend_growth,
-    )
-    return (
-        round(float(result["aggregate_demand_score"]), 2),
-        round(float(result["opportunity_score"]), 2),
-    )
-
-
-def predict_demand_dashboard(
-    likes: float,
-    comments: float,
-    shares: float,
-    searches: float,
-    engagement_intensity: float,
-    purchase_intent_score: float,
-    trend_growth: float,
-) -> tuple[str, str, float, float, float, float, float, str, str, str]:
-    """Return a richer dashboard-friendly prediction view."""
-
-    result = predict_demand_details(
-        likes,
-        comments,
-        shares,
-        searches,
-        engagement_intensity,
-        purchase_intent_score,
-        trend_growth,
-    )
-    summary = _format_intelligence_summary(result)
-    drivers_markdown = format_key_drivers_markdown({"key_drivers": result.get("key_drivers", [])})
-    explanation = f"{result['key_driver_summary']}\n\n{result['explanation_note']}\n\n{result['policy_note']}"
-    return (
-        summary,
         str(result["demand_classification"]),
         round(float(result["confidence_score"]) * 100, 2),
         round(float(result["aggregate_demand_score"]), 2),
@@ -175,8 +119,7 @@ def predict_demand_dashboard(
         round(float(result["emerging_trend_probability"]) * 100, 2),
         round(float(result["unmet_demand_probability"]) * 100, 2),
         str(result["investment_opportunity_interpretation"]),
-        drivers_markdown,
-        f"{result['model_source_label']}\n\n{explanation}",
+        explanation,
     )
 
 
@@ -191,7 +134,7 @@ def signal_model(
 ) -> tuple[str, float, float]:
     """Backward-compatible wrapper used by existing tests and callers."""
 
-    label, aggregate_score, opportunity_score = predict_demand(
+    result = predict_demand_details(
         likes,
         comments,
         shares,
@@ -200,6 +143,9 @@ def signal_model(
         purchase_intent_score,
         trend_growth,
     )
+    label = str(result["demand_band"])
+    aggregate_score = float(result["aggregate_demand_score"])
+    opportunity_score = float(result["opportunity_score"])
     legacy_label = {
         "High Demand": "High",
         "Moderate Demand": "Moderate",
@@ -684,6 +630,19 @@ def _format_intelligence_summary(result: dict[str, Any]) -> str:
     )
 
 
+def _format_panel_explanation(result: dict[str, Any]) -> str:
+    drivers_markdown = format_key_drivers_markdown({"key_drivers": result.get("key_drivers", [])})
+    summary = _format_intelligence_summary(result)
+    return (
+        f"{result['model_source_label']}\n\n"
+        f"{summary}\n\n"
+        f"Key Drivers:\n{drivers_markdown}\n\n"
+        f"{result['key_driver_summary']}\n\n"
+        f"{result['explanation_note']}\n\n"
+        f"{result['policy_note']}"
+    )
+
+
 def _uploaded_path(file_obj: Any | None) -> str | None:
     if file_obj is None:
         return None
@@ -730,46 +689,19 @@ with gr.Blocks(title="Signal AI Market Intelligence") as demo:
                 predict_button = gr.Button("Predict Demand")
 
             with gr.Column():
-                intelligence_summary = gr.Markdown(label="Signal Intelligence Brief")
                 with gr.Row():
-                    demand_output = gr.Textbox(label="Demand Classification")
-                    confidence_output = gr.Number(label="Confidence Score (%)")
+                    demand_output = gr.Textbox(label="Demand Classification", interactive=False)
+                    confidence_output = gr.Number(label="Confidence Score (%)", interactive=False)
                 with gr.Row():
                     aggregate_output = gr.Number(label="Aggregate Demand Score", interactive=False)
                     opportunity_output = gr.Number(label="Opportunity Score", interactive=False)
                 with gr.Row():
-                    emerging_output = gr.Number(label="Emerging Trend Probability (%)")
-                    unmet_output = gr.Number(label="Unmet Demand Probability (%)")
-                interpretation_output = gr.Textbox(label="Investment / Policy Interpretation", lines=2)
-                drivers_output = gr.Markdown(label="Key Drivers")
-                source_output = gr.Textbox(label="Model Source and Explanation", lines=8)
+                    emerging_output = gr.Number(label="Emerging Trend Probability (%)", interactive=False)
+                    unmet_output = gr.Number(label="Unmet Demand Probability (%)", interactive=False)
+                interpretation_output = gr.Textbox(label="Investment / Policy Interpretation", lines=2, interactive=False)
+                source_output = gr.Textbox(label="Model Source and Explanation", lines=12, interactive=False)
 
-        predict_button.click(
-            fn=predict_demand_dashboard,
-            inputs=[
-                likes,
-                comments,
-                shares,
-                searches,
-                engagement_intensity,
-                purchase_intent_score,
-                trend_growth,
-            ],
-            outputs=[
-                intelligence_summary,
-                demand_output,
-                confidence_output,
-                aggregate_output,
-                opportunity_output,
-                emerging_output,
-                unmet_output,
-                interpretation_output,
-                drivers_output,
-                source_output,
-            ],
-        )
-
-        live_score_inputs = [
+        live_inputs = [
             likes,
             comments,
             shares,
@@ -778,12 +710,32 @@ with gr.Blocks(title="Signal AI Market Intelligence") as demo:
             purchase_intent_score,
             trend_growth,
         ]
-        for input_component in live_score_inputs:
+        live_outputs = [
+            demand_output,
+            confidence_output,
+            aggregate_output,
+            opportunity_output,
+            emerging_output,
+            unmet_output,
+            interpretation_output,
+            source_output,
+        ]
+        for input_component in live_inputs:
             input_component.change(
-                fn=calculate_live_scores,
-                inputs=live_score_inputs,
-                outputs=[aggregate_output, opportunity_output],
+                fn=predict_demand,
+                inputs=live_inputs,
+                outputs=live_outputs,
             )
+        predict_button.click(
+            fn=predict_demand,
+            inputs=live_inputs,
+            outputs=live_outputs,
+        )
+        demo.load(
+            fn=predict_demand,
+            inputs=live_inputs,
+            outputs=live_outputs,
+        )
 
     with gr.Tab("Signal CGE Framework"):
         scenario_input = gr.Textbox(label="CGE Scenario", value=DEFAULT_SCENARIO, lines=8)

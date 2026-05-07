@@ -36,10 +36,15 @@ class SignalAIMLEngineUpgradeTests(unittest.TestCase):
     def test_predict_demand_returns_expected_tuple_structure(self) -> None:
         result = app.predict_demand(180, 50, 35, 220, 0.68, 0.82, 0.6)
 
-        self.assertEqual(len(result), 3)
+        self.assertEqual(len(result), 8)
         self.assertIsInstance(result[0], str)
         self.assertIsInstance(result[1], float)
         self.assertIsInstance(result[2], float)
+        self.assertIsInstance(result[3], float)
+        self.assertIsInstance(result[4], float)
+        self.assertIsInstance(result[5], float)
+        self.assertIsInstance(result[6], str)
+        self.assertIsInstance(result[7], str)
 
     def test_fallback_works_when_model_missing(self) -> None:
         with patch.object(app, "PRIMARY_MODEL_PATH", Path("tests/_tmp/missing_model.pkl")), patch.object(
