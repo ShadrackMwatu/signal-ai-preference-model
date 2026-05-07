@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import unittest
+import uuid
 from pathlib import Path
 
 from ml.model_registry import ModelRegistry
@@ -10,9 +11,7 @@ class ModelRegistryTests(unittest.TestCase):
     def test_register_and_fetch_latest_model(self) -> None:
         scratch = Path("tests") / "_scratch" / "model_registry"
         scratch.mkdir(parents=True, exist_ok=True)
-        registry_path = scratch / "registry_test_case.json"
-        if registry_path.exists():
-            registry_path.unlink()
+        registry_path = scratch / f"registry_{uuid.uuid4().hex}.json"
         registry = ModelRegistry(registry_path)
         first = registry.register_model(
             model_name="demo",

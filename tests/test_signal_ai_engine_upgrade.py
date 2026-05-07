@@ -47,8 +47,11 @@ class SignalAIMLEngineUpgradeTests(unittest.TestCase):
         ):
             details = app.predict_demand_details(40, 6, 3, 70, 0.44, 0.41, 0.2)
 
-        self.assertIn("fallback model", details["prediction_source"])
-        self.assertIn(details["demand_classification"], {"Low Demand", "Moderate Demand", "High Demand"})
+        self.assertIn("Fallback Logic", details["prediction_source"])
+        self.assertIn(
+            details["demand_classification"],
+            {"Low Demand", "Moderate Demand", "High Demand", "Emerging Demand", "Declining Demand", "Unmet Demand"},
+        )
 
     def test_guardrails_flag_low_demand_high_opportunity_contradiction(self) -> None:
         guarded = app._apply_guardrails(  # noqa: SLF001 - targeted test for guardrail behavior.

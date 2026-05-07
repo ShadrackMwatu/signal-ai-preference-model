@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+import shutil
 from dataclasses import asdict, dataclass
 from datetime import UTC, datetime
 from importlib.metadata import version
@@ -20,195 +21,190 @@ from sklearn.model_selection import cross_val_score, train_test_split
 from sklearn.pipeline import Pipeline
 from sklearn.preprocessing import StandardScaler
 
+from data.synthetic.generate_synthetic_signal_data import DEMAND_CLASSES, generate_synthetic_signal_data
+
 
 ROOT_DIR = Path(__file__).resolve().parent
 TRAINING_DATA_PATH = ROOT_DIR / "data" / "training" / "signal_training_data.csv"
 MODEL_PATH = ROOT_DIR / "models" / "model.pkl"
 METADATA_PATH = ROOT_DIR / "models" / "metadata.json"
+MODEL_VERSIONS_DIR = ROOT_DIR / "models" / "versions"
 
-PRIMARY_FEATURE_COLUMNS = [
+BASE_FEATURE_COLUMNS = [
+    "likes",
+    "comments",
+    "shares",
+    "searches",
     "engagement_intensity",
+    "purchase_intent_score",
+    "trend_growth",
+    "sentiment_score",
+    "urgency_score",
+    "repetition_score",
+    "location_relevance",
+    "price_sensitivity",
+    "noise_score",
+]
+DERIVED_FEATURE_COLUMNS = [
     "mentions_count",
     "comments_count",
     "shares_count",
     "likes_count",
     "searches_count",
-    "sentiment_score",
-    "urgency_score",
-    "trend_growth",
-    "repetition_score",
-    "location_relevance",
-    "price_sensitivity",
-    "noise_score",
     "engagement_rate",
     "weighted_engagement_score",
     "trend_momentum",
     "unmet_need_signal",
     "opportunity_index",
 ]
-REQUIRED_COLUMNS = PRIMARY_FEATURE_COLUMNS + [
-    "county",
+FEATURE_COLUMNS = BASE_FEATURE_COLUMNS + DERIVED_FEATURE_COLUMNS
+REQUIRED_COLUMNS = [
     "topic",
+    "county",
     "time_period",
-    "demand_classification",
-    "opportunity_score",
+    "likes",
+    "comments",
+    "shares",
+    "searches",
+    "engagement_intensity",
+    "purchase_intent_score",
+    "trend_growth",
+    "sentiment_score",
+    "urgency_score",
+    "repetition_score",
+    "location_relevance",
+    "price_sensitivity",
+    "noise_score",
+    "demand_class",
+    "opportunity_label",
     "unmet_demand_flag",
     "emerging_trend_flag",
 ]
-DEMAND_CLASS_ORDER = ["Low Demand", "Moderate Demand", "High Demand"]
+TARGET_COLUMN = "demand_class"
 
 
 @dataclass
 class TrainingResult:
     model_path: str
     metadata_path: str
+    model_version: str
     training_rows: int
-    accuracy_score: float
+    train_accuracy: float
+    test_accuracy: float
     cross_validation_score: float | None
+
+    @property
+    def accuracy_score(self) -> float:
+        return self.test_accuracy
 
 
 def generate_training_data(
     output_path: str | Path = TRAINING_DATA_PATH,
-    n_rows: int = 1500,
+    n_rows: int = 1800,
     random_state: int = 42,
 ) -> pd.DataFrame:
-    """Create a synthetic, privacy-safe training dataset for Signal."""
+    """Backward-compatible wrapper around the phase-2 synthetic generator."""
 
-    rng = np.random.default_rng(random_state)
-    counties = ["Nairobi", "Mombasa", "Kisumu", "Nakuru", "Machakos", "Kiambu", "Turkana"]
-    topics = ["retail", "food", "finance", "health", "mobility", "agriculture", "education"]
-    periods = [f"2026-Q{quarter}" for quarter in range(1, 5)]
-
-    rows: list[dict[str, Any]] = []
-    for _ in range(n_rows):
-        county = str(rng.choice(counties))
-        topic = str(rng.choice(topics))
-        time_period = str(rng.choice(periods))
-
-        likes_count = int(rng.poisson(40))
-        comments_count = int(rng.poisson(18))
-        shares_count = int(rng.poisson(10))
-        searches_count = int(rng.poisson(55))
-        mentions_count = int(rng.poisson(14))
-        views_count = int(max(80, rng.poisson(280)))
-
-        engagement_intensity = np.clip(
-            0.28
-            + likes_count / 420
-            + comments_count / 180
-            + shares_count / 130
-            + searches_count / 360
-            + rng.normal(0, 0.06),
-            0,
-            1,
-        )
-        sentiment_score = float(np.clip(rng.normal(0.15 + engagement_intensity * 0.55, 0.16), -1, 1))
-        urgency_score = float(np.clip(rng.normal(searches_count / 140 + shares_count / 90, 0.12), 0, 1))
-        trend_growth = float(np.clip(rng.normal(engagement_intensity * 0.7, 0.18), -0.2, 1))
-        repetition_score = float(np.clip(rng.normal(searches_count / max(likes_count + comments_count, 1), 0.12), 0, 1))
-        location_relevance = float(np.clip(rng.normal(0.55 if county != "Turkana" else 0.48, 0.12), 0, 1))
-        price_sensitivity = float(np.clip(rng.normal(0.55 - sentiment_score * 0.15, 0.18), 0, 1))
-        noise_score = float(np.clip(rng.normal(0.35 + abs(sentiment_score) * 0.1, 0.14), 0, 1))
-
-        engagement_rate = float(np.clip((likes_count + comments_count + shares_count + searches_count) / views_count, 0, 1.5))
-        weighted_engagement_score = float(
-            np.clip(
-                (
-                    likes_count
-                    + comments_count * 1.8
-                    + shares_count * 2.4
-                    + searches_count * 1.6
-                    + mentions_count * 1.1
-                )
-                / 100,
-                0,
-                10,
-            )
-        )
-        trend_momentum = float(np.clip((trend_growth * 0.65) + (urgency_score * 0.35), 0, 1))
-        unmet_need_signal = float(np.clip((urgency_score * 0.45) + (price_sensitivity * 0.2) - (noise_score * 0.15), 0, 1))
-        opportunity_index = float(
-            np.clip(
-                (engagement_intensity * 0.22)
-                + (max(sentiment_score, 0) * 0.12)
-                + (trend_growth * 0.2)
-                + (urgency_score * 0.16)
-                + (unmet_need_signal * 0.16)
-                + (location_relevance * 0.08)
-                - (noise_score * 0.08),
-                0,
-                1,
-            )
-        )
-
-        latent_demand_score = float(
-            np.clip(
-                opportunity_index * 0.44
-                + engagement_rate * 0.18
-                + trend_momentum * 0.18
-                + (1 - price_sensitivity) * 0.08
-                + rng.normal(0, 0.05),
-                0,
-                1,
-            )
-        )
-
-        if latent_demand_score >= 0.56:
-            demand_classification = "High Demand"
-        elif latent_demand_score >= 0.36:
-            demand_classification = "Moderate Demand"
-        else:
-            demand_classification = "Low Demand"
-
-        unmet_demand_flag = int(unmet_need_signal >= 0.62 and demand_classification != "High Demand")
-        emerging_trend_flag = int(trend_momentum >= 0.58 and trend_growth > 0.15)
-        opportunity_score = round(float(np.clip((opportunity_index * 0.7 + latent_demand_score * 0.3) * 100, 0, 100)), 2)
-
-        rows.append(
-            {
-                "county": county,
-                "topic": topic,
-                "time_period": time_period,
-                "engagement_intensity": round(float(engagement_intensity), 4),
-                "mentions_count": mentions_count,
-                "comments_count": comments_count,
-                "shares_count": shares_count,
-                "likes_count": likes_count,
-                "searches_count": searches_count,
-                "sentiment_score": round(sentiment_score, 4),
-                "urgency_score": round(urgency_score, 4),
-                "trend_growth": round(trend_growth, 4),
-                "repetition_score": round(repetition_score, 4),
-                "location_relevance": round(location_relevance, 4),
-                "price_sensitivity": round(price_sensitivity, 4),
-                "noise_score": round(noise_score, 4),
-                "engagement_rate": round(engagement_rate, 4),
-                "weighted_engagement_score": round(weighted_engagement_score, 4),
-                "trend_momentum": round(trend_momentum, 4),
-                "unmet_need_signal": round(unmet_need_signal, 4),
-                "opportunity_index": round(opportunity_index, 4),
-                "demand_classification": demand_classification,
-                "opportunity_score": opportunity_score,
-                "unmet_demand_flag": unmet_demand_flag,
-                "emerging_trend_flag": emerging_trend_flag,
-            }
-        )
-
-    frame = pd.DataFrame(rows)
-    _validate_training_frame(frame)
-    output = Path(output_path)
-    output.parent.mkdir(parents=True, exist_ok=True)
-    frame.to_csv(output, index=False)
-    return frame
+    return generate_synthetic_signal_data(output_path=output_path, n_rows=n_rows, random_state=random_state)
 
 
 def load_training_data(path: str | Path = TRAINING_DATA_PATH) -> pd.DataFrame:
     data_path = Path(path)
     if not data_path.exists():
-        return generate_training_data(data_path)
+        return generate_synthetic_signal_data(data_path)
     frame = pd.read_csv(data_path)
     _validate_training_frame(frame)
     return frame
+
+
+def prepare_training_frame(frame: pd.DataFrame) -> pd.DataFrame:
+    prepared = frame.copy()
+    _validate_training_frame(prepared)
+
+    numeric_columns = [
+        "likes",
+        "comments",
+        "shares",
+        "searches",
+        "engagement_intensity",
+        "purchase_intent_score",
+        "trend_growth",
+        "sentiment_score",
+        "urgency_score",
+        "repetition_score",
+        "location_relevance",
+        "price_sensitivity",
+        "noise_score",
+        "unmet_demand_flag",
+        "emerging_trend_flag",
+    ]
+    for column in numeric_columns:
+        prepared[column] = pd.to_numeric(prepared[column], errors="coerce")
+
+    prepared["likes"] = prepared["likes"].fillna(prepared["likes"].median())
+    prepared["comments"] = prepared["comments"].fillna(prepared["comments"].median())
+    prepared["shares"] = prepared["shares"].fillna(prepared["shares"].median())
+    prepared["searches"] = prepared["searches"].fillna(prepared["searches"].median())
+
+    for column in [
+        "engagement_intensity",
+        "purchase_intent_score",
+        "sentiment_score",
+        "urgency_score",
+        "repetition_score",
+        "location_relevance",
+        "price_sensitivity",
+        "noise_score",
+    ]:
+        prepared[column] = prepared[column].fillna(prepared[column].median()).clip(0, 1)
+
+    prepared["trend_growth"] = prepared["trend_growth"].fillna(prepared["trend_growth"].median()).clip(-1, 1)
+    prepared["unmet_demand_flag"] = prepared["unmet_demand_flag"].fillna(0).clip(0, 1).round().astype(int)
+    prepared["emerging_trend_flag"] = prepared["emerging_trend_flag"].fillna(0).clip(0, 1).round().astype(int)
+
+    total_engagement = prepared["likes"] + prepared["comments"] + prepared["shares"] + prepared["searches"]
+    prepared["mentions_count"] = prepared["comments"] + (prepared["shares"] * 0.5)
+    prepared["comments_count"] = prepared["comments"]
+    prepared["shares_count"] = prepared["shares"]
+    prepared["likes_count"] = prepared["likes"]
+    prepared["searches_count"] = prepared["searches"]
+    prepared["engagement_rate"] = np.clip(total_engagement / np.maximum(total_engagement + 120, 1), 0, 1)
+    prepared["weighted_engagement_score"] = np.clip(
+        (
+            prepared["likes"]
+            + prepared["comments"] * 1.8
+            + prepared["shares"] * 2.4
+            + prepared["searches"] * 1.6
+            + prepared["mentions_count"]
+        )
+        / 100,
+        0,
+        12,
+    )
+    prepared["trend_momentum"] = np.clip((prepared["trend_growth"] * 0.65) + (prepared["urgency_score"] * 0.35), 0, 1)
+    prepared["unmet_need_signal"] = np.clip(
+        (prepared["urgency_score"] * 0.4)
+        + (prepared["price_sensitivity"] * 0.18)
+        + ((1 - prepared["engagement_intensity"]) * 0.16)
+        + (prepared["purchase_intent_score"] * 0.18)
+        - (prepared["noise_score"] * 0.12),
+        0,
+        1,
+    )
+    prepared["opportunity_index"] = np.clip(
+        (prepared["engagement_intensity"] * 0.2)
+        + (prepared["purchase_intent_score"] * 0.22)
+        + (prepared["trend_growth"].clip(lower=0) * 0.18)
+        + (prepared["urgency_score"] * 0.14)
+        + (prepared["repetition_score"] * 0.08)
+        + (prepared["location_relevance"] * 0.08)
+        + (prepared["unmet_need_signal"] * 0.16)
+        - (prepared["noise_score"] * 0.1),
+        0,
+        1,
+    )
+    prepared[TARGET_COLUMN] = prepared[TARGET_COLUMN].fillna("Moderate Demand").astype(str)
+    return prepared
 
 
 def train_signal_model(
@@ -219,26 +215,23 @@ def train_signal_model(
 ) -> TrainingResult:
     """Train the primary demand-classification pipeline and companion classifiers."""
 
-    frame = load_training_data(data_path)
-    if not _has_sufficient_class_balance(frame["demand_classification"]):
-        frame = generate_training_data(data_path, random_state=random_state)
-    x = frame[PRIMARY_FEATURE_COLUMNS]
-    y = frame["demand_classification"]
-    x_train, x_test, y_train, y_test = train_test_split(
-        x,
-        y,
-        test_size=0.2,
-        random_state=random_state,
-        stratify=y,
-    )
+    raw = load_training_data(data_path)
+    frame = prepare_training_frame(raw)
+
+    if not _has_sufficient_class_balance(frame[TARGET_COLUMN]):
+        raw = generate_synthetic_signal_data(data_path, random_state=random_state)
+        frame = prepare_training_frame(raw)
+
+    x = frame[FEATURE_COLUMNS]
+    y = frame[TARGET_COLUMN]
+    x_train, x_test, y_train, y_test, use_holdout = _safe_train_test_split(x, y, random_state=random_state)
 
     primary_pipeline = _build_classifier_pipeline(random_state)
     primary_pipeline.fit(x_train, y_train)
-    accuracy = accuracy_score(y_test, primary_pipeline.predict(x_test))
-    try:
-        cv_score = float(cross_val_score(primary_pipeline, x, y, cv=5, scoring="accuracy").mean())
-    except Exception:
-        cv_score = None
+    train_accuracy = float(accuracy_score(y_train, primary_pipeline.predict(x_train)))
+    test_accuracy = float(accuracy_score(y_test, primary_pipeline.predict(x_test))) if use_holdout else train_accuracy
+
+    cv_score = _safe_cross_validation(primary_pipeline, x, y)
 
     unmet_pipeline = _build_classifier_pipeline(random_state + 1)
     unmet_pipeline.fit(x, frame["unmet_demand_flag"])
@@ -246,12 +239,17 @@ def train_signal_model(
     emerging_pipeline = _build_classifier_pipeline(random_state + 2)
     emerging_pipeline.fit(x, frame["emerging_trend_flag"])
 
+    model_version = _next_model_version()
     artifact = {
         "model": primary_pipeline,
         "unmet_model": unmet_pipeline,
         "emerging_model": emerging_pipeline,
-        "feature_columns": PRIMARY_FEATURE_COLUMNS,
-        "class_labels": DEMAND_CLASS_ORDER,
+        "feature_columns": FEATURE_COLUMNS,
+        "base_feature_columns": BASE_FEATURE_COLUMNS,
+        "derived_feature_columns": DERIVED_FEATURE_COLUMNS,
+        "class_labels": DEMAND_CLASSES,
+        "target_column": TARGET_COLUMN,
+        "model_version": model_version,
         "trained_at": datetime.now(UTC).isoformat(),
     }
 
@@ -260,10 +258,15 @@ def train_signal_model(
     joblib.dump(artifact, model_file)
 
     metadata = {
+        "model_version": model_version,
         "training_date": artifact["trained_at"],
-        "features_used": PRIMARY_FEATURE_COLUMNS,
+        "number_of_rows": len(frame),
+        "features_used": FEATURE_COLUMNS,
+        "target_variable": TARGET_COLUMN,
         "model_type": "RandomForestClassifier pipeline",
-        "accuracy_score": round(float(accuracy), 4),
+        "train_accuracy": round(train_accuracy, 4),
+        "test_accuracy": round(test_accuracy, 4),
+        "accuracy_score": round(test_accuracy, 4),
         "cross_validation_score": None if cv_score is None else round(cv_score, 4),
         "package_versions": {
             "numpy": version("numpy"),
@@ -271,7 +274,6 @@ def train_signal_model(
             "scikit-learn": version("scikit-learn"),
             "joblib": version("joblib"),
         },
-        "training_rows": len(frame),
         "artifact_path": str(model_file),
         "data_path": str(Path(data_path)),
     }
@@ -280,11 +282,15 @@ def train_signal_model(
     metadata_file.parent.mkdir(parents=True, exist_ok=True)
     metadata_file.write_text(json.dumps(metadata, indent=2), encoding="utf-8")
 
+    _write_versioned_artifacts(model_file, metadata_file, model_version)
+
     return TrainingResult(
         model_path=str(model_file),
         metadata_path=str(metadata_file),
+        model_version=model_version,
         training_rows=len(frame),
-        accuracy_score=round(float(accuracy), 4),
+        train_accuracy=round(train_accuracy, 4),
+        test_accuracy=round(test_accuracy, 4),
         cross_validation_score=None if cv_score is None else round(cv_score, 4),
     )
 
@@ -300,17 +306,58 @@ def _build_classifier_pipeline(random_state: int) -> Pipeline:
                         ("scaler", StandardScaler()),
                     ]
                 ),
-                PRIMARY_FEATURE_COLUMNS,
+                FEATURE_COLUMNS,
             )
         ]
     )
     model = RandomForestClassifier(
-        n_estimators=220,
+        n_estimators=240,
         min_samples_leaf=2,
         random_state=random_state,
         class_weight="balanced_subsample",
     )
     return Pipeline(steps=[("preprocess", preprocessing), ("model", model)])
+
+
+def _safe_train_test_split(
+    x: pd.DataFrame,
+    y: pd.Series,
+    random_state: int,
+) -> tuple[pd.DataFrame, pd.DataFrame, pd.Series, pd.Series, bool]:
+    minimum_class_size = int(y.value_counts().min()) if not y.empty else 0
+    use_holdout = len(x) >= 18 and y.nunique() >= 2 and minimum_class_size >= 2
+    if use_holdout:
+        return (*train_test_split(x, y, test_size=0.2, random_state=random_state, stratify=y), True)
+    return x, x, y, y, False
+
+
+def _safe_cross_validation(model: Pipeline, x: pd.DataFrame, y: pd.Series) -> float | None:
+    if len(x) < 24 or y.nunique() < 2:
+        return None
+    minimum_class_size = int(y.value_counts().min())
+    folds = min(5, minimum_class_size)
+    if folds < 2:
+        return None
+    try:
+        return float(cross_val_score(model, x, y, cv=folds, scoring="accuracy").mean())
+    except Exception:
+        return None
+
+
+def _write_versioned_artifacts(model_file: Path, metadata_file: Path, model_version: str) -> None:
+    version_dir = MODEL_VERSIONS_DIR / model_version
+    version_dir.mkdir(parents=True, exist_ok=True)
+    shutil.copy2(model_file, version_dir / "model.pkl")
+    shutil.copy2(metadata_file, version_dir / "metadata.json")
+
+
+def _next_model_version() -> str:
+    MODEL_VERSIONS_DIR.mkdir(parents=True, exist_ok=True)
+    existing = []
+    for path in MODEL_VERSIONS_DIR.iterdir():
+        if path.is_dir() and path.name.startswith("v") and path.name[1:].isdigit():
+            existing.append(int(path.name[1:]))
+    return f"v{max(existing, default=0) + 1}"
 
 
 def _validate_training_frame(frame: pd.DataFrame) -> None:
@@ -320,7 +367,7 @@ def _validate_training_frame(frame: pd.DataFrame) -> None:
 
 
 def _has_sufficient_class_balance(target: pd.Series) -> bool:
-    counts = target.value_counts()
+    counts = target.astype(str).value_counts()
     return counts.size >= 3 and int(counts.min()) >= 2
 
 

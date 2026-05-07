@@ -12,6 +12,8 @@ import pandas as pd
 
 import gradio as gr
 
+from explainability import format_key_drivers_markdown, generate_prediction_explanation
+
 
 ADVANCED_IMPORT_ERROR = ""
 
@@ -63,6 +65,10 @@ def predict_demand_details(
         )
         model_result = _predict_with_model(features)
         guarded = _apply_guardrails(model_result, features)
+        explanation = generate_prediction_explanation(features, guarded)
+        guarded["key_drivers"] = explanation["key_drivers"]
+        guarded["key_driver_summary"] = explanation["driver_summary"]
+        guarded["policy_note"] = explanation["policy_note"]
         return guarded
     except Exception as exc:
         return {
@@ -73,8 +79,14 @@ def predict_demand_details(
             "investment_opportunity_interpretation": "Prediction failed",
             "unmet_demand_flag": False,
             "emerging_trend_flag": False,
-            "prediction_source": "error",
+            "demand_band": "Low Demand",
+            "prediction_source": "Error",
+            "model_source_label": "Error",
             "explanation_note": f"Prediction pipeline failed: {exc}",
+            "key_drivers": ["prediction error"],
+            "key_driver_summary": f"Signal could not complete the prediction: {exc}",
+            "policy_note": "Check model availability and input validity before interpreting this signal.",
+            "model_version": "unavailable",
         }
 
 
@@ -99,9 +111,46 @@ def predict_demand(
         trend_growth,
     )
     return (
-        str(result["demand_classification"]),
+        str(result["demand_band"]),
         round(float(result["aggregate_demand_score"]), 2),
         round(float(result["opportunity_score"]), 2),
+    )
+
+
+def predict_demand_dashboard(
+    likes: float,
+    comments: float,
+    shares: float,
+    searches: float,
+    engagement_intensity: float,
+    purchase_intent_score: float,
+    trend_growth: float,
+) -> tuple[str, str, float, float, float, float, float, str, str, str]:
+    """Return a richer dashboard-friendly prediction view."""
+
+    result = predict_demand_details(
+        likes,
+        comments,
+        shares,
+        searches,
+        engagement_intensity,
+        purchase_intent_score,
+        trend_growth,
+    )
+    summary = _format_intelligence_summary(result)
+    drivers_markdown = format_key_drivers_markdown({"key_drivers": result.get("key_drivers", [])})
+    explanation = f"{result['key_driver_summary']}\n\n{result['explanation_note']}\n\n{result['policy_note']}"
+    return (
+        summary,
+        str(result["demand_classification"]),
+        round(float(result["confidence_score"]) * 100, 2),
+        round(float(result["aggregate_demand_score"]), 2),
+        round(float(result["opportunity_score"]), 2),
+        round(float(result["emerging_trend_probability"]) * 100, 2),
+        round(float(result["unmet_demand_probability"]) * 100, 2),
+        str(result["investment_opportunity_interpretation"]),
+        drivers_markdown,
+        f"{result['model_source_label']}\n\n{explanation}",
     )
 
 
@@ -295,7 +344,25 @@ def _map_demand_label(prediction: Any) -> str:
         return "High Demand"
     if prediction == 1 or text in {"1", "moderate", "moderate demand"}:
         return "Moderate Demand"
+    if text in {"emerging", "emerging demand"}:
+        return "Emerging Demand"
+    if text in {"declining", "declining demand"}:
+        return "Declining Demand"
+    if text in {"unmet", "unmet demand"}:
+        return "Unmet Demand"
     return "Low Demand"
+
+
+def _normalize_demand_band(label: str) -> str:
+    mapping = {
+        "High Demand": "High Demand",
+        "Moderate Demand": "Moderate Demand",
+        "Emerging Demand": "Moderate Demand",
+        "Low Demand": "Low Demand",
+        "Declining Demand": "Low Demand",
+        "Unmet Demand": "Low Demand",
+    }
+    return mapping.get(label, "Low Demand")
 
 
 def _safe_float(value: Any) -> float:
@@ -359,6 +426,7 @@ def _build_signal_features(
         "comments": round(float(max(comments, 0)), 4),
         "shares": round(float(max(shares, 0)), 4),
         "searches": round(float(max(searches, 0)), 4),
+        "purchase_intent_score": round(float(np.clip(purchase_intent_score, 0, 1)), 4),
         "sentiment_score": round(float(sentiment_score), 4),
         "urgency_score": round(float(urgency_score), 4),
         "trend_growth": round(float(np.clip(trend_growth, -1, 1)), 4),
@@ -384,17 +452,20 @@ def _predict_with_model(features: dict[str, float]) -> dict[str, Any]:
     frame = pd.DataFrame([{column: float(features.get(column, 0.0)) for column in feature_columns}])
     prediction = _map_demand_label(model.predict(frame)[0])
     probabilities = model.predict_proba(frame)[0] if hasattr(model, "predict_proba") else np.array([1.0])
-    classes = [str(label) for label in getattr(model, "classes_", ["Low Demand", "Moderate Demand", "High Demand"])]
+    classes = [_map_demand_label(label) for label in getattr(model, "classes_", ["Low Demand", "Moderate Demand", "High Demand"])]
     class_probabilities = {label: float(prob) for label, prob in zip(classes, probabilities)}
     confidence_score = float(max(class_probabilities.values(), default=1.0))
+    demand_weights = {
+        "High Demand": 1.0,
+        "Moderate Demand": 0.62,
+        "Low Demand": 0.2,
+        "Emerging Demand": 0.58,
+        "Declining Demand": 0.16,
+        "Unmet Demand": 0.52,
+    }
     aggregate_demand_score = float(
         np.clip(
-            (
-                class_probabilities.get("High Demand", 0.0) * 1.0
-                + class_probabilities.get("Moderate Demand", 0.0) * 0.6
-                + class_probabilities.get("Low Demand", 0.0) * 0.25
-            )
-            * 100,
+            sum(class_probabilities.get(label, 0.0) * weight for label, weight in demand_weights.items()) * 100,
             0,
             100,
         )
@@ -419,19 +490,24 @@ def _predict_with_model(features: dict[str, float]) -> dict[str, Any]:
 
     return {
         "demand_classification": prediction,
+        "demand_band": _normalize_demand_band(prediction),
         "confidence_score": round(confidence_score, 4),
         "aggregate_demand_score": round(aggregate_demand_score, 2),
         "opportunity_score": round(opportunity_score, 2),
         "unmet_demand_probability": round(unmet_probability, 4),
         "emerging_trend_probability": round(emerging_probability, 4),
-        "prediction_source": "trained model",
+        "prediction_source": "Trained ML Model",
+        "model_source_components": ["Trained ML Model"],
+        "model_source_label": "Trained ML Model",
         "explanation_note": "Primary prediction produced by the trained local Signal model.",
+        "model_version": str(artifact.get("model_version", _metadata_value("model_version", "legacy"))),
     }
 
 
 def _predict_with_fallback(features: dict[str, float]) -> dict[str, Any]:
     latent = np.clip(
         features["engagement_intensity"] * 0.28
+        + features["purchase_intent_score"] * 0.18
         + features["trend_growth"] * 0.2
         + features["urgency_score"] * 0.16
         + features["repetition_score"] * 0.1
@@ -439,7 +515,13 @@ def _predict_with_fallback(features: dict[str, float]) -> dict[str, Any]:
         0,
         1,
     )
-    if latent >= 0.68:
+    if features["searches"] >= 160 and features["engagement_intensity"] < 0.45 and features["purchase_intent_score"] >= 0.6:
+        demand = "Unmet Demand"
+    elif features["trend_growth"] <= -0.08 and features["engagement_intensity"] < 0.5:
+        demand = "Declining Demand"
+    elif features["trend_growth"] >= 0.48 and features["engagement_intensity"] >= 0.46:
+        demand = "Emerging Demand"
+    elif latent >= 0.68:
         demand = "High Demand"
     elif latent >= 0.42:
         demand = "Moderate Demand"
@@ -461,46 +543,69 @@ def _predict_with_fallback(features: dict[str, float]) -> dict[str, Any]:
     )
     return {
         "demand_classification": demand,
+        "demand_band": _normalize_demand_band(demand),
         "confidence_score": round(confidence_score, 4),
         "aggregate_demand_score": round(aggregate_demand_score, 2),
         "opportunity_score": round(opportunity_score, 2),
         "unmet_demand_probability": round(unmet_probability, 4),
         "emerging_trend_probability": round(emerging_probability, 4),
-        "prediction_source": "fallback model",
+        "prediction_source": "Fallback Logic — trained model not available.",
+        "model_source_components": ["Fallback Logic"],
+        "model_source_label": "Fallback Logic — trained model not available.",
         "explanation_note": "Fallback scoring used because the trained model artifact was unavailable.",
+        "model_version": "unavailable",
     }
 
 
 def _apply_guardrails(result: dict[str, Any], features: dict[str, float]) -> dict[str, Any]:
     demand = str(result["demand_classification"])
+    demand_band = str(result.get("demand_band", _normalize_demand_band(demand)))
     opportunity = float(result["opportunity_score"])
+    confidence = float(result["confidence_score"])
     unmet_probability = float(result["unmet_demand_probability"])
     emerging_probability = float(result["emerging_trend_probability"])
     notes = [str(result["explanation_note"])]
+    source_components = list(result.get("model_source_components", []))
 
-    if demand == "High Demand" and opportunity >= 70:
+    if demand_band == "High Demand" and opportunity >= 70:
         interpretation = "Strong Investment Opportunity"
-    elif demand == "Moderate Demand" and opportunity >= 55:
+    elif demand_band == "Moderate Demand" and opportunity >= 55:
         interpretation = "Emerging Opportunity"
-    elif demand == "Low Demand" and opportunity >= 55:
+    elif demand_band == "Low Demand" and opportunity >= 55:
         interpretation = "Investigate Anomaly / Possible Unmet Demand"
         unmet_probability = max(unmet_probability, float(np.clip(features["unmet_need_signal"], 0, 1)))
         notes.append("Guardrail flagged a contradiction between low demand and elevated opportunity.")
     else:
         interpretation = "Weak Signal"
 
-    if features["noise_score"] >= 0.75:
+    if demand_band == "High Demand" and confidence < 0.62:
+        interpretation = "Monitor Further"
+        notes.append("High-demand classification arrived with low confidence and should be monitored further.")
+    if features.get("searches", 0) >= 160 and features.get("engagement_intensity", 0) < 0.45:
+        unmet_probability = max(unmet_probability, 0.72)
+        notes.append("High searches with low engagement suggest a possible unmet demand pocket.")
+        if "Anomaly / Unmet Demand Detection" not in source_components:
+            source_components.append("Anomaly / Unmet Demand Detection")
+    if features.get("noise_score", 0) >= 0.75:
+        interpretation = "Validate Signal Quality" if opportunity >= 45 else interpretation
         notes.append("High noise score suggests more data quality review before acting.")
-    if demand == "Moderate Demand" and emerging_probability >= 0.6:
+    if features.get("engagement_intensity", 0) >= 0.72 and features.get("noise_score", 0) >= 0.6:
+        notes.append("High engagement is present, but signal quality should be validated because noise is also elevated.")
+    if demand_band == "Moderate Demand" and emerging_probability >= 0.6:
         notes.append("Guardrail marked this as a near-term emerging trend candidate.")
+    if len(notes) > 1 and "Guardrail Adjustment" not in source_components:
+        source_components.append("Guardrail Adjustment")
 
     result = dict(result)
     result["investment_opportunity_interpretation"] = interpretation
     result["unmet_demand_flag"] = bool(unmet_probability >= 0.6)
     result["emerging_trend_flag"] = bool(emerging_probability >= 0.55)
     result["explanation_note"] = " ".join(notes)
-    if len(notes) > 1:
-        result["prediction_source"] = f"{result['prediction_source']} + rule-based guardrail"
+    result["demand_band"] = demand_band
+    result["unmet_demand_probability"] = round(unmet_probability, 4)
+    result["model_source_components"] = source_components
+    result["prediction_source"] = " | ".join(source_components) if source_components else str(result["prediction_source"])
+    result["model_source_label"] = result["prediction_source"]
     return result
 
 
@@ -526,6 +631,31 @@ def _positive_probability(model: Any | None, vector: pd.DataFrame) -> float:
     if len(probabilities) == 1:
         return float(probabilities[0])
     return float(probabilities[-1])
+
+
+def _metadata_value(key: str, default: str) -> str:
+    if not PRIMARY_MODEL_METADATA_PATH.exists():
+        return default
+    try:
+        payload = json.loads(PRIMARY_MODEL_METADATA_PATH.read_text(encoding="utf-8"))
+    except Exception:
+        return default
+    return str(payload.get(key, default))
+
+
+def _format_intelligence_summary(result: dict[str, Any]) -> str:
+    return (
+        "## Signal Intelligence Brief\n"
+        f"**Demand Classification:** {result['demand_classification']}  \n"
+        f"**Confidence Score:** {float(result['confidence_score']) * 100:.1f}%  \n"
+        f"**Aggregate Demand Score:** {float(result['aggregate_demand_score']):.2f}  \n"
+        f"**Opportunity Score:** {float(result['opportunity_score']):.2f}  \n"
+        f"**Emerging Trend Probability:** {float(result['emerging_trend_probability']) * 100:.1f}%  \n"
+        f"**Unmet Demand Probability:** {float(result['unmet_demand_probability']) * 100:.1f}%  \n"
+        f"**Investment / Policy Interpretation:** {result['investment_opportunity_interpretation']}  \n"
+        f"**Model Source:** {result['model_source_label']}  \n"
+        f"**Model Version:** {result.get('model_version', 'unavailable')}"
+    )
 
 
 def _uploaded_path(file_obj: Any | None) -> str | None:
@@ -574,12 +704,22 @@ with gr.Blocks(title="Signal AI Market Intelligence") as demo:
                 predict_button = gr.Button("Predict Demand")
 
             with gr.Column():
-                demand_output = gr.Markdown(label="Demand Classification")
-                aggregate_output = gr.Number(label="Aggregate Demand Score")
-                opportunity_output = gr.Number(label="Opportunity Score")
+                intelligence_summary = gr.Markdown(label="Signal Intelligence Brief")
+                with gr.Row():
+                    demand_output = gr.Textbox(label="Demand Classification")
+                    confidence_output = gr.Number(label="Confidence Score (%)")
+                with gr.Row():
+                    aggregate_output = gr.Number(label="Aggregate Demand Score")
+                    opportunity_output = gr.Number(label="Opportunity Score")
+                with gr.Row():
+                    emerging_output = gr.Number(label="Emerging Trend Probability (%)")
+                    unmet_output = gr.Number(label="Unmet Demand Probability (%)")
+                interpretation_output = gr.Textbox(label="Investment / Policy Interpretation", lines=2)
+                drivers_output = gr.Markdown(label="Key Drivers")
+                source_output = gr.Textbox(label="Model Source and Explanation", lines=8)
 
         predict_button.click(
-            fn=predict_demand,
+            fn=predict_demand_dashboard,
             inputs=[
                 likes,
                 comments,
@@ -590,9 +730,16 @@ with gr.Blocks(title="Signal AI Market Intelligence") as demo:
                 trend_growth,
             ],
             outputs=[
+                intelligence_summary,
                 demand_output,
+                confidence_output,
                 aggregate_output,
                 opportunity_output,
+                emerging_output,
+                unmet_output,
+                interpretation_output,
+                drivers_output,
+                source_output,
             ],
         )
 
