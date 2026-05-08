@@ -1322,6 +1322,53 @@ with gr.Blocks(title="Signal AI Market Intelligence", css=SIGNAL_DASHBOARD_CSS) 
     )
 
     with gr.Tab("Behavioral Signals AI"):
+        live_trend_feed = gr.HTML(value="""
+<div style="border:1px solid #ddd; border-radius:12px; padding:14px; margin:10px 0; background:#fff;">
+  <h3 style="margin:0 0 6px 0;">🔥 Live Trend Intelligence</h3>
+  <div style="font-weight:600; margin-bottom:8px;">8 active trends</div>
+
+  <style>
+    .signal-trend-box {
+      height: 120px;
+      overflow: hidden;
+      position: relative;
+      border-radius: 10px;
+      background: #f8f9fa;
+      padding: 8px;
+    }
+    .signal-trend-scroll {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      animation: signal-scroll-up 10s linear infinite;
+    }
+    .signal-trend-item {
+      padding: 8px 10px;
+      border-radius: 8px;
+      background: white;
+      border: 1px solid #eee;
+      font-weight: 600;
+    }
+    @keyframes signal-scroll-up {
+      0% { transform: translateY(100%); }
+      100% { transform: translateY(-100%); }
+    }
+  </style>
+
+  <div class="signal-trend-box">
+    <div class="signal-trend-scroll">
+      <div class="signal-trend-item">⬆ Cost of living</div>
+      <div class="signal-trend-item">⬆ Fuel prices</div>
+      <div class="signal-trend-item">⬆ Finance Bill</div>
+      <div class="signal-trend-item">⬆ Jobs and youth employment</div>
+      <div class="signal-trend-item">⬆ School fees</div>
+      <div class="signal-trend-item">⬆ Healthcare access</div>
+      <div class="signal-trend-item">⬆ Electricity prices</div>
+      <div class="signal-trend-item">⬆ Agriculture prices</div>
+    </div>
+  </div>
+</div>
+""")
         with gr.Row():
             with gr.Column():
                 likes = gr.Number(label="Likes", value=120, precision=0)
