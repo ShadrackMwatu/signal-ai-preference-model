@@ -41,6 +41,7 @@ def analyze_trend_signal(trend_record: dict[str, Any]) -> dict[str, Any]:
         "rank": safe_record["rank"],
         "tweet_volume": safe_record.get("tweet_volume"),
         "source": safe_record["source"],
+        "fetched_at": safe_record.get("fetched_at", ""),
         "demand_classification": prediction["demand_classification"],
         "confidence_score": round(float(prediction["confidence_score"]) * 100, 2),
         "aggregate_demand_score": round(float(prediction["aggregate_demand_score"]), 2),

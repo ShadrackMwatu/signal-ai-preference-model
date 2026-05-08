@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+from datetime import UTC, datetime
 from html import escape
 from pathlib import Path
 from typing import Any
@@ -48,6 +49,173 @@ ROOT_DIR = Path(__file__).resolve().parent
 PRIMARY_MODEL_PATH = ROOT_DIR / "models" / "model.pkl"
 LEGACY_MODEL_PATH = ROOT_DIR / "model.pkl"
 PRIMARY_MODEL_METADATA_PATH = ROOT_DIR / "models" / "metadata.json"
+LIVE_TREND_FEATURE_PLUGINS = [
+    "Sentiment analysis",
+    "Anomaly detection",
+    "Emerging issue detection",
+    "County heatmaps",
+    "Election intelligence",
+    "Market pulse indicators",
+]
+SIGNAL_DASHBOARD_CSS = """
+.signal-trend-shell {
+    border: 1px solid var(--border-color-primary, #dbe3ef);
+    border-radius: 8px;
+    background: var(--background-fill-primary, #ffffff);
+    padding: 14px;
+}
+.signal-trend-header {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 12px;
+    flex-wrap: wrap;
+    margin-bottom: 12px;
+}
+.signal-trend-kicker {
+    color: var(--body-text-color-subdued, #64748b);
+    font-size: 12px;
+    font-weight: 700;
+    letter-spacing: 0;
+    text-transform: uppercase;
+}
+.signal-trend-title {
+    color: var(--body-text-color, #0f172a);
+    font-size: 20px;
+    font-weight: 800;
+    line-height: 1.2;
+    margin-top: 2px;
+}
+.signal-trend-count {
+    min-width: 132px;
+    border: 1px solid var(--border-color-primary, #dbe3ef);
+    border-radius: 8px;
+    padding: 10px 12px;
+    text-align: right;
+    background: var(--background-fill-secondary, #f8fafc);
+}
+.signal-trend-count strong {
+    display: block;
+    color: #16a34a;
+    font-size: 30px;
+    line-height: 1;
+}
+.signal-trend-count span {
+    color: var(--body-text-color-subdued, #64748b);
+    font-size: 12px;
+    font-weight: 600;
+}
+.signal-trend-viewport {
+    height: 360px;
+    overflow: hidden;
+    border: 1px solid var(--border-color-primary, #dbe3ef);
+    border-radius: 8px;
+    background: linear-gradient(180deg, rgba(15,23,42,0.04), rgba(22,163,74,0.06));
+    position: relative;
+}
+.signal-trend-viewport::before,
+.signal-trend-viewport::after {
+    content: "";
+    position: absolute;
+    left: 0;
+    right: 0;
+    height: 56px;
+    z-index: 2;
+    pointer-events: none;
+}
+.signal-trend-viewport::before {
+    top: 0;
+    background: linear-gradient(180deg, var(--background-fill-primary, #ffffff), rgba(255,255,255,0));
+}
+.signal-trend-viewport::after {
+    bottom: 0;
+    background: linear-gradient(0deg, var(--background-fill-primary, #ffffff), rgba(255,255,255,0));
+}
+.signal-trend-rail {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    padding: 12px;
+    animation: signalTrendScroll var(--signal-trend-duration, 24s) linear infinite;
+}
+.signal-trend-viewport:hover .signal-trend-rail {
+    animation-play-state: paused;
+}
+.signal-trend-card {
+    border: 1px solid var(--border-color-primary, #dbe3ef);
+    border-radius: 8px;
+    background: var(--background-fill-primary, #ffffff);
+    padding: 12px;
+    box-shadow: 0 8px 20px rgba(15, 23, 42, 0.08);
+}
+.signal-trend-card-top {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 10px;
+}
+.signal-trend-name {
+    color: var(--body-text-color, #0f172a);
+    font-size: 16px;
+    font-weight: 800;
+    line-height: 1.25;
+}
+.signal-trend-meta,
+.signal-trend-tags,
+.signal-trend-intel {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    margin-top: 8px;
+}
+.signal-trend-pill {
+    border: 1px solid var(--border-color-primary, #dbe3ef);
+    border-radius: 999px;
+    color: var(--body-text-color-subdued, #475569);
+    background: var(--background-fill-secondary, #f8fafc);
+    font-size: 12px;
+    font-weight: 650;
+    padding: 4px 8px;
+}
+.signal-trend-confidence {
+    min-width: 116px;
+    text-align: right;
+    color: var(--body-text-color, #0f172a);
+    font-size: 12px;
+    font-weight: 700;
+}
+.signal-trend-bar {
+    height: 7px;
+    width: 116px;
+    margin-top: 5px;
+    border-radius: 999px;
+    background: var(--background-fill-secondary, #e2e8f0);
+    overflow: hidden;
+}
+.signal-trend-bar span {
+    display: block;
+    height: 100%;
+    width: var(--confidence-width, 0%);
+    border-radius: 999px;
+    background: linear-gradient(90deg, #2563eb, #16a34a);
+}
+.signal-trend-classification {
+    color: var(--body-text-color, #0f172a);
+    font-size: 13px;
+    line-height: 1.45;
+    margin-top: 8px;
+}
+.signal-trend-plugins {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    margin-top: 12px;
+}
+@keyframes signalTrendScroll {
+    0% { transform: translateY(42%); }
+    100% { transform: translateY(-52%); }
+}
+"""
 
 DISPLAY_LABELS = {
     "Validate Signal Quality": "Emerging Signal — Further Monitoring Recommended",
@@ -394,6 +562,17 @@ def refresh_live_trends(location: str, trend_limit: float) -> tuple[pd.DataFrame
             ]
         )
         return empty_trends, empty_intelligence, f"Live trends refresh failed for {location}: {exc}"
+
+
+def refresh_live_trend_intelligence(location: str, trend_limit: float) -> tuple[int, str, pd.DataFrame, pd.DataFrame, str]:
+    """Return embedded Live Trend Intelligence values for Behavioral Signals AI."""
+
+    trends_frame, intelligence_frame, summary = refresh_live_trends(location, trend_limit)
+    records = trends_frame.to_dict(orient="records")
+    analyses = intelligence_frame.to_dict(orient="records")
+    active_count = _active_trend_count(records)
+    ticker_html = _render_live_trend_intelligence(location, records, analyses, summary, active_count)
+    return active_count, ticker_html, trends_frame, intelligence_frame, summary
 
 
 def explain_learning_topic(topic: str) -> str:
@@ -986,6 +1165,119 @@ def _render_key_driver_cards(drivers: list[str], risks: list[str]) -> str:
     )
 
 
+def _active_trend_count(records: list[dict[str, Any]]) -> int:
+    return sum(1 for record in records if str(record.get("trend_name", "")).strip().lower() != "unavailable")
+
+
+def _render_live_trend_intelligence(
+    location: str,
+    records: list[dict[str, Any]],
+    analyses: list[dict[str, Any]],
+    summary: str,
+    active_count: int,
+) -> str:
+    analysis_by_name = {str(item.get("trend_name", "")): item for item in analyses}
+    cards = [_render_trend_card(record, analysis_by_name.get(str(record.get("trend_name", "")), {})) for record in records]
+    if not cards:
+        cards = [
+            _render_trend_card(
+                {
+                    "trend_name": "Awaiting trend signal",
+                    "rank": "",
+                    "tweet_volume": "",
+                    "location": location,
+                    "fetched_at": _utc_timestamp(),
+                    "source": "Demo fallback - X API not connected",
+                },
+                {},
+            )
+        ]
+    duration = max(18, min(44, len(cards) * 5))
+    plugin_markup = "".join(f"<span class='signal-trend-pill'>{escape(plugin)}</span>" for plugin in LIVE_TREND_FEATURE_PLUGINS)
+    rail_markup = "".join(cards + cards)
+    return (
+        "<div class='signal-trend-shell'>"
+        "<div class='signal-trend-header'>"
+        "<div>"
+        "<div class='signal-trend-kicker'>Behavioral Signals AI module</div>"
+        "<div class='signal-trend-title'>Live Trend Intelligence</div>"
+        f"<div class='signal-trend-meta'><span class='signal-trend-pill'>Auto-refreshing</span>"
+        f"<span class='signal-trend-pill'>Location: {escape(str(location))}</span>"
+        f"<span class='signal-trend-pill'>Updated: {escape(_utc_timestamp())}</span></div>"
+        "</div>"
+        f"<div class='signal-trend-count'><strong>{active_count}</strong><span>active trends</span></div>"
+        "</div>"
+        f"<div class='signal-trend-viewport' style='--signal-trend-duration:{duration}s;'>"
+        f"<div class='signal-trend-rail'>{rail_markup}</div>"
+        "</div>"
+        f"<div class='signal-trend-classification'>{escape(summary)}</div>"
+        f"<div class='signal-trend-plugins'>{plugin_markup}</div>"
+        "</div>"
+    )
+
+
+def _render_trend_card(record: dict[str, Any], analysis: dict[str, Any]) -> str:
+    trend_name = escape(str(record.get("trend_name", "Unknown trend")))
+    source = escape(str(record.get("source", analysis.get("source", "Unknown source"))))
+    location = escape(str(record.get("location", analysis.get("location", "Kenya"))))
+    fetched_at = escape(_format_timestamp(record.get("fetched_at") or analysis.get("fetched_at")))
+    rank = record.get("rank", analysis.get("rank", ""))
+    tweet_volume = _format_volume(record.get("tweet_volume", analysis.get("tweet_volume")))
+    confidence = _safe_float(analysis.get("confidence_score"), 0.0)
+    emerging = _safe_float(analysis.get("emerging_trend_probability"), 0.0)
+    unmet = _safe_float(analysis.get("unmet_demand_probability"), 0.0)
+    opportunity = _safe_float(analysis.get("opportunity_score"), 0.0)
+    confidence_width = max(0.0, min(confidence, 100.0))
+    classification = escape(str(analysis.get("demand_classification", "Monitoring aggregate trend movement")))
+    interpretation = escape(str(analysis.get("investment_policy_interpretation", "Signal is waiting for stronger evidence.")))
+    return (
+        "<div class='signal-trend-card'>"
+        "<div class='signal-trend-card-top'>"
+        f"<div><div class='signal-trend-name'>{trend_name}</div>"
+        f"<div class='signal-trend-meta'><span class='signal-trend-pill'>Rank {escape(str(rank))}</span>"
+        f"<span class='signal-trend-pill'>{tweet_volume}</span>"
+        f"<span class='signal-trend-pill'>{source}</span></div></div>"
+        f"<div class='signal-trend-confidence'>Confidence {confidence_width:.1f}%"
+        f"<div class='signal-trend-bar'><span style='--confidence-width:{confidence_width:.1f}%;'></span></div></div>"
+        "</div>"
+        f"<div class='signal-trend-tags'><span class='signal-trend-pill'>Location: {location}</span>"
+        f"<span class='signal-trend-pill'>Timestamp: {fetched_at}</span>"
+        f"<span class='signal-trend-pill'>Opportunity {opportunity:.1f}</span>"
+        f"<span class='signal-trend-pill'>Emerging {emerging:.1f}%</span>"
+        f"<span class='signal-trend-pill'>Unmet {unmet:.1f}%</span></div>"
+        f"<div class='signal-trend-classification'><strong>{classification}</strong> - {interpretation}</div>"
+        "</div>"
+    )
+
+
+def _format_volume(value: Any) -> str:
+    if isinstance(value, (int, float)) and not pd.isna(value):
+        return f"{int(value):,} posts"
+    return "Volume unavailable"
+
+
+def _safe_float(value: Any, default: float = 0.0) -> float:
+    try:
+        if pd.isna(value):
+            return default
+        return float(value)
+    except (TypeError, ValueError):
+        return default
+
+
+def _format_timestamp(value: Any) -> str:
+    if not value:
+        return _utc_timestamp()
+    try:
+        return datetime.fromisoformat(str(value).replace("Z", "+00:00")).strftime("%Y-%m-%d %H:%M UTC")
+    except ValueError:
+        return str(value)
+
+
+def _utc_timestamp() -> str:
+    return datetime.now(UTC).strftime("%Y-%m-%d %H:%M UTC")
+
+
 def _uploaded_path(file_obj: Any | None) -> str | None:
     if file_obj is None:
         return None
@@ -1012,7 +1304,7 @@ def _balance_rows_to_markdown(rows: list[dict[str, Any]]) -> str:
     return "\n".join(lines)
 
 
-with gr.Blocks(title="Signal AI Market Intelligence") as demo:
+with gr.Blocks(title="Signal AI Market Intelligence", css=SIGNAL_DASHBOARD_CSS) as demo:
     gr.Markdown("# Signal")
     gr.Markdown(
         "Behavioral Signals AI for revealed demand intelligence, plus a Signal CGE "
@@ -1062,6 +1354,84 @@ with gr.Blocks(title="Signal AI Market Intelligence") as demo:
             opportunity_radar_output = gr.HTML(label="Opportunity Radar Chart")
             key_driver_cards_output = gr.HTML(label="Key Driver Summary Cards")
 
+        gr.Markdown("## Live Trend Intelligence")
+        gr.Markdown(PRIVACY_NOTICE)
+        with gr.Row():
+            trends_location = gr.Dropdown(
+                label="Trend Location",
+                choices=["Kenya", "Nairobi", "Global"],
+                value="Kenya",
+            )
+            trends_limit = gr.Slider(label="Number of Trends", minimum=3, maximum=10, step=1, value=5)
+            refresh_trends_button = gr.Button("Refresh Trends")
+        with gr.Row():
+            active_trends_output = gr.Number(label="Active Trends", precision=0, interactive=False)
+            live_trend_ticker_output = gr.HTML(label="Live Trend Intelligence")
+        trends_table = gr.Dataframe(
+            label="Trends Table",
+            headers=["trend_name", "rank", "tweet_volume", "location", "fetched_at", "source"],
+            interactive=False,
+        )
+        trend_intelligence_table = gr.Dataframe(
+            label="Signal Intelligence Table",
+            headers=[
+                "trend_name",
+                "location",
+                "rank",
+                "tweet_volume",
+                "source",
+                "fetched_at",
+                "demand_classification",
+                "confidence_score",
+                "aggregate_demand_score",
+                "opportunity_score",
+                "emerging_trend_probability",
+                "unmet_demand_probability",
+                "investment_policy_interpretation",
+                "model_source_explanation",
+            ],
+            interactive=False,
+        )
+        trends_summary = gr.Textbox(label="Interpretation Summary", lines=6, interactive=False)
+        trend_outputs = [
+            active_trends_output,
+            live_trend_ticker_output,
+            trends_table,
+            trend_intelligence_table,
+            trends_summary,
+        ]
+        trend_timer = gr.Timer(value=6, active=True)
+        refresh_trends_button.click(
+            fn=refresh_live_trend_intelligence,
+            inputs=[trends_location, trends_limit],
+            outputs=trend_outputs,
+            show_api=False,
+        )
+        trends_location.change(
+            fn=refresh_live_trend_intelligence,
+            inputs=[trends_location, trends_limit],
+            outputs=trend_outputs,
+            show_api=False,
+        )
+        trends_limit.change(
+            fn=refresh_live_trend_intelligence,
+            inputs=[trends_location, trends_limit],
+            outputs=trend_outputs,
+            show_api=False,
+        )
+        trend_timer.tick(
+            fn=refresh_live_trend_intelligence,
+            inputs=[trends_location, trends_limit],
+            outputs=trend_outputs,
+            show_api=False,
+        )
+        demo.load(
+            fn=refresh_live_trend_intelligence,
+            inputs=[trends_location, trends_limit],
+            outputs=trend_outputs,
+            show_api=False,
+        )
+
         live_inputs = [
             likes,
             comments,
@@ -1098,66 +1468,19 @@ with gr.Blocks(title="Signal AI Market Intelligence") as demo:
                 fn=update_behavioral_dashboard,
                 inputs=live_inputs,
                 outputs=live_outputs,
+                show_api=False,
             )
         predict_button.click(
             fn=update_behavioral_dashboard,
             inputs=live_inputs,
             outputs=live_outputs,
+            show_api=False,
         )
         demo.load(
             fn=update_behavioral_dashboard,
             inputs=live_inputs,
             outputs=live_outputs,
-        )
-
-    with gr.Tab("Live Trends"):
-        gr.Markdown(
-            "Public aggregate X/Twitter trends are converted into Signal demand and opportunity intelligence. "
-            "If the X API is not connected, Signal falls back to safe demo trends."
-        )
-        gr.Markdown(PRIVACY_NOTICE)
-        with gr.Row():
-            trends_location = gr.Dropdown(
-                label="Trend Location",
-                choices=["Kenya", "Nairobi", "Global"],
-                value="Kenya",
-            )
-            trends_limit = gr.Slider(label="Number of Trends", minimum=3, maximum=10, step=1, value=5)
-            refresh_trends_button = gr.Button("Refresh Trends")
-        trends_table = gr.Dataframe(
-            label="Trends Table",
-            headers=["trend_name", "rank", "tweet_volume", "location", "fetched_at", "source"],
-            interactive=False,
-        )
-        trend_intelligence_table = gr.Dataframe(
-            label="Signal Intelligence Table",
-            headers=[
-                "trend_name",
-                "location",
-                "rank",
-                "tweet_volume",
-                "source",
-                "demand_classification",
-                "confidence_score",
-                "aggregate_demand_score",
-                "opportunity_score",
-                "emerging_trend_probability",
-                "unmet_demand_probability",
-                "investment_policy_interpretation",
-                "model_source_explanation",
-            ],
-            interactive=False,
-        )
-        trends_summary = gr.Textbox(label="Interpretation Summary", lines=6, interactive=False)
-        refresh_trends_button.click(
-            fn=refresh_live_trends,
-            inputs=[trends_location, trends_limit],
-            outputs=[trends_table, trend_intelligence_table, trends_summary],
-        )
-        demo.load(
-            fn=refresh_live_trends,
-            inputs=[trends_location, trends_limit],
-            outputs=[trends_table, trend_intelligence_table, trends_summary],
+            show_api=False,
         )
 
     with gr.Tab("Signal CGE Framework"):
@@ -1171,6 +1494,7 @@ with gr.Blocks(title="Signal AI Market Intelligence") as demo:
             fn=cge_model,
             inputs=[scenario_input],
             outputs=[cge_summary_output, cge_policy_output, gams_output],
+            show_api=False,
         )
 
     with gr.Tab("SML CGE Workbench"):
@@ -1187,11 +1511,13 @@ with gr.Blocks(title="Signal AI Market Intelligence") as demo:
             fn=validate_sml_dashboard,
             inputs=[sml_editor, sml_upload],
             outputs=[validation_output],
+            show_api=False,
         )
         run_sml_button.click(
             fn=run_sml_dashboard,
             inputs=[sml_editor, sml_upload, sam_upload],
             outputs=[validation_output, balance_output, sml_results_output, report_download],
+            show_api=False,
         )
 
     with gr.Tab("Learning"):
@@ -1227,17 +1553,19 @@ with gr.Blocks(title="Signal AI Market Intelligence") as demo:
             fn=refresh_learning_dashboard,
             inputs=[],
             outputs=[recent_lessons_output, recurring_issues_output, recommended_fixes_output],
+            show_api=False,
         )
-        apply_learning_button.click(fn=apply_latest_learning_dashboard, inputs=[], outputs=[learning_action_output])
-        ignore_learning_button.click(fn=ignore_latest_learning_dashboard, inputs=[], outputs=[learning_action_output])
+        apply_learning_button.click(fn=apply_latest_learning_dashboard, inputs=[], outputs=[learning_action_output], show_api=False)
+        ignore_learning_button.click(fn=ignore_latest_learning_dashboard, inputs=[], outputs=[learning_action_output], show_api=False)
         rollback_learning_button.click(
             fn=rollback_learning_dashboard,
             inputs=[rollback_version_input],
             outputs=[learning_action_output],
+            show_api=False,
         )
-        learning_topic.change(fn=explain_learning_topic, inputs=[learning_topic], outputs=[learning_explanation_output])
-        demo.load(fn=explain_learning_topic, inputs=[learning_topic], outputs=[learning_explanation_output])
+        learning_topic.change(fn=explain_learning_topic, inputs=[learning_topic], outputs=[learning_explanation_output], show_api=False)
+        demo.load(fn=explain_learning_topic, inputs=[learning_topic], outputs=[learning_explanation_output], show_api=False)
 
 
 if __name__ == "__main__":
-    demo.launch()
+    demo.launch(show_api=False)
