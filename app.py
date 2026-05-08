@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+import os
 from datetime import UTC, datetime
 from html import escape
 from pathlib import Path
@@ -394,38 +395,63 @@ def update_behavioral_dashboard(
 ) -> tuple[Any, ...]:
     """Return the full live dashboard payload for the Behavioral Signals AI tab."""
 
-    result = predict_demand_details(
-        likes,
-        comments,
-        shares,
-        searches,
-        engagement_intensity,
-        purchase_intent_score,
-        trend_growth,
-    )
-    visuals = _build_visual_components(result)
-    return (
-        str(result["demand_classification"]),
-        round(float(result["confidence_score"]) * 100, 2),
-        round(float(result["aggregate_demand_score"]), 2),
-        round(float(result["opportunity_score"]), 2),
-        round(float(result["emerging_trend_probability"]) * 100, 2),
-        round(float(result["unmet_demand_probability"]) * 100, 2),
-        str(result["investment_opportunity_interpretation"]),
-        _format_panel_explanation(result),
-        round(float(result["signal_strength_score"]), 2),
-        round(float(result["momentum_score"]), 2),
-        round(float(result["volatility_noise_score"]), 2),
-        round(float(result["persistence_score"]), 2),
-        round(float(result["adoption_probability"]), 2),
-        round(float(result["viral_probability"]), 2),
-        str(result["why_this_matters"]),
-        visuals["confidence_gauge_html"],
-        visuals["signal_strength_gauge_html"],
-        visuals["momentum_indicator_html"],
-        visuals["opportunity_radar_html"],
-        visuals["key_driver_cards_html"],
-    )
+    try:
+        result = predict_demand_details(
+            likes,
+            comments,
+            shares,
+            searches,
+            engagement_intensity,
+            purchase_intent_score,
+            trend_growth,
+        )
+        visuals = _build_visual_components(result)
+        return (
+            str(result["demand_classification"]),
+            round(float(result["confidence_score"]) * 100, 2),
+            round(float(result["aggregate_demand_score"]), 2),
+            round(float(result["opportunity_score"]), 2),
+            round(float(result["emerging_trend_probability"]) * 100, 2),
+            round(float(result["unmet_demand_probability"]) * 100, 2),
+            str(result["investment_opportunity_interpretation"]),
+            _format_panel_explanation(result),
+            round(float(result["signal_strength_score"]), 2),
+            round(float(result["momentum_score"]), 2),
+            round(float(result["volatility_noise_score"]), 2),
+            round(float(result["persistence_score"]), 2),
+            round(float(result["adoption_probability"]), 2),
+            round(float(result["viral_probability"]), 2),
+            str(result["why_this_matters"]),
+            visuals["confidence_gauge_html"],
+            visuals["signal_strength_gauge_html"],
+            visuals["momentum_indicator_html"],
+            visuals["opportunity_radar_html"],
+            visuals["key_driver_cards_html"],
+        )
+    except Exception as exc:
+        message = f"Prediction temporarily unavailable: {exc}"
+        return (
+            "Prediction unavailable",
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            "Signal could not complete the current prediction. Adjust inputs and try again.",
+            message,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            "No decision should be made from this failed run.",
+            _render_gauge_card("Confidence Gauge", 0.0, "#2563eb"),
+            _render_gauge_card("Signal Strength Gauge", 0.0, "#16a34a"),
+            _render_gauge_card("Trend Momentum Indicator", 0.0, "#d97706"),
+            _render_radar_chart({"Opportunity": 0, "Momentum": 0, "Adoption": 0, "Persistence": 0, "Viral": 0}),
+            _render_key_driver_cards(["Prediction error"], [message]),
+        )
 
 
 def cge_model(scenario_text: str) -> tuple[str, str, str]:
@@ -554,9 +580,13 @@ def refresh_live_trends(location: str, trend_limit: float) -> tuple[pd.DataFrame
         fallback_location = location if location in {"Kenya", "Nairobi", "Global"} else "Kenya"
         records = get_demo_trends(location=fallback_location, limit=int(trend_limit))
         location = fallback_location
-        fallback_note = f"Live X API data was unavailable, so Signal is showing clean demo fallback trends. Details: {exc}"
+        fallback_note = f"Live API unavailable — displaying demo aggregate trends. Details: {exc}"
     else:
-        fallback_note = ""
+        fallback_note = (
+            "Live API unavailable — displaying demo aggregate trends."
+            if any("Demo fallback" in str(record.get("source", "")) for record in records)
+            else ""
+        )
 
     analyses = analyze_trend_batch(records)
     raw_frame = pd.DataFrame(records)
@@ -571,10 +601,23 @@ def refresh_live_trends(location: str, trend_limit: float) -> tuple[pd.DataFrame
 def refresh_live_trend_intelligence(location: str, trend_limit: float) -> tuple[pd.DataFrame, str, int, str, pd.DataFrame]:
     """Return embedded Live Trend Intelligence values for Behavioral Signals AI."""
 
-    trends_frame, intelligence_frame, summary = refresh_live_trends(location, trend_limit)
-    active_count = _active_trend_count(trends_frame)
-    ticker_html = build_live_trend_html(trends_frame)
-    return trends_frame, ticker_html, active_count, summary, intelligence_frame
+    try:
+        trends_frame, intelligence_frame, summary = refresh_live_trends(location, trend_limit)
+        active_count = _active_trend_count(trends_frame)
+        ticker_html = build_live_trend_html(trends_frame)
+        return trends_frame, ticker_html, active_count, summary, intelligence_frame
+    except Exception as exc:
+        fallback_records = get_demo_trends(location="Kenya", limit=max(3, int(trend_limit or 5)))
+        fallback_frame = pd.DataFrame(fallback_records)
+        fallback_intelligence = pd.DataFrame(analyze_trend_batch(fallback_records))
+        fallback_summary = f"Live API unavailable — displaying demo aggregate trends. Details: {exc}"
+        return (
+            fallback_frame,
+            _fallback_live_trend_html(fallback_summary),
+            len(fallback_records),
+            fallback_summary,
+            fallback_intelligence,
+        )
 
 
 def explain_learning_topic(topic: str) -> str:
@@ -1221,6 +1264,11 @@ def build_live_trend_html(trends_df: pd.DataFrame) -> str:
 
     active_count = len(records)
     location = records[0].get("location", "Kenya")
+    fallback_note = (
+        "<div class='signal-trend-classification'>Live API unavailable — displaying demo aggregate trends.</div>"
+        if any("Demo fallback" in str(record.get("source", "")) for record in records)
+        else ""
+    )
     cards = [_render_public_trend_issue(record) for record in records]
     duration = max(18, min(40, len(cards) * 5))
     rail_markup = "".join(cards + cards)
@@ -1235,6 +1283,7 @@ def build_live_trend_html(trends_df: pd.DataFrame) -> str:
         "</div>"
         f"<div class='signal-trend-count'><strong>{active_count}</strong><span>active trends</span></div>"
         "</div>"
+        f"{fallback_note}"
         f"<div class='signal-trend-viewport' style='--signal-trend-duration:{duration}s;'>"
         f"<div class='signal-trend-rail'>{rail_markup}</div>"
         "</div>"
@@ -1314,61 +1363,114 @@ def _balance_rows_to_markdown(rows: list[dict[str, Any]]) -> str:
     return "\n".join(lines)
 
 
+def _dashboard_status_banner() -> str:
+    mode = "Live API available" if os.getenv("X_BEARER_TOKEN", "").strip() else "Demo fallback"
+    return (
+        "<div style='border:1px solid #cbd5e1;border-radius:10px;padding:14px 16px;margin:0 0 12px 0;"
+        "background:#f8fafc;color:#0f172a;'>"
+        "<div style='font-size:22px;font-weight:800;margin-bottom:8px;'>Signal AI Dashboard</div>"
+        "<div style='display:flex;gap:8px;flex-wrap:wrap;'>"
+        "<span style='border:1px solid #bbf7d0;background:#ecfdf5;border-radius:999px;padding:5px 10px;font-weight:700;'>Status: Running</span>"
+        f"<span style='border:1px solid #bfdbfe;background:#eff6ff;border-radius:999px;padding:5px 10px;font-weight:700;'>Mode: {escape(mode)}</span>"
+        "<span style='border:1px solid #e2e8f0;background:#ffffff;border-radius:999px;padding:5px 10px;font-weight:700;'>Privacy: Aggregate signals only, no individual tracking</span>"
+        "</div>"
+        "</div>"
+    )
+
+
+def _behavioral_section_intro() -> str:
+    return (
+        "## Behavioral Signals AI\n"
+        "Estimate demand, opportunity, confidence, unmet demand, and market signal strength from aggregate behavioural inputs."
+    )
+
+
+def _how_to_use_signal_markdown() -> str:
+    return (
+        "1. Adjust behavioural signal inputs.\n"
+        "2. Click **Predict Demand**.\n"
+        "3. Review demand classification and opportunity score.\n"
+        "4. Use Live Trend Intelligence to compare current topical issues."
+    )
+
+
+def _model_interpretation_markdown() -> str:
+    return (
+        "- **Demand Classification:** Overall demand band inferred from aggregate signal quality.\n"
+        "- **Confidence Score:** How strongly Signal trusts the current classification.\n"
+        "- **Aggregate Demand Score:** Combined demand intensity from engagement and search proxies.\n"
+        "- **Opportunity Score:** Estimated market or policy action potential.\n"
+        "- **Unmet Demand Probability:** Likelihood that attention reflects access, affordability, or delivery gaps.\n"
+        "- **Emerging Trend Probability:** Likelihood that the signal is gaining early momentum.\n"
+        "- **Volatility / Noise Score:** Risk that the signal is unstable, noisy, or not yet decision-ready."
+    )
+
+
+def _fallback_live_trend_html(message: str = "Live API unavailable — displaying demo aggregate trends.") -> str:
+    return f"""
+<div style="border:1px solid #ddd; border-radius:12px; padding:14px; margin:10px 0; background:#fff;">
+  <h3 style="margin:0 0 6px 0;">Live Trend Intelligence</h3>
+  <div style="font-weight:600; margin-bottom:4px;">8 active trends</div>
+  <div style="font-size:13px; color:#475569; margin-bottom:8px;">{escape(message)}</div>
+
+  <style>
+    .signal-trend-box {{
+      height: 140px;
+      overflow: hidden;
+      position: relative;
+      border-radius: 10px;
+      background: #f8f9fa;
+      padding: 8px;
+    }}
+    .signal-trend-scroll {{
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      animation: signal-scroll-up 10s linear infinite;
+    }}
+    .signal-trend-item {{
+      padding: 8px 10px;
+      border-radius: 8px;
+      background: white;
+      border: 1px solid #eee;
+      font-weight: 600;
+    }}
+    @keyframes signal-scroll-up {{
+      0% {{ transform: translateY(100%); }}
+      100% {{ transform: translateY(-100%); }}
+    }}
+  </style>
+
+  <div class="signal-trend-box">
+    <div class="signal-trend-scroll">
+      <div class="signal-trend-item">Cost of living</div>
+      <div class="signal-trend-item">Fuel prices</div>
+      <div class="signal-trend-item">Finance Bill</div>
+      <div class="signal-trend-item">Jobs and youth employment</div>
+      <div class="signal-trend-item">School fees</div>
+      <div class="signal-trend-item">Healthcare access</div>
+      <div class="signal-trend-item">Electricity prices</div>
+      <div class="signal-trend-item">Agriculture prices</div>
+    </div>
+  </div>
+</div>
+"""
+
+
 with gr.Blocks(title="Signal AI Market Intelligence", css=SIGNAL_DASHBOARD_CSS) as demo:
-    gr.Markdown("# Signal")
+    gr.HTML(value=_dashboard_status_banner())
     gr.Markdown(
         "Behavioral Signals AI for revealed demand intelligence, plus a Signal CGE "
         "Modelling Framework for policy simulation and GAMS-compatible exports."
     )
 
     with gr.Tab("Behavioral Signals AI"):
-        live_trend_feed = gr.HTML(value="""
-<div style="border:1px solid #ddd; border-radius:12px; padding:14px; margin:10px 0; background:#fff;">
-  <h3 style="margin:0 0 6px 0;">🔥 Live Trend Intelligence</h3>
-  <div style="font-weight:600; margin-bottom:8px;">8 active trends</div>
-
-  <style>
-    .signal-trend-box {
-      height: 120px;
-      overflow: hidden;
-      position: relative;
-      border-radius: 10px;
-      background: #f8f9fa;
-      padding: 8px;
-    }
-    .signal-trend-scroll {
-      display: flex;
-      flex-direction: column;
-      gap: 8px;
-      animation: signal-scroll-up 10s linear infinite;
-    }
-    .signal-trend-item {
-      padding: 8px 10px;
-      border-radius: 8px;
-      background: white;
-      border: 1px solid #eee;
-      font-weight: 600;
-    }
-    @keyframes signal-scroll-up {
-      0% { transform: translateY(100%); }
-      100% { transform: translateY(-100%); }
-    }
-  </style>
-
-  <div class="signal-trend-box">
-    <div class="signal-trend-scroll">
-      <div class="signal-trend-item">⬆ Cost of living</div>
-      <div class="signal-trend-item">⬆ Fuel prices</div>
-      <div class="signal-trend-item">⬆ Finance Bill</div>
-      <div class="signal-trend-item">⬆ Jobs and youth employment</div>
-      <div class="signal-trend-item">⬆ School fees</div>
-      <div class="signal-trend-item">⬆ Healthcare access</div>
-      <div class="signal-trend-item">⬆ Electricity prices</div>
-      <div class="signal-trend-item">⬆ Agriculture prices</div>
-    </div>
-  </div>
-</div>
-""")
+        gr.Markdown(_behavioral_section_intro())
+        with gr.Accordion("How to Use Signal", open=False):
+            gr.Markdown(_how_to_use_signal_markdown())
+        with gr.Accordion("Model Interpretation Guide", open=False):
+            gr.Markdown(_model_interpretation_markdown())
+        live_trend_feed = gr.HTML(value=_fallback_live_trend_html())
         with gr.Row():
             with gr.Column():
                 likes = gr.Number(label="Likes", value=120, precision=0)
@@ -1400,7 +1502,8 @@ with gr.Blocks(title="Signal AI Market Intelligence", css=SIGNAL_DASHBOARD_CSS) 
                     adoption_output = gr.Number(label="Adoption Probability", interactive=False)
                     viral_output = gr.Number(label="Viral Probability", interactive=False)
                 why_matters_output = gr.Textbox(label="Why This Matters", lines=4, interactive=False)
-                source_output = gr.Textbox(label="Model Source and Explanation", lines=16, interactive=False)
+                with gr.Accordion("Technical Model Source and Explanation", open=False):
+                    source_output = gr.Textbox(label="Model Source and Explanation", lines=16, interactive=False)
 
         with gr.Row():
             confidence_gauge_output = gr.HTML(label="Confidence Gauge")
@@ -1419,7 +1522,7 @@ with gr.Blocks(title="Signal AI Market Intelligence", css=SIGNAL_DASHBOARD_CSS) 
             )
             trends_limit = gr.Slider(label="Number of Trends", minimum=3, maximum=10, step=1, value=5)
             refresh_trends_button = gr.Button("Refresh Trends")
-        live_trend_ticker_output = gr.HTML(label="Live Trend Intelligence")
+        live_trend_ticker_output = gr.HTML(label="Live Trend Intelligence", visible=False)
         active_trends_output = gr.Number(label="Active Trends", precision=0, interactive=False, visible=False)
         trends_table = gr.Dataframe(
             label="Hidden Trends Table",
@@ -1466,7 +1569,7 @@ with gr.Blocks(title="Signal AI Market Intelligence", css=SIGNAL_DASHBOARD_CSS) 
         trends_summary = gr.Textbox(label="Interpretation Summary", lines=6, interactive=False, visible=False)
         trend_outputs = [
             trends_table,
-            live_trend_ticker_output,
+            live_trend_feed,
             active_trends_output,
             trends_summary,
             trend_intelligence_table,
@@ -1636,6 +1739,11 @@ with gr.Blocks(title="Signal AI Market Intelligence", css=SIGNAL_DASHBOARD_CSS) 
         )
         learning_topic.change(fn=explain_learning_topic, inputs=[learning_topic], outputs=[learning_explanation_output], show_api=False)
         demo.load(fn=explain_learning_topic, inputs=[learning_topic], outputs=[learning_explanation_output], show_api=False)
+
+    gr.Markdown(
+        "Signal is a privacy-preserving AI dashboard for aggregate behavioural signal intelligence, "
+        "policy insight, and market demand analysis."
+    )
 
 
 if __name__ == "__main__":
