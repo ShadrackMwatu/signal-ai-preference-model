@@ -17,7 +17,7 @@ import gradio as gr
 from explainability import generate_prediction_explanation
 from privacy import PRIVACY_NOTICE
 from trend_intelligence import analyze_trend_batch, summarize_trend_batch
-from x_trends import fetch_x_trends
+from x_trends import fetch_x_trends, get_demo_trends
 from sml_workbench.exporters.gams_exporter import export_to_gams
 from sml_workbench.exporters.pyomo_exporter import export_to_pyomo
 from sml_workbench.parser.sml_parser import load_sml_text as load_sml_workbench_text
@@ -148,6 +148,29 @@ SIGNAL_DASHBOARD_CSS = """
     padding: 12px;
     box-shadow: 0 8px 20px rgba(15, 23, 42, 0.08);
 }
+.signal-trend-issue {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    border: 1px solid var(--border-color-primary, #dbe3ef);
+    border-radius: 8px;
+    background: var(--background-fill-primary, #ffffff);
+    padding: 14px 16px;
+    box-shadow: 0 8px 20px rgba(15, 23, 42, 0.08);
+}
+.signal-trend-issue-name {
+    color: var(--body-text-color, #0f172a);
+    font-size: 17px;
+    font-weight: 800;
+    line-height: 1.25;
+}
+.signal-trend-issue-meta {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: flex-end;
+    gap: 6px;
+}
 .signal-trend-card-top {
     display: flex;
     justify-content: space-between;
@@ -211,9 +234,12 @@ SIGNAL_DASHBOARD_CSS = """
     gap: 6px;
     margin-top: 12px;
 }
+.signal-trend-debug {
+    display: none;
+}
 @keyframes signalTrendScroll {
-    0% { transform: translateY(42%); }
-    100% { transform: translateY(-52%); }
+    0% { transform: translateY(48%); }
+    100% { transform: translateY(-54%); }
 }
 """
 
@@ -524,55 +550,31 @@ def refresh_live_trends(location: str, trend_limit: float) -> tuple[pd.DataFrame
 
     try:
         records = fetch_x_trends(location=location, limit=int(trend_limit))
-        analyses = analyze_trend_batch(records)
-        trends_frame = pd.DataFrame(records)
-        intelligence_frame = pd.DataFrame(analyses)
-        summary = summarize_trend_batch(location, analyses)
-        return trends_frame, intelligence_frame, summary
     except Exception as exc:
-        empty_trends = pd.DataFrame(
-            [
-                {
-                    "trend_name": "Unavailable",
-                    "rank": None,
-                    "tweet_volume": None,
-                    "location": location,
-                    "fetched_at": "",
-                    "source": "Demo fallback - X API not connected",
-                }
-            ]
-        )
-        empty_intelligence = pd.DataFrame(
-            [
-                {
-                    "trend_name": "Unavailable",
-                    "location": location,
-                    "rank": None,
-                    "tweet_volume": None,
-                    "source": "Demo fallback - X API not connected",
-                    "demand_classification": "Unavailable",
-                    "confidence_score": 0.0,
-                    "aggregate_demand_score": 0.0,
-                    "opportunity_score": 0.0,
-                    "emerging_trend_probability": 0.0,
-                    "unmet_demand_probability": 0.0,
-                    "investment_policy_interpretation": "Trend refresh failed",
-                    "model_source_explanation": f"Trend refresh failed: {exc}",
-                }
-            ]
-        )
-        return empty_trends, empty_intelligence, f"Live trends refresh failed for {location}: {exc}"
+        fallback_location = location if location in {"Kenya", "Nairobi", "Global"} else "Kenya"
+        records = get_demo_trends(location=fallback_location, limit=int(trend_limit))
+        location = fallback_location
+        fallback_note = f"Live X API data was unavailable, so Signal is showing clean demo fallback trends. Details: {exc}"
+    else:
+        fallback_note = ""
+
+    analyses = analyze_trend_batch(records)
+    raw_frame = pd.DataFrame(records)
+    intelligence_frame = pd.DataFrame(analyses)
+    trends_frame = _build_hidden_trends_frame(raw_frame, intelligence_frame)
+    summary = summarize_trend_batch(location, analyses)
+    if fallback_note:
+        summary = f"{summary}\n\n{fallback_note}"
+    return trends_frame, intelligence_frame, summary
 
 
-def refresh_live_trend_intelligence(location: str, trend_limit: float) -> tuple[int, str, pd.DataFrame, pd.DataFrame, str]:
+def refresh_live_trend_intelligence(location: str, trend_limit: float) -> tuple[pd.DataFrame, str, int, str, pd.DataFrame]:
     """Return embedded Live Trend Intelligence values for Behavioral Signals AI."""
 
     trends_frame, intelligence_frame, summary = refresh_live_trends(location, trend_limit)
-    records = trends_frame.to_dict(orient="records")
-    analyses = intelligence_frame.to_dict(orient="records")
-    active_count = _active_trend_count(records)
-    ticker_html = _render_live_trend_intelligence(location, records, analyses, summary, active_count)
-    return active_count, ticker_html, trends_frame, intelligence_frame, summary
+    active_count = _active_trend_count(trends_frame)
+    ticker_html = build_live_trend_html(trends_frame)
+    return trends_frame, ticker_html, active_count, summary, intelligence_frame
 
 
 def explain_learning_topic(topic: str) -> str:
@@ -1165,44 +1167,70 @@ def _render_key_driver_cards(drivers: list[str], risks: list[str]) -> str:
     )
 
 
-def _active_trend_count(records: list[dict[str, Any]]) -> int:
-    return sum(1 for record in records if str(record.get("trend_name", "")).strip().lower() != "unavailable")
+def _build_hidden_trends_frame(raw_frame: pd.DataFrame, intelligence_frame: pd.DataFrame) -> pd.DataFrame:
+    """Combine raw trend rows with Signal intelligence for hidden backend use."""
+
+    if raw_frame.empty:
+        raw_frame = pd.DataFrame(get_demo_trends("Kenya", limit=5))
+    if intelligence_frame.empty:
+        intelligence_frame = pd.DataFrame(analyze_trend_batch(raw_frame.to_dict(orient="records")))
+
+    intelligence_columns = [
+        "trend_name",
+        "demand_classification",
+        "confidence_score",
+        "aggregate_demand_score",
+        "opportunity_score",
+        "emerging_trend_probability",
+        "unmet_demand_probability",
+        "investment_policy_interpretation",
+        "model_source_explanation",
+    ]
+    available_columns = [column for column in intelligence_columns if column in intelligence_frame.columns]
+    return raw_frame.merge(
+        intelligence_frame[available_columns],
+        on="trend_name",
+        how="left",
+        suffixes=("", "_signal"),
+    )
 
 
-def _render_live_trend_intelligence(
-    location: str,
-    records: list[dict[str, Any]],
-    analyses: list[dict[str, Any]],
-    summary: str,
-    active_count: int,
-) -> str:
-    analysis_by_name = {str(item.get("trend_name", "")): item for item in analyses}
-    cards = [_render_trend_card(record, analysis_by_name.get(str(record.get("trend_name", "")), {})) for record in records]
-    if not cards:
-        cards = [
-            _render_trend_card(
-                {
-                    "trend_name": "Awaiting trend signal",
-                    "rank": "",
-                    "tweet_volume": "",
-                    "location": location,
-                    "fetched_at": _utc_timestamp(),
-                    "source": "Demo fallback - X API not connected",
-                },
-                {},
-            )
-        ]
-    duration = max(18, min(44, len(cards) * 5))
-    plugin_markup = "".join(f"<span class='signal-trend-pill'>{escape(plugin)}</span>" for plugin in LIVE_TREND_FEATURE_PLUGINS)
+def _active_trend_count(trends_df: pd.DataFrame) -> int:
+    if trends_df.empty or "trend_name" not in trends_df.columns:
+        return 0
+    names = trends_df["trend_name"].fillna("").astype(str).str.strip()
+    return int(((names != "") & (names.str.lower() != "unavailable")).sum())
+
+
+def build_live_trend_html(trends_df: pd.DataFrame) -> str:
+    """Convert the hidden trends dataframe into the public animated trend feed."""
+
+    if trends_df.empty or "trend_name" not in trends_df.columns:
+        trends_df = _build_hidden_trends_frame(
+            pd.DataFrame(get_demo_trends("Kenya", limit=5)),
+            pd.DataFrame(),
+        )
+
+    records = [
+        record
+        for record in trends_df.to_dict(orient="records")
+        if str(record.get("trend_name", "")).strip().lower() not in {"", "unavailable"}
+    ]
+    if not records:
+        records = get_demo_trends("Kenya", limit=5)
+
+    active_count = len(records)
+    location = records[0].get("location", "Kenya")
+    cards = [_render_public_trend_issue(record) for record in records]
+    duration = max(18, min(40, len(cards) * 5))
     rail_markup = "".join(cards + cards)
     return (
         "<div class='signal-trend-shell'>"
         "<div class='signal-trend-header'>"
         "<div>"
-        "<div class='signal-trend-kicker'>Behavioral Signals AI module</div>"
+        "<div class='signal-trend-kicker'>Behavioral Signals AI</div>"
         "<div class='signal-trend-title'>Live Trend Intelligence</div>"
-        f"<div class='signal-trend-meta'><span class='signal-trend-pill'>Auto-refreshing</span>"
-        f"<span class='signal-trend-pill'>Location: {escape(str(location))}</span>"
+        f"<div class='signal-trend-meta'><span class='signal-trend-pill'>Location: {escape(str(location))}</span>"
         f"<span class='signal-trend-pill'>Updated: {escape(_utc_timestamp())}</span></div>"
         "</div>"
         f"<div class='signal-trend-count'><strong>{active_count}</strong><span>active trends</span></div>"
@@ -1210,42 +1238,24 @@ def _render_live_trend_intelligence(
         f"<div class='signal-trend-viewport' style='--signal-trend-duration:{duration}s;'>"
         f"<div class='signal-trend-rail'>{rail_markup}</div>"
         "</div>"
-        f"<div class='signal-trend-classification'>{escape(summary)}</div>"
-        f"<div class='signal-trend-plugins'>{plugin_markup}</div>"
         "</div>"
     )
 
 
-def _render_trend_card(record: dict[str, Any], analysis: dict[str, Any]) -> str:
-    trend_name = escape(str(record.get("trend_name", "Unknown trend")))
-    source = escape(str(record.get("source", analysis.get("source", "Unknown source"))))
-    location = escape(str(record.get("location", analysis.get("location", "Kenya"))))
-    fetched_at = escape(_format_timestamp(record.get("fetched_at") or analysis.get("fetched_at")))
-    rank = record.get("rank", analysis.get("rank", ""))
-    tweet_volume = _format_volume(record.get("tweet_volume", analysis.get("tweet_volume")))
-    confidence = _safe_float(analysis.get("confidence_score"), 0.0)
-    emerging = _safe_float(analysis.get("emerging_trend_probability"), 0.0)
-    unmet = _safe_float(analysis.get("unmet_demand_probability"), 0.0)
-    opportunity = _safe_float(analysis.get("opportunity_score"), 0.0)
-    confidence_width = max(0.0, min(confidence, 100.0))
-    classification = escape(str(analysis.get("demand_classification", "Monitoring aggregate trend movement")))
-    interpretation = escape(str(analysis.get("investment_policy_interpretation", "Signal is waiting for stronger evidence.")))
+def _render_public_trend_issue(record: dict[str, Any]) -> str:
+    trend_name = escape(str(record.get("trend_name", "Monitoring trend")))
+    source = escape(str(record.get("source", "Aggregate trend feed")))
+    location = escape(str(record.get("location", "Kenya")))
+    confidence = _safe_float(record.get("confidence_score"), 0.0)
+    confidence_label = f"Confidence {confidence:.1f}%" if confidence > 0 else "Confidence pending"
     return (
-        "<div class='signal-trend-card'>"
-        "<div class='signal-trend-card-top'>"
-        f"<div><div class='signal-trend-name'>{trend_name}</div>"
-        f"<div class='signal-trend-meta'><span class='signal-trend-pill'>Rank {escape(str(rank))}</span>"
-        f"<span class='signal-trend-pill'>{tweet_volume}</span>"
-        f"<span class='signal-trend-pill'>{source}</span></div></div>"
-        f"<div class='signal-trend-confidence'>Confidence {confidence_width:.1f}%"
-        f"<div class='signal-trend-bar'><span style='--confidence-width:{confidence_width:.1f}%;'></span></div></div>"
+        "<div class='signal-trend-issue'>"
+        f"<div class='signal-trend-issue-name'>{trend_name}</div>"
+        "<div class='signal-trend-issue-meta'>"
+        f"<span class='signal-trend-pill'>{location}</span>"
+        f"<span class='signal-trend-pill'>{escape(confidence_label)}</span>"
+        f"<span class='signal-trend-pill'>{source}</span>"
         "</div>"
-        f"<div class='signal-trend-tags'><span class='signal-trend-pill'>Location: {location}</span>"
-        f"<span class='signal-trend-pill'>Timestamp: {fetched_at}</span>"
-        f"<span class='signal-trend-pill'>Opportunity {opportunity:.1f}</span>"
-        f"<span class='signal-trend-pill'>Emerging {emerging:.1f}%</span>"
-        f"<span class='signal-trend-pill'>Unmet {unmet:.1f}%</span></div>"
-        f"<div class='signal-trend-classification'><strong>{classification}</strong> - {interpretation}</div>"
         "</div>"
     )
 
@@ -1354,8 +1364,6 @@ with gr.Blocks(title="Signal AI Market Intelligence", css=SIGNAL_DASHBOARD_CSS) 
             opportunity_radar_output = gr.HTML(label="Opportunity Radar Chart")
             key_driver_cards_output = gr.HTML(label="Key Driver Summary Cards")
 
-        gr.Markdown("## Live Trend Intelligence")
-        gr.Markdown(PRIVACY_NOTICE)
         with gr.Row():
             trends_location = gr.Dropdown(
                 label="Trend Location",
@@ -1364,16 +1372,31 @@ with gr.Blocks(title="Signal AI Market Intelligence", css=SIGNAL_DASHBOARD_CSS) 
             )
             trends_limit = gr.Slider(label="Number of Trends", minimum=3, maximum=10, step=1, value=5)
             refresh_trends_button = gr.Button("Refresh Trends")
-        with gr.Row():
-            active_trends_output = gr.Number(label="Active Trends", precision=0, interactive=False)
-            live_trend_ticker_output = gr.HTML(label="Live Trend Intelligence")
+        live_trend_ticker_output = gr.HTML(label="Live Trend Intelligence")
+        active_trends_output = gr.Number(label="Active Trends", precision=0, interactive=False, visible=False)
         trends_table = gr.Dataframe(
-            label="Trends Table",
-            headers=["trend_name", "rank", "tweet_volume", "location", "fetched_at", "source"],
+            label="Hidden Trends Table",
+            headers=[
+                "trend_name",
+                "rank",
+                "tweet_volume",
+                "location",
+                "fetched_at",
+                "source",
+                "demand_classification",
+                "confidence_score",
+                "aggregate_demand_score",
+                "opportunity_score",
+                "emerging_trend_probability",
+                "unmet_demand_probability",
+                "investment_policy_interpretation",
+                "model_source_explanation",
+            ],
             interactive=False,
+            visible=False,
         )
         trend_intelligence_table = gr.Dataframe(
-            label="Signal Intelligence Table",
+            label="Hidden Signal Intelligence Table",
             headers=[
                 "trend_name",
                 "location",
@@ -1391,14 +1414,15 @@ with gr.Blocks(title="Signal AI Market Intelligence", css=SIGNAL_DASHBOARD_CSS) 
                 "model_source_explanation",
             ],
             interactive=False,
+            visible=False,
         )
-        trends_summary = gr.Textbox(label="Interpretation Summary", lines=6, interactive=False)
+        trends_summary = gr.Textbox(label="Interpretation Summary", lines=6, interactive=False, visible=False)
         trend_outputs = [
-            active_trends_output,
-            live_trend_ticker_output,
             trends_table,
-            trend_intelligence_table,
+            live_trend_ticker_output,
+            active_trends_output,
             trends_summary,
+            trend_intelligence_table,
         ]
         trend_timer = gr.Timer(value=6, active=True)
         refresh_trends_button.click(
