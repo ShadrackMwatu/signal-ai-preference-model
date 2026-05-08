@@ -1747,4 +1747,4 @@ with gr.Blocks(title="Signal AI Market Intelligence", css=SIGNAL_DASHBOARD_CSS) 
 
 
 if __name__ == "__main__":
-    demo.launch(show_api=False, ssr=False)
+    demo.launch(show_api=False)
