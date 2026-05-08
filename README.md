@@ -25,6 +25,47 @@ Signal brings together five core capabilities:
 
 The trained machine-learning model remains the primary prediction engine for demand intelligence in the dashboard.
 
+## Documentation Navigation
+
+The full project documentation system is available under `Documentation/`.
+
+### Start Here
+
+- [Project Overview](Documentation/PROJECT_OVERVIEW.md)
+- [Signal Vision](Documentation/SIGNAL_VISION.md)
+- [System Architecture](Documentation/SYSTEM_ARCHITECTURE.md)
+- [Development Log](Documentation/DEVELOPMENT_LOG.md)
+- [Changelog](Documentation/CHANGELOG.md)
+
+### Implementation Guides
+
+- [Behavioral AI Engine](Documentation/BEHAVIORAL_AI_ENGINE.md)
+- [Live Trends Module](Documentation/LIVE_TRENDS_MODULE.md)
+- [SML CGE Workbench](Documentation/SML_CGE_WORKBENCH.md)
+- [Adaptive Learning](Documentation/ADAPTIVE_LEARNING.md)
+- [Learning Module](Documentation/LEARNING_MODULE.md)
+- [Model Logic](Documentation/MODEL_LOGIC.md)
+- [Data Pipeline](Documentation/DATA_PIPELINE.md)
+- [UI/UX Design](Documentation/UI_UX_DESIGN.md)
+- [API and Integrations](Documentation/API_AND_INTEGRATIONS.md)
+
+### Operations
+
+- [Deployment Guide](Documentation/DEPLOYMENT_GUIDE.md)
+- [Hugging Face Setup](Documentation/HUGGINGFACE_SETUP.md)
+- [GitHub Workflow](Documentation/GITHUB_WORKFLOW.md)
+- [Debugging and Fixes](Documentation/DEBUGGING_AND_FIXES.md)
+- [Security and Privacy](Documentation/SECURITY_AND_PRIVACY.md)
+- [Known Issues](Documentation/KNOWN_ISSUES.md)
+- [Future Roadmap](Documentation/FUTURE_ROADMAP.md)
+
+### Session History
+
+- [Session 001](Documentation/SESSION_HISTORY/session_001.md)
+- [Session 002](Documentation/SESSION_HISTORY/session_002.md)
+- [Session 003](Documentation/SESSION_HISTORY/session_003.md)
+- [Session 004](Documentation/SESSION_HISTORY/session_004.md)
+
 ## Repository Structure
 
 ```text
@@ -56,6 +97,21 @@ Important existing integrated layers also remain in the repository:
 - `cge_core/`
 - `policy_intelligence/`
 - `src/`
+
+## Architecture Summary
+
+```mermaid
+flowchart TD
+  A["Behavioral inputs and public aggregate trends"] --> B["Feature engineering"]
+  B --> C["Model or fallback prediction"]
+  C --> D["Guardrails and explainability"]
+  D --> E["Gradio dashboard"]
+  B --> F["SML/CGE scenario pathways"]
+  F --> G["Validation, SAM, solver, and policy reports"]
+  D --> H["Learning memory and adaptive recommendations"]
+```
+
+Signal is organized as a modular intelligence platform. `app.py` provides the Gradio user experience; `train_model.py`, `ml/`, and `src/models/` support model training and prediction; `trend_intelligence.py` and `x_trends.py` support aggregate live trend intelligence; `signal_modeling_language/`, `sml_workbench/`, `cge_core/`, `solvers/`, and `signal_execution/` support SML/CGE workflows; and `signal_learning/` plus `learning_memory/` support adaptive learning.
 
 ## Module Descriptions
 
@@ -151,6 +207,16 @@ The Gradio `Learning` tab now includes a learning-topic explainer driven by this
 - Use Hugging Face Spaces secrets for tokens such as `X_BEARER_TOKEN`
 - The dashboard remains stable when optional live-trend credentials are missing because fallback demo trends are built in
 
+See the full [Deployment Guide](Documentation/DEPLOYMENT_GUIDE.md) and [Hugging Face Setup](Documentation/HUGGINGFACE_SETUP.md).
+
+## Roadmap Summary
+
+Planned platform directions include county intelligence, election intelligence, sentiment analysis, heatmaps, forecasting, explainability upgrades, autonomous learning, real-time public intelligence, policy simulation expansion, and enterprise deployment. See [Future Roadmap](Documentation/FUTURE_ROADMAP.md).
+
+## Privacy Summary
+
+Signal is designed for aggregate behavioral intelligence. It should not track individuals or store usernames, private messages, personal profiles, phone numbers, or email addresses. See [Security and Privacy](Documentation/SECURITY_AND_PRIVACY.md).
+
 ## Tests
 
 Run the full test suite:
@@ -166,3 +232,5 @@ See:
 - `Documentation/SIGNAL_PLATFORM_ARCHITECTURE.md`
 - `Documentation/INTERPRETATION_AND_VISUAL_INTELLIGENCE.md`
 - `Documentation/LIVE_X_TRENDS_MODULE.md`
+- `Documentation/SYSTEM_ARCHITECTURE.md`
+- `Documentation/PROJECT_OVERVIEW.md`
