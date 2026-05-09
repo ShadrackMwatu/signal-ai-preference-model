@@ -28,11 +28,16 @@ from Signal_CGE.signal_cge.learning.simulation_memory import record_simulation_l
 from Signal_CGE.signal_cge.learning.learning_registry import write_learning_summary
 from Signal_CGE.signal_cge.full_cge.model_gap_report import generate_full_cge_gap_report
 from Signal_CGE.signal_cge.experiments.experiment_runner import run_prototype_experiment
+from Signal_CGE.signal_cge.solvers.equilibrium_solver import solve_static_equilibrium
 
 
 FULL_CGE_FALLBACK_MESSAGE = (
     "Prototype result: full equilibrium CGE solver is not yet active. Signal is using the available "
     "SAM multiplier/prototype backend and canonical repo model profile."
+)
+EQUILIBRIUM_SOLVER_MESSAGE = (
+    "Signal used the open-source prototype equilibrium CGE solver. Results reflect a simplified "
+    "calibrated equilibrium system, not yet the full recursive-dynamic model."
 )
 
 
@@ -65,7 +70,23 @@ def run_signal_cge_prompt(prompt: str, uploaded_file: Any | None = None) -> dict
         "full_cge_development_status": full_cge_status,
         "experiment_payload": experiment_payload,
     }
-    structured_results = _structured_results(result.get("results", {}), scenario)
+    equilibrium_result = solve_static_equilibrium(None, scenario, {"closure": "base_closure"})
+    if equilibrium_result.get("success"):
+        structured_results = _equilibrium_structured_results(equilibrium_result, scenario)
+        solver_used = "Open-source prototype equilibrium CGE solver"
+        backend = "open_source_equilibrium_solver"
+        result_type = "open_source_equilibrium_cge_prototype"
+        fallback_message = EQUILIBRIUM_SOLVER_MESSAGE
+    else:
+        structured_results = _structured_results(result.get("results", {}), scenario)
+        solver_used = "SAM multiplier fallback"
+        backend = result.get("results", {}).get("backend") or result.get("backend") or "python_sam_multiplier"
+        result_type = "prototype_directional_indicator"
+        fallback_message = FULL_CGE_FALLBACK_MESSAGE
+    diagnostics["solver_used"] = solver_used
+    diagnostics["equilibrium_solver"] = equilibrium_result.get("diagnostics", {})
+    diagnostics["solver_failure_reason"] = "" if equilibrium_result.get("success") else equilibrium_result.get("reason", "solver unavailable")
+    diagnostics["fallback_explanation"] = fallback_message
     chart_data = _chart_data(structured_results)
     results_table = _results_table(structured_results)
     interpretation = _policy_interpretation(result, knowledge_context, adaptive_hints, similar_simulations)
@@ -116,7 +137,6 @@ def run_signal_cge_prompt(prompt: str, uploaded_file: Any | None = None) -> dict
         full_cge_status=full_cge_status,
         experiment_payload=experiment_payload,
     )
-    backend = result.get("results", {}).get("backend") or result.get("backend") or "python_sam_multiplier"
     return {
         "scenario": _interpreted_scenario(scenario, result.get("results", {})),
         "readiness": readiness,
@@ -134,10 +154,11 @@ def run_signal_cge_prompt(prompt: str, uploaded_file: Any | None = None) -> dict
         "similar_prior_simulations": similar_simulations,
         "learning_summary": learning_summary,
         "learning_event_id": learning_event["event_id"],
-        "result_type": "prototype_directional_indicator",
+        "result_type": result_type,
         "downloads": downloads,
         "backend_used": backend,
-        "fallback_message": FULL_CGE_FALLBACK_MESSAGE,
+        "solver_used": solver_used,
+        "fallback_message": fallback_message,
     }
 
 
@@ -185,7 +206,37 @@ def _structured_results(results: dict[str, Any], scenario: dict[str, Any]) -> di
         "gender-care impact": round(care_effect, 6) if _is_care_relevant(scenario) else "Not applicable to this scenario.",
         "account_effects": accounts,
         "backend": results.get("backend", "python_sam_multiplier") if isinstance(results, dict) else "python_sam_multiplier",
-        "result_type": "prototype_directional_indicator",
+        "result_type": results.get("result_type", "prototype_directional_indicator"),
+    }
+
+
+def _equilibrium_structured_results(solver_result: dict[str, Any], scenario: dict[str, Any]) -> dict[str, Any]:
+    changes = solver_result.get("percentage_changes", {})
+    policy = solver_result.get("policy", {})
+    return {
+        "GDP/output effect": round(float(changes.get("output_change_pct", 0.0)), 6),
+        "factor income effect": round(float(changes.get("activity_price_change_pct", 0.0)), 6),
+        "household income effect": round(float(changes.get("household_welfare_proxy_change_pct", 0.0)), 6),
+        "government balance effect": round(float(changes.get("government_revenue_change_pct", 0.0)), 6),
+        "trade effect": round(float(changes.get("trade_balance_change_pct", 0.0)), 6),
+        "welfare/proxy welfare effect": round(float(changes.get("household_welfare_proxy_change_pct", 0.0)), 6),
+        "import price change": round(float(changes.get("import_price_change_pct", 0.0)), 6),
+        "import demand change": round(float(changes.get("import_demand_change_pct", 0.0)), 6),
+        "government tariff revenue change": round(float(changes.get("government_tariff_revenue_change_pct", 0.0)), 6),
+        "output change": round(float(changes.get("output_change_pct", 0.0)), 6),
+        "trade balance change": round(float(changes.get("trade_balance_change_pct", 0.0)), 6),
+        "gender-care impact": "Not applicable to this scenario." if not _is_care_relevant(scenario) else round(float(changes.get("household_welfare_proxy_change_pct", 0.0)), 6),
+        "account_effects": {
+            "domestic_output": policy.get("domestic_output", 0.0),
+            "imports": policy.get("imports", 0.0),
+            "exports": policy.get("exports", 0.0),
+            "government_revenue": policy.get("government_revenue", 0.0),
+            "household_income": policy.get("household_income", 0.0),
+        },
+        "percentage_changes": changes,
+        "backend": "open_source_equilibrium_solver",
+        "result_type": "open_source_equilibrium_cge_prototype",
+        "solver_label": solver_result.get("solver_label", "Open-source prototype equilibrium CGE solver"),
     }
 
 
@@ -434,7 +485,7 @@ def _full_cge_development_status() -> dict[str, Any]:
         "equation_registry_status": "active blueprint",
         "closure_manager_status": "active blueprint",
         "experiment_engine_status": "prototype directional engine",
-        "solver_status": "placeholder; full nonlinear equilibrium solver not active",
+        "solver_status": "open-source prototype static equilibrium solver active; full recursive-dynamic solver not active",
         "recursive_dynamics_status": "blueprint",
         "gap_summary": gap,
     }

@@ -34,7 +34,7 @@ def test_learning_memory_stores_metadata_only_event() -> None:
 def test_run_signal_cge_prompt_is_knowledge_aware() -> None:
     result = run_signal_cge_prompt("reduce import tariffs on cmach by 10%")
 
-    assert result["result_type"] == "prototype_directional_indicator"
+    assert result["result_type"] == "open_source_equilibrium_cge_prototype"
     assert result["knowledge_context"]["reference_labels"]
     assert result["model_gap_report"]
     assert "prior_learning_used" in result["interpretation"]

@@ -794,7 +794,7 @@ def _render_results_cards(result: dict[str, Any]) -> str:
         ("Household income effect", results.get("household income effect", 0.0)),
         ("Trade effect", results.get("trade effect", 0.0)),
         ("Welfare/proxy welfare effect", results.get("welfare/proxy welfare effect", 0.0)),
-        ("Model backend used", result.get("backend_used", "python_sam_multiplier")),
+        ("Solver used", result.get("solver_used", result.get("backend_used", "python_sam_multiplier"))),
         ("Result type", result.get("result_type", "prototype_directional_indicator")),
     ]
     card_html = "".join(
@@ -824,6 +824,9 @@ def _results_table_dataframe(result_or_results: dict[str, Any]) -> pd.DataFrame:
             {"metric": "Government balance", "effect": results.get("government balance effect", 0.0)},
             {"metric": "Trade/import pressure", "effect": results.get("trade effect", 0.0)},
             {"metric": "Welfare/proxy welfare", "effect": results.get("welfare/proxy welfare effect", 0.0)},
+            {"metric": "Import price change", "effect": results.get("import price change", "not available")},
+            {"metric": "Import demand change", "effect": results.get("import demand change", "not available")},
+            {"metric": "Government tariff revenue change", "effect": results.get("government tariff revenue change", "not available")},
             {"metric": "Gender-care impact", "effect": results.get("gender-care impact", "Not applicable to this scenario.")},
         ]
     )
@@ -871,13 +874,21 @@ def _render_diagnostics(diagnostics: dict[str, Any]) -> str:
     pre_run = diagnostics.get("pre_run", {})
     calibration = diagnostics.get("preflight", {}).get("calibration", {})
     closure = diagnostics.get("preflight", {}).get("closure", {})
+    solver = diagnostics.get("equilibrium_solver", {})
     lines = [
         "## Diagnostics",
+        f"- Solver used: `{diagnostics.get('solver_used', 'unknown')}`",
         f"- SAM balance status: `{pre_run.get('balanced', pre_run.get('is_balanced', 'not available'))}`",
         "- Calibration status: Prototype calibration available; full equilibrium calibration not yet active.",
         f"- Closure warnings: {_format_warning_text(closure.get('warnings', []) if isinstance(closure, dict) else [])}",
         f"- Solver warnings: `{diagnostics.get('fallback_explanation', FULL_CGE_FALLBACK_MESSAGE)}`",
         f"- Fallback explanation: {diagnostics.get('fallback_explanation', FULL_CGE_FALLBACK_MESSAGE)}",
+        "## Equilibrium Solver Diagnostics",
+        f"- Converged: `{solver.get('converged', False)}`",
+        f"- Residual norm: `{solver.get('residual_norm', 'not available')}`",
+        f"- Closure used: `{solver.get('closure_used', 'not available')}`",
+        f"- Variables solved: `{len(solver.get('variables_solved', []))}`",
+        f"- Equations solved: `{len(solver.get('equations_solved', []))}`",
     ]
     return "\n".join(lines)
 

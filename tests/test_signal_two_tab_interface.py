@@ -41,8 +41,7 @@ def test_run_signal_cge_prompt_without_upload() -> None:
 
     assert {"scenario", "readiness", "diagnostics", "results", "chart_data", "interpretation"}.issubset(result)
     assert result["readiness"]["sam_multiplier_readiness"] == "ready"
-    assert app.FULL_CGE_FALLBACK_MESSAGE in result["fallback_message"]
-    assert "canonical repo model profile" in result["fallback_message"]
+    assert "open-source prototype equilibrium CGE solver" in result["fallback_message"]
     assert result["diagnostics"]["uploaded_sam"].startswith("not provided")
 
 
@@ -102,8 +101,8 @@ def test_signal_cge_output_sections_and_fallback_message() -> None:
     assert "chart_data" in result
     assert "interpretation" in result
     assert "learning_trace" in result
-    assert app.FULL_CGE_FALLBACK_MESSAGE in result["diagnostics"]["fallback_explanation"]
-    assert result["backend_used"] == "python_sam_multiplier"
+    assert "open-source prototype equilibrium CGE solver" in result["diagnostics"]["fallback_explanation"]
+    assert result["backend_used"] == "open_source_equilibrium_solver"
     assert result["learning_trace"]["learning_event_recorded"] == "yes"
 
 
@@ -146,6 +145,6 @@ def test_chart_data_and_download_files_are_created() -> None:
     assert "results_table" in json_text
     assert "model_references_used" in json_text
     assert "learning_trace" in json_text
-    assert "prototype_directional_indicator" in json_text
+    assert "open_source_equilibrium_cge_prototype" in json_text
     assert "Adaptive Learning Trace" in brief_text
     assert "Trade/import pressure" in csv_text

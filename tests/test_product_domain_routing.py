@@ -30,7 +30,7 @@ def test_signal_cge_route_imports_without_behavioral_dependencies() -> None:
     result = run_signal_cge_prompt("reduce import tariffs on cmach by 10%")
 
     assert result["scenario"]["target_account"] == "cmach"
-    assert result["backend_used"] == "python_sam_multiplier"
+    assert result["backend_used"] == "open_source_equilibrium_solver"
     source = Path("app_routes/signal_cge_route.py").read_text(encoding="utf-8")
     for behavioral_only in ["behavioral_ai", "adaptive_learning", "live_trends"]:
         assert behavioral_only not in source
