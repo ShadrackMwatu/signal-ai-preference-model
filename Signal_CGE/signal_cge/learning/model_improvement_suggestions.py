@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from typing import Any
 
-from signal_cge.learning.learning_registry import summarize_learning_memory
+from .learning_registry import summarize_learning_memory
 
 
 def generate_model_improvement_suggestions(limit: int = 50) -> dict[str, Any]:

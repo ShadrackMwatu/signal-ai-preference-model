@@ -12,6 +12,15 @@ REFERENCE_ROOT = REPO_ROOT / "Documentation" / "signal_cge_reference"
 CANONICAL_MODEL_ROOT = REPO_ROOT / "Signal_CGE" / "models" / "canonical"
 MODEL_PROFILE_PATH = CANONICAL_MODEL_ROOT / "signal_cge_master" / "model_profile.yaml"
 KNOWLEDGE_BASE_PATH = REPO_ROOT / "Documentation" / "SIGNAL_CGE_KNOWLEDGE_BASE.md"
+ADDITIONAL_KNOWLEDGE_PATHS = [
+    REPO_ROOT / "Documentation" / "SIGNAL_CGE_MODEL_STRUCTURE.md",
+    REPO_ROOT / "Documentation" / "SIGNAL_CGE_REORGANIZATION_PLAN.md",
+    REPO_ROOT / "Documentation" / "SIGNAL_CGE_REPO_KNOWLEDGE_INTEGRATION.md",
+]
+
+
+def _repo_relative(path: Path) -> str:
+    return path.relative_to(REPO_ROOT).as_posix()
 
 
 def load_reference_text(relative_path: str) -> str:
@@ -34,13 +43,40 @@ def list_reference_documents() -> list[dict[str, Any]]:
             continue
         documents.append(
             {
-                "path": str(path.relative_to(REPO_ROOT)),
+                "path": _repo_relative(path),
                 "section": path.parent.name,
                 "extension": path.suffix.lower(),
                 "size_bytes": path.stat().st_size,
             }
         )
     return documents
+
+
+def list_repo_knowledge_sources() -> list[dict[str, Any]]:
+    """Return all repo-stored knowledge sources used by the adaptive engine."""
+
+    sources = list_reference_documents()
+    for path in [MODEL_PROFILE_PATH, KNOWLEDGE_BASE_PATH, *ADDITIONAL_KNOWLEDGE_PATHS]:
+        if path.exists():
+            sources.append(
+                {
+                    "path": _repo_relative(path),
+                    "section": path.parent.name,
+                    "extension": path.suffix.lower(),
+                    "size_bytes": path.stat().st_size,
+                }
+            )
+    for path in sorted(CANONICAL_MODEL_ROOT.rglob("*")):
+        if path.is_file():
+            sources.append(
+                {
+                    "path": _repo_relative(path),
+                    "section": "canonical_models",
+                    "extension": path.suffix.lower(),
+                    "size_bytes": path.stat().st_size,
+                }
+            )
+    return sources
 
 
 def load_knowledge_base() -> str:
@@ -58,6 +94,16 @@ def load_reference_bundle() -> dict[str, str]:
             continue
         relative = Path(document["path"]).relative_to("Documentation/signal_cge_reference")
         bundle[str(relative).replace("\\", "/")] = load_reference_text(str(relative))
+    return bundle
+
+
+def load_repo_knowledge_bundle() -> dict[str, str]:
+    """Load lightweight text knowledge from repo documentation and canonical profiles."""
+
+    bundle = load_reference_bundle()
+    for path in [MODEL_PROFILE_PATH, *ADDITIONAL_KNOWLEDGE_PATHS]:
+        if path.exists() and path.suffix.lower() in {".md", ".yaml", ".yml", ".txt"}:
+            bundle[str(path.relative_to(REPO_ROOT)).replace("\\", "/")] = path.read_text(encoding="utf-8")
     return bundle
 
 

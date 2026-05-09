@@ -10,7 +10,15 @@ from pathlib import Path
 _PACKAGE_ROOT = Path(__file__).resolve().parent / "Signal_CGE" / "signal_cge"
 __path__ = [str(_PACKAGE_ROOT)]
 
-from Signal_CGE.signal_cge.model_registry import get_model_registry  # noqa: E402
-from Signal_CGE.signal_cge.workbench import run_chat_scenario  # noqa: E402
+def get_model_registry(*args, **kwargs):
+    from Signal_CGE.signal_cge.model_registry import get_model_registry as _impl
+
+    return _impl(*args, **kwargs)
+
+
+def run_chat_scenario(*args, **kwargs):
+    from Signal_CGE.signal_cge.workbench import run_chat_scenario as _impl
+
+    return _impl(*args, **kwargs)
 
 __all__ = ["get_model_registry", "run_chat_scenario"]

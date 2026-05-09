@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from pathlib import Path
 
-from signal_cge.local_workspace.workspace_manager import (
+from .workspace_manager import (
     REQUIRED_WORKSPACE_FOLDERS,
     get_workspace_paths,
 )

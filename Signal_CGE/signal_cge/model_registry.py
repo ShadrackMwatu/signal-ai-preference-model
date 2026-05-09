@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from pathlib import Path
 
-from signal_cge.local_workspace.workspace_registry import get_workspace_registry
+from .local_workspace.workspace_registry import get_workspace_registry
 
 
 REPO_ROOT = Path(__file__).resolve().parents[2]

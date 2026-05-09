@@ -5,7 +5,8 @@ from __future__ import annotations
 from pathlib import Path
 from typing import Any
 
-from signal_cge.knowledge.document_loader import load_knowledge_base, load_reference_text
+from .document_loader import load_knowledge_base, load_reference_text
+from .semantic_mapping import map_prompt_semantics
 
 
 REFERENCE_RULES = {
@@ -65,6 +66,7 @@ def get_scenario_context(scenario: dict[str, Any]) -> dict[str, Any]:
 
     shock_type = str(scenario.get("shock_type") or scenario.get("policy_instrument") or "").lower()
     prompt_text = str(scenario.get("prompt", "")).lower()
+    semantic_hints = map_prompt_semantics(prompt_text, scenario)
     if "tariff" in prompt_text and "import" in prompt_text:
         shock_type = "import_tariff"
     references = REFERENCE_RULES.get(shock_type, ["experiments/EXPERIMENT_WORKFLOW.md", "equations/MACRO_CLOSURE.md"])
@@ -89,6 +91,7 @@ def get_scenario_context(scenario: dict[str, Any]) -> dict[str, Any]:
         "scenario_type": shock_type or "general",
         "references": loaded,
         "reference_labels": [item["title"] for item in loaded],
+        "semantic_hints": semantic_hints,
     }
 
 

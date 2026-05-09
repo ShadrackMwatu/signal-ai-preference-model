@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from signal_cge.knowledge.reference_index import build_reference_index
+from .reference_index import build_reference_index
 
 
 def get_architecture_reference() -> dict[str, object]:

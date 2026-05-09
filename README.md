@@ -37,6 +37,7 @@ Framework, SML, learning, and older chat-studio modules remain in the repository
 Product-domain ownership is documented in [Signal Product Domain Map](Documentation/SIGNAL_PRODUCT_DOMAIN_MAP.md). The public app routes through `app_routes/` so Behavioral Signals AI and Signal CGE use their product-domain backend folders.
 
 Signal CGE also includes repo-based knowledge retrieval and metadata-only adaptive learning. See [Signal CGE Repo Knowledge Integration](Documentation/SIGNAL_CGE_REPO_KNOWLEDGE_INTEGRATION.md) and [Signal CGE Adaptive Learning Policy](Documentation/SIGNAL_CGE_ADAPTIVE_LEARNING_POLICY.md).
+The newer adaptive intelligence layer is documented in [Signal CGE Adaptive Intelligence](Documentation/SIGNAL_CGE_ADAPTIVE_INTELLIGENCE.md), [Signal CGE Repo Learning Engine](Documentation/SIGNAL_CGE_REPO_LEARNING_ENGINE.md), and [Signal CGE Safe Adaptation Policy](Documentation/SIGNAL_CGE_SAFE_ADAPTATION_POLICY.md).
 
 ## Signal CGE Architecture
 

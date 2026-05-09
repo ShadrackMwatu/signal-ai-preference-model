@@ -18,10 +18,14 @@ from Signal_CGE.signal_cge.knowledge.document_loader import load_model_profile
 from Signal_CGE.signal_cge.knowledge.reference_index import build_reference_index
 from Signal_CGE.signal_cge.knowledge.scenario_context import get_scenario_context
 from Signal_CGE.signal_cge.learning.adaptive_rules import apply_adaptive_prompt_rules
+from Signal_CGE.signal_cge.learning.model_gap_detector import generate_model_gap_report
 from Signal_CGE.signal_cge.learning.model_improvement_suggestions import (
     generate_model_improvement_suggestions,
 )
+from Signal_CGE.signal_cge.learning.recommendation_engine import recommend_adaptive_next_simulations
+from Signal_CGE.signal_cge.learning.scenario_pattern_learning import find_similar_simulations
 from Signal_CGE.signal_cge.learning.simulation_memory import record_simulation_learning_event
+from Signal_CGE.signal_cge.learning.learning_registry import write_learning_summary
 
 
 FULL_CGE_FALLBACK_MESSAGE = (
@@ -41,6 +45,8 @@ def run_signal_cge_prompt(prompt: str, uploaded_file: Any | None = None) -> dict
     adaptive_hints = apply_adaptive_prompt_rules(prompt, scenario)
     readiness = get_model_readiness()
     knowledge_context = get_scenario_context(scenario)
+    similar_simulations = find_similar_simulations(prompt, scenario)
+    gap_report = generate_model_gap_report(write=True)
     diagnostics = {
         **result.get("diagnostics", {}),
         "model_profile_loaded": True,
@@ -50,11 +56,17 @@ def run_signal_cge_prompt(prompt: str, uploaded_file: Any | None = None) -> dict
         "fallback_explanation": FULL_CGE_FALLBACK_MESSAGE,
         "adaptive_rules": adaptive_hints,
         "knowledge_references_used": knowledge_context["reference_labels"],
+        "similar_prior_simulations": len(similar_simulations),
+        "model_gap_report": gap_report,
     }
     structured_results = _structured_results(result.get("results", {}), scenario)
     chart_data = _chart_data(structured_results)
-    interpretation = _policy_interpretation(result, knowledge_context, adaptive_hints)
+    interpretation = _policy_interpretation(result, knowledge_context, adaptive_hints, similar_simulations)
     model_improvements = generate_model_improvement_suggestions()
+    interpretation["recommended_next_simulations"] = _dedupe(
+        interpretation.get("recommended_next_simulations", [])
+        + recommend_adaptive_next_simulations(scenario)
+    )[:5]
     learning_event = record_simulation_learning_event(
         {
             "prompt": prompt,
@@ -67,8 +79,10 @@ def run_signal_cge_prompt(prompt: str, uploaded_file: Any | None = None) -> dict
             "caveats": interpretation.get("caveats", []),
             "recommended_next_simulations": interpretation.get("recommended_next_simulations", []),
             "knowledge_references_used": knowledge_context["reference_labels"],
+            "model_gap_report": gap_report,
         }
     )
+    learning_summary = write_learning_summary(limit=100)
     downloads = _write_downloads(
         prompt=prompt,
         scenario=scenario,
@@ -80,6 +94,9 @@ def run_signal_cge_prompt(prompt: str, uploaded_file: Any | None = None) -> dict
         knowledge_context=knowledge_context,
         learning_event_id=learning_event["event_id"],
         model_improvements=model_improvements,
+        similar_simulations=similar_simulations,
+        gap_report=gap_report,
+        learning_summary=learning_summary,
     )
     backend = result.get("results", {}).get("backend") or result.get("backend") or "python_sam_multiplier"
     return {
@@ -91,6 +108,9 @@ def run_signal_cge_prompt(prompt: str, uploaded_file: Any | None = None) -> dict
         "interpretation": interpretation,
         "knowledge_context": knowledge_context,
         "model_improvement_suggestions": model_improvements,
+        "model_gap_report": gap_report,
+        "similar_prior_simulations": similar_simulations,
+        "learning_summary": learning_summary,
         "learning_event_id": learning_event["event_id"],
         "result_type": "prototype_directional_indicator",
         "downloads": downloads,
@@ -167,6 +187,7 @@ def _policy_interpretation(
     result: dict[str, Any],
     knowledge_context: dict[str, Any],
     adaptive_hints: dict[str, Any],
+    similar_simulations: list[dict[str, Any]] | None = None,
 ) -> dict[str, Any]:
     summary = result.get("policy_summary", {})
     scenario = result.get("scenario", {})
@@ -193,6 +214,20 @@ def _policy_interpretation(
         ],
         "recommended_next_simulations": _recommended_next_simulations(summary, adaptive_hints),
         "knowledge_references_used": knowledge_context["reference_labels"],
+        "prior_learning_used": [
+            {
+                "event_id": event.get("event_id"),
+                "scenario_type": event.get("scenario_type"),
+                "target_account": event.get("target_account"),
+            }
+            for event in (similar_simulations or [])[:3]
+        ],
+        "full_cge_additional_capture": [
+            "Endogenous price feedbacks across all markets.",
+            "Government revenue, savings-investment, and external-balance closure responses.",
+            "Factor-market reallocation and market-clearing effects.",
+            "Trade-balance and welfare effects after economy-wide adjustment.",
+        ],
     }
 
 
@@ -207,6 +242,9 @@ def _write_downloads(
     knowledge_context: dict[str, Any],
     learning_event_id: str,
     model_improvements: dict[str, Any],
+    similar_simulations: list[dict[str, Any]] | None = None,
+    gap_report: dict[str, Any] | None = None,
+    learning_summary: dict[str, Any] | None = None,
 ) -> dict[str, str]:
     output_dir = Path("outputs") / "signal_cge_public" / datetime.now(UTC).strftime("%Y%m%d_%H%M%S")
     output_dir.mkdir(parents=True, exist_ok=True)
@@ -222,6 +260,9 @@ def _write_downloads(
         "learning_event_id": learning_event_id,
         "result_type": "prototype_directional_indicator",
         "model_improvement_suggestions": model_improvements,
+        "similar_prior_simulations": similar_simulations or [],
+        "model_gap_report": gap_report or {},
+        "learning_summary": learning_summary or {},
     }
     md_path = output_dir / "signal_cge_policy_brief.md"
     json_path = output_dir / "signal_cge_results.json"
@@ -247,6 +288,7 @@ def _policy_brief_markdown(payload: dict[str, Any]) -> str:
             "## Policy Interpretation\n```json\n" + json.dumps(payload["interpretation"], indent=2) + "\n```",
             "## Knowledge Trace\n```json\n" + json.dumps(payload["knowledge_context"], indent=2) + "\n```",
             "## Suggested Model Improvements\n```json\n" + json.dumps(payload["model_improvement_suggestions"], indent=2) + "\n```",
+            "## Model Gap Report\n```json\n" + json.dumps(payload["model_gap_report"], indent=2) + "\n```",
             "## Limitations\n" + FULL_CGE_FALLBACK_MESSAGE,
         ]
     )
@@ -298,3 +340,14 @@ def _recommended_next_simulations(summary: dict[str, Any], adaptive_hints: dict[
             ]
         )
     return list(dict.fromkeys(recommendations))
+
+
+def _dedupe(items: list[Any]) -> list[Any]:
+    seen = set()
+    output = []
+    for item in items:
+        key = json.dumps(item, sort_keys=True) if isinstance(item, (dict, list)) else str(item)
+        if key not in seen:
+            seen.add(key)
+            output.append(item)
+    return output

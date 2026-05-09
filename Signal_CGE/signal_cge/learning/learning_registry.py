@@ -3,9 +3,12 @@
 from __future__ import annotations
 
 from collections import Counter
+from datetime import UTC, datetime
+import json
+from pathlib import Path
 from typing import Any
 
-from signal_cge.learning.simulation_memory import load_simulation_memory
+from .simulation_memory import load_simulation_memory
 
 
 def summarize_learning_memory(limit: int = 50) -> dict[str, Any]:
@@ -36,6 +39,17 @@ def summarize_learning_memory(limit: int = 50) -> dict[str, Any]:
         "common_interpretation_patterns": patterns.most_common(5),
         "suggested_model_improvements": _suggestions(scenario_types, warnings, backends),
     }
+
+
+def write_learning_summary(limit: int = 100) -> dict[str, Any]:
+    """Write a lightweight repo-runtime learning summary."""
+
+    summary = summarize_learning_memory(limit=limit)
+    output_dir = Path("Signal_CGE") / "outputs" / "learning_summaries"
+    output_dir.mkdir(parents=True, exist_ok=True)
+    path = output_dir / f"learning_summary_{datetime.now(UTC).strftime('%Y%m%d_%H%M%S')}.json"
+    path.write_text(json.dumps(summary, indent=2, sort_keys=True), encoding="utf-8")
+    return {"path": str(path), "summary": summary}
 
 
 def _suggestions(scenarios: Counter[str], warnings: Counter[str], backends: Counter[str]) -> list[str]:

@@ -899,7 +899,7 @@ def _render_policy_interpretation(interpretation: dict[str, Any]) -> str:
 
 def _render_model_reference_used(result: dict[str, Any]) -> str:
     references = result.get("knowledge_context", {}).get("reference_labels", [])
-    lines = ["## Model Reference Used"]
+    lines = ["## Model Knowledge Used"]
     if references:
         lines.extend(f"- {reference} loaded" for reference in references)
     else:
@@ -2132,7 +2132,7 @@ with gr.Blocks(title="Signal AI Dashboard", css=SIGNAL_DASHBOARD_CSS) as demo:
             tooltip=["metric", "effect"],
             vertical=False,
         )
-        signal_cge_reference_output = gr.Markdown(label="Model Reference Used")
+        signal_cge_reference_output = gr.Markdown(label="Model Knowledge Used")
         signal_cge_interpretation_output = gr.Markdown(label="Scenario Interpretation")
         signal_cge_diagnostics_output = gr.Markdown(label="Diagnostics")
         with gr.Row():

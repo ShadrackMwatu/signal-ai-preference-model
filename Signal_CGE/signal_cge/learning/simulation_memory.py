@@ -9,7 +9,7 @@ from typing import Any
 import uuid
 
 
-MEMORY_PATH = Path("outputs") / "signal_cge_learning" / "simulation_memory.jsonl"
+MEMORY_PATH = Path("Signal_CGE") / "outputs" / "signal_cge_learning" / "simulation_memory.jsonl"
 
 
 def record_simulation_learning_event(event: dict[str, Any], path: str | Path = MEMORY_PATH) -> dict[str, Any]:

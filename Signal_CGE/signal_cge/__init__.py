@@ -6,7 +6,15 @@ diagnostics, solvers, scenarios, dynamics, and reporting. The older
 transition.
 """
 
-from .model_registry import get_model_registry
-from .workbench import run_chat_scenario
+def get_model_registry(*args, **kwargs):
+    from .model_registry import get_model_registry as _impl
+
+    return _impl(*args, **kwargs)
+
+
+def run_chat_scenario(*args, **kwargs):
+    from .workbench import run_chat_scenario as _impl
+
+    return _impl(*args, **kwargs)
 
 __all__ = ["get_model_registry", "run_chat_scenario"]

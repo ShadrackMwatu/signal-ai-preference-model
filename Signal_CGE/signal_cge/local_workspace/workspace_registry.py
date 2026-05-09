@@ -2,9 +2,9 @@
 
 from __future__ import annotations
 
-from signal_cge.local_workspace.workspace_manager import get_workspace_paths, locate_runtime_outputs
-from signal_cge.local_workspace.workspace_sync import summarize_sync_policy
-from signal_cge.local_workspace.workspace_validator import validate_workspace
+from .workspace_manager import get_workspace_paths, locate_runtime_outputs
+from .workspace_sync import summarize_sync_policy
+from .workspace_validator import validate_workspace
 
 
 def get_workspace_registry() -> dict[str, object]:

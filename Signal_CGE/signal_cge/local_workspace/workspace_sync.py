@@ -5,7 +5,7 @@ from __future__ import annotations
 from pathlib import Path
 from typing import Any
 
-from signal_cge.local_workspace.workspace_manager import CONFIG_DIR, load_key_value_yaml
+from .workspace_manager import CONFIG_DIR, load_key_value_yaml
 
 
 SYNC_POLICY_PATH = CONFIG_DIR / "sync_policy.yaml"
