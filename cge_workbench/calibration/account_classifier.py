@@ -2,75 +2,62 @@
 
 from __future__ import annotations
 
-from dataclasses import asdict, dataclass
-
 import pandas as pd
 
 
-CARE_FACTOR_SUFFIXES = {"fcp", "fcu", "fnp", "fnu", "mcp", "mcu", "mnp", "mnu"}
+CARE_SUFFIXES = {"fcp", "fcu", "fnp", "fnu", "mcp", "mcu", "mnp", "mnu"}
+ACCOUNT_GROUPS = [
+    "activities",
+    "commodities",
+    "factors",
+    "households",
+    "government",
+    "taxes",
+    "savings_investment",
+    "rest_of_world",
+    "unknown",
+]
 
 
-@dataclass(slots=True)
-class AccountClassification:
-    activities: list[str]
-    commodities: list[str]
-    factors: list[str]
-    households: list[str]
-    government: list[str]
-    investment: list[str]
-    taxes: list[str]
-    imports: list[str]
-    exports: list[str]
-    rest_of_world: list[str]
-    unclassified: list[str]
-    kenya_gender_care_factors: list[str]
+def classify_sam_accounts(sam: pd.DataFrame, account_map: dict[str, str] | None = None) -> dict[str, list[str]]:
+    """Classify SAM accounts into CGE account groups.
 
-    def to_dict(self) -> dict[str, list[str]]:
-        return asdict(self)
+    `account_map` can override deterministic classification with entries such
+    as `{"hh_rural": "households"}`. Unknown override groups are ignored and
+    the account falls back to rule-based classification.
+    """
 
-
-def classify_sam_accounts(sam: pd.DataFrame) -> AccountClassification:
     accounts = [str(account) for account in sam.index]
-    classified: dict[str, list[str]] = {
-        "activities": [],
-        "commodities": [],
-        "factors": [],
-        "households": [],
-        "government": [],
-        "investment": [],
-        "taxes": [],
-        "imports": [],
-        "exports": [],
-        "rest_of_world": [],
-    }
-    for account in accounts:
-        key = account.lower()
-        if key in CARE_FACTOR_SUFFIXES or any(term in key for term in ["factor", "labour", "labor", "capital", "land"]):
-            classified["factors"].append(account)
-        elif any(term in key for term in ["household", "hh"]):
-            classified["households"].append(account)
-        elif any(term in key for term in ["government", "gov"]):
-            classified["government"].append(account)
-        elif any(term in key for term in ["investment", "capital_formation", "savings"]):
-            classified["investment"].append(account)
-        elif any(term in key for term in ["tax", "vat", "tariff"]):
-            classified["taxes"].append(account)
-        elif any(term in key for term in ["import", "m_"]):
-            classified["imports"].append(account)
-        elif any(term in key for term in ["export", "x_"]):
-            classified["exports"].append(account)
-        elif any(term in key for term in ["row", "rest_of_world", "foreign"]):
-            classified["rest_of_world"].append(account)
-        elif any(term in key for term in ["commodity", "com_", "goods", "services"]):
-            classified["commodities"].append(account)
-        elif any(term in key for term in ["activity", "act_", "prod", "sector", "care", "manufacturing", "transport"]):
-            classified["activities"].append(account)
-        else:
-            classified["commodities"].append(account)
+    groups = {group: [] for group in ACCOUNT_GROUPS}
+    account_map = {str(k): str(v) for k, v in (account_map or {}).items()}
 
-    used = {item for values in classified.values() for item in values}
-    return AccountClassification(
-        **classified,
-        unclassified=[account for account in accounts if account not in used],
-        kenya_gender_care_factors=[account for account in accounts if account.lower() in CARE_FACTOR_SUFFIXES],
-    )
+    for account in accounts:
+        override = account_map.get(account)
+        group = override if override in groups else _classify_account(account)
+        groups[group].append(account)
+
+    groups["care_factors"] = [account for account in accounts if account.lower() in CARE_SUFFIXES]
+    return groups
+
+
+def _classify_account(account: str) -> str:
+    key = account.lower()
+    if key in CARE_SUFFIXES or any(term in key for term in ["factor", "labour", "labor", "capital", "land"]):
+        return "factors"
+    if any(term in key for term in ["household", "hh"]):
+        return "households"
+    if any(term in key for term in ["government", "gov"]):
+        return "government"
+    if any(term in key for term in ["tax", "vat", "tariff", "duty"]):
+        return "taxes"
+    if any(term in key for term in ["saving", "investment", "capital_formation", "stock_change"]):
+        return "savings_investment"
+    if any(term in key for term in ["row", "rest_of_world", "foreign", "import", "export"]):
+        return "rest_of_world"
+    if any(term in key for term in ["commodity", "com_", "goods"]):
+        return "commodities"
+    if any(term in key for term in ["activity", "act_", "prod", "sector", "manufacturing", "transport", "care"]):
+        return "activities"
+    if any(term in key for term in ["service", "services"]):
+        return "commodities"
+    return "unknown"

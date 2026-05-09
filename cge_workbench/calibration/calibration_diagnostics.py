@@ -1,4 +1,4 @@
-"""Diagnostics for the Signal CGE calibration prototype."""
+"""Diagnostics for Signal CGE calibration readiness."""
 
 from __future__ import annotations
 
@@ -6,40 +6,59 @@ from typing import Any
 
 import pandas as pd
 
-from .account_classifier import AccountClassification, CARE_FACTOR_SUFFIXES
+from .benchmark_extractor import validate_sam_matrix
 
 
-def run_calibration_diagnostics(sam: pd.DataFrame, classification: AccountClassification) -> dict[str, Any]:
-    matrix = sam.astype(float)
+REQUIRED_FOR_PROTOTYPE = ["activities", "commodities", "factors", "households", "government"]
+
+
+def run_calibration_diagnostics(
+    sam_df: pd.DataFrame,
+    account_classification: dict[str, list[str]],
+    tolerance: float = 1e-6,
+) -> dict[str, Any]:
+    """Assess SAM quality and readiness for multiplier/CGE calibration use."""
+
+    matrix = validate_sam_matrix(sam_df)
     row_totals = matrix.sum(axis=1)
     column_totals = matrix.sum(axis=0).reindex(matrix.index)
     imbalance = row_totals - column_totals
     warnings: list[str] = [
-        "Full CGE behavioural equations are placeholders; calibration currently prepares benchmark shares only.",
-        "Use the Python SAM multiplier for screening until an open-source equilibrium solver is configured.",
+        "Full CGE equations are still placeholders; this calibration prepares benchmark data only."
     ]
     errors: list[str] = []
-    if matrix.shape[0] != matrix.shape[1]:
-        errors.append("SAM is not square.")
-    if set(matrix.index) != set(matrix.columns):
-        errors.append("SAM row and column accounts do not match.")
-    if (matrix < 0).any().any():
-        warnings.append("SAM contains negative values; confirm whether these are intended accounting entries.")
+
+    zero_rows = row_totals[row_totals == 0].index.tolist()
     zero_columns = column_totals[column_totals == 0].index.tolist()
+    negative_count = int((matrix < 0).sum().sum())
+    missing_categories = [
+        category for category in REQUIRED_FOR_PROTOTYPE if not account_classification.get(category)
+    ]
+    if not bool((imbalance.abs() <= tolerance).all()):
+        warnings.append("SAM row-column balance exceeds tolerance for one or more accounts.")
+    if zero_rows:
+        warnings.append("Zero-row accounts detected: " + ", ".join(zero_rows))
     if zero_columns:
-        warnings.append("Zero-column accounts detected: " + ", ".join(map(str, zero_columns)))
-    if not classification.activities:
-        warnings.append("No activity accounts were identified.")
-    if not classification.factors:
-        warnings.append("No factor accounts were identified.")
-    if classification.kenya_gender_care_factors and not CARE_FACTOR_SUFFIXES.issubset({item.lower() for item in classification.kenya_gender_care_factors}):
-        missing = sorted(CARE_FACTOR_SUFFIXES.difference({item.lower() for item in classification.kenya_gender_care_factors}))
-        warnings.append("Partial Kenya gender-care factor coverage; missing: " + ", ".join(missing))
+        warnings.append("Zero-column accounts detected: " + ", ".join(zero_columns))
+    if negative_count:
+        warnings.append(f"SAM contains {negative_count} negative value(s).")
+    if missing_categories:
+        warnings.append("Missing account categories: " + ", ".join(missing_categories))
+
+    cge_ready = not missing_categories and not zero_columns and negative_count == 0
+    full_ready = cge_ready and bool((imbalance.abs() <= tolerance).all())
     return {
         "valid": not errors,
         "errors": errors,
         "warnings": warnings,
         "max_absolute_imbalance": float(imbalance.abs().max()) if not imbalance.empty else 0.0,
-        "balanced": bool((imbalance.abs() <= 1e-6).all()) if not imbalance.empty else False,
-        "zero_columns": zero_columns,
+        "zero_row_accounts": zero_rows,
+        "zero_column_accounts": zero_columns,
+        "negative_value_count": negative_count,
+        "missing_account_categories": missing_categories,
+        "readiness": {
+            "sam_multiplier_analysis": "ready" if not errors else "not_ready",
+            "prototype_cge_calibration": "ready_with_warnings" if cge_ready else "limited",
+            "full_equilibrium_cge_solving": "not_ready_placeholder_equations" if full_ready else "not_ready",
+        },
     }
