@@ -32,7 +32,9 @@ The workflow:
 4. Detects policy instruments, targets, directions, and magnitudes.
 5. Checks model readiness.
 6. Runs the currently available backend.
-7. Produces diagnostics, summary cards, chart-ready data, structured results, policy interpretation, and downloadable files.
+7. Retrieves scenario-specific model references.
+8. Records a lightweight learning event.
+9. Produces diagnostics, summary cards, a results table, chart-ready data, structured results, policy interpretation, and downloadable files.
 
 ## Tariff Prompt Handling
 
@@ -69,6 +71,10 @@ Prototype result: full equilibrium CGE solver is not yet active. Signal is using
 ```
 
 The current public backend is suitable for deterministic scenario parsing, SAM multiplier fallback runs, prototype calibration checks, diagnostics, and policy explanation. It should not be described as a full equilibrium CGE solver.
+
+## Model Reference Used
+
+Each Signal CGE run shows the canonical references used for interpretation, such as trade block, government block, price block, macro closure, experiment workflow, and the Signal CGE knowledge base.
 
 ## Future Solver Pathway
 

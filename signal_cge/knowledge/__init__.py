@@ -9,6 +9,7 @@ from signal_cge.knowledge.document_loader import (
     list_reference_documents,
 )
 from signal_cge.knowledge.reference_index import build_reference_index
+from signal_cge.knowledge.scenario_context import get_scenario_context
 
 __all__ = [
     "CANONICAL_MODEL_ROOT",
@@ -18,4 +19,5 @@ __all__ = [
     "list_reference_documents",
     "load_model_profile",
     "load_reference_text",
+    "get_scenario_context",
 ]

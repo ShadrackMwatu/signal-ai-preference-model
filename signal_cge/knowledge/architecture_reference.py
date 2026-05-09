@@ -31,4 +31,5 @@ def get_architecture_reference() -> dict[str, object]:
         ],
         "reference_sections": index["sections"],
         "canonical_references": index["canonical_references"],
+        "knowledge_base": index.get("knowledge_base"),
     }

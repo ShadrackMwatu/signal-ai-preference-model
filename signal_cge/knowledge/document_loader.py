@@ -11,6 +11,7 @@ REPO_ROOT = Path(__file__).resolve().parents[2]
 REFERENCE_ROOT = REPO_ROOT / "Documentation" / "signal_cge_reference"
 CANONICAL_MODEL_ROOT = REPO_ROOT / "models" / "canonical"
 MODEL_PROFILE_PATH = CANONICAL_MODEL_ROOT / "signal_cge_master" / "model_profile.yaml"
+KNOWLEDGE_BASE_PATH = REPO_ROOT / "Documentation" / "SIGNAL_CGE_KNOWLEDGE_BASE.md"
 
 
 def load_reference_text(relative_path: str) -> str:
@@ -40,6 +41,24 @@ def list_reference_documents() -> list[dict[str, Any]]:
             }
         )
     return documents
+
+
+def load_knowledge_base() -> str:
+    """Load the implementation knowledge base."""
+
+    return KNOWLEDGE_BASE_PATH.read_text(encoding="utf-8")
+
+
+def load_reference_bundle() -> dict[str, str]:
+    """Load key text references by relative path."""
+
+    bundle: dict[str, str] = {"SIGNAL_CGE_KNOWLEDGE_BASE.md": load_knowledge_base()}
+    for document in list_reference_documents():
+        if document["extension"] != ".md":
+            continue
+        relative = Path(document["path"]).relative_to("Documentation/signal_cge_reference")
+        bundle[str(relative).replace("\\", "/")] = load_reference_text(str(relative))
+    return bundle
 
 
 def _parse_scalar(value: str) -> Any:

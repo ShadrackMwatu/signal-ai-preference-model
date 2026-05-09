@@ -24,3 +24,6 @@ runtime/
 outputs/
 checkpoints/
 archives/
+outputs/signal_cge_learning/*.jsonl
+outputs/signal_cge_learning/*.json
+outputs/signal_cge_learning/*.md

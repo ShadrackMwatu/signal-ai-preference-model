@@ -608,7 +608,7 @@ def run_signal_cge_prompt(prompt: str, uploaded_file: Any | None = None) -> dict
     return route_run_signal_cge_prompt(prompt, uploaded_file)
 
 
-def signal_cge_prompt_ui(prompt: str, uploaded_file: Any | None = None) -> tuple[str, pd.DataFrame, str, str, str | None, str | None, str | None]:
+def signal_cge_prompt_ui(prompt: str, uploaded_file: Any | None = None) -> tuple[str, pd.DataFrame, pd.DataFrame, str, str, str, str | None, str | None, str | None]:
     """Return display-ready Signal CGE sections for the public Gradio tab."""
 
     result = run_signal_cge_prompt(prompt, uploaded_file)
@@ -616,6 +616,8 @@ def signal_cge_prompt_ui(prompt: str, uploaded_file: Any | None = None) -> tuple
     return (
         _render_results_cards(result),
         pd.DataFrame(result.get("chart_data", [])),
+        _results_table_dataframe(result.get("results", {})),
+        _render_model_reference_used(result),
         _render_policy_interpretation(result.get("interpretation", {})),
         "\n\n".join(
             [
@@ -781,6 +783,7 @@ def _render_results_cards(result: dict[str, Any]) -> str:
         ("Trade effect", results.get("trade effect", 0.0)),
         ("Welfare/proxy welfare effect", results.get("welfare/proxy welfare effect", 0.0)),
         ("Model backend used", result.get("backend_used", "python_sam_multiplier")),
+        ("Result type", result.get("result_type", "prototype_directional_indicator")),
     ]
     card_html = "".join(
         (
@@ -791,6 +794,19 @@ def _render_results_cards(result: dict[str, Any]) -> str:
         )
         for label, value in cards
     )
+
+
+def _results_table_dataframe(results: dict[str, Any]) -> pd.DataFrame:
+    rows = [
+        {"metric": "GDP/output", "effect": results.get("GDP/output effect", 0.0)},
+        {"metric": "Factor income", "effect": results.get("factor income effect", 0.0)},
+        {"metric": "Household income", "effect": results.get("household income effect", 0.0)},
+        {"metric": "Government balance", "effect": results.get("government balance effect", 0.0)},
+        {"metric": "Trade", "effect": results.get("trade effect", 0.0)},
+        {"metric": "Welfare/proxy welfare", "effect": results.get("welfare/proxy welfare effect", 0.0)},
+        {"metric": "Gender-care impact", "effect": results.get("gender-care impact", "Not applicable to this scenario.")},
+    ]
+    return pd.DataFrame(rows)
     return (
         "<div style='display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:10px;margin:10px 0;'>"
         f"{card_html}</div>"
@@ -842,8 +858,8 @@ def _render_diagnostics(diagnostics: dict[str, Any]) -> str:
     lines = [
         "## Diagnostics",
         f"- SAM balance status: `{pre_run.get('balanced', pre_run.get('is_balanced', 'not available'))}`",
-        f"- Calibration status: `{calibration.get('valid', 'prototype checks only')}`",
-        f"- Closure warnings: `{'; '.join(closure.get('warnings', [])) if isinstance(closure, dict) else 'none'}`",
+        "- Calibration status: Prototype calibration available; full equilibrium calibration not yet active.",
+        f"- Closure warnings: {_format_warning_text(closure.get('warnings', []) if isinstance(closure, dict) else [])}",
         f"- Solver warnings: `{diagnostics.get('fallback_explanation', FULL_CGE_FALLBACK_MESSAGE)}`",
         f"- Fallback explanation: {diagnostics.get('fallback_explanation', FULL_CGE_FALLBACK_MESSAGE)}",
     ]
@@ -879,6 +895,21 @@ def _render_policy_interpretation(interpretation: dict[str, Any]) -> str:
             f"- Recommended next simulations: {', '.join(interpretation.get('recommended_next_simulations', []))}",
         ]
     )
+
+
+def _render_model_reference_used(result: dict[str, Any]) -> str:
+    references = result.get("knowledge_context", {}).get("reference_labels", [])
+    lines = ["## Model Reference Used"]
+    if references:
+        lines.extend(f"- {reference} loaded" for reference in references)
+    else:
+        lines.append("- Canonical model profile loaded")
+    lines.append("- Solver limitation note loaded")
+    return "\n".join(lines)
+
+
+def _format_warning_text(warnings: list[Any]) -> str:
+    return "; ".join(str(warning) for warning in warnings) if warnings else "No closure warnings."
 
 
 def _prompt_from_controls(scenario_family: str, shock_size: float, target_account: str) -> str:
@@ -2092,6 +2123,7 @@ with gr.Blocks(title="Signal AI Dashboard", css=SIGNAL_DASHBOARD_CSS) as demo:
             )
         run_signal_cge_button = gr.Button("Run Signal CGE Simulation")
         signal_cge_summary_cards = gr.HTML(label="Results Summary")
+        signal_cge_results_table = gr.Dataframe(label="Results Table", interactive=False)
         signal_cge_effect_chart = gr.BarPlot(
             label="Scenario effects",
             x="metric",
@@ -2100,6 +2132,7 @@ with gr.Blocks(title="Signal AI Dashboard", css=SIGNAL_DASHBOARD_CSS) as demo:
             tooltip=["metric", "effect"],
             vertical=False,
         )
+        signal_cge_reference_output = gr.Markdown(label="Model Reference Used")
         signal_cge_interpretation_output = gr.Markdown(label="Scenario Interpretation")
         signal_cge_diagnostics_output = gr.Markdown(label="Diagnostics")
         with gr.Row():
@@ -2112,6 +2145,8 @@ with gr.Blocks(title="Signal AI Dashboard", css=SIGNAL_DASHBOARD_CSS) as demo:
             outputs=[
                 signal_cge_summary_cards,
                 signal_cge_effect_chart,
+                signal_cge_results_table,
+                signal_cge_reference_output,
                 signal_cge_interpretation_output,
                 signal_cge_diagnostics_output,
                 signal_cge_brief_download,

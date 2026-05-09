@@ -41,3 +41,7 @@ Added `run_signal_cge_prompt(prompt, uploaded_file=None)` as the public Signal C
 Added explicit import-tariff parsing for prompts such as `reduce import tariffs on cmach by 10%`. Signal now reports the full-solver limitation clearly instead of implying full equilibrium CGE solving.
 
 Updated the Signal CGE tab so no upload is required. The public workflow now defaults to `models/canonical/signal_cge_master/model_profile.yaml` and `Documentation/signal_cge_reference/`, places custom uploads in a collapsed optional accordion, shows result summary cards, returns chart-ready scenario effects, and creates JSON, CSV, and Markdown downloads after every run.
+
+## Signal CGE Repo Knowledge and Adaptive Learning
+
+Added scenario-aware knowledge retrieval from repository-stored Signal CGE reference materials and threaded the knowledge context into Signal CGE outputs, diagnostics, policy interpretation, downloads, and the public UI. Added metadata-only simulation learning memory under `outputs/signal_cge_learning/`, deterministic adaptive prompt rules, learning summaries, and model improvement suggestions. Runtime learning logs are ignored from Git by default.
