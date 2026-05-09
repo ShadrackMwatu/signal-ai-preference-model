@@ -2,6 +2,7 @@
 __pycache__/ 
 *.py[cod] 
 .pytest_cache/ 
+.cache/
 tests/_tmp/ 
 tests/_scratch/
 outputs/matplotlib*/

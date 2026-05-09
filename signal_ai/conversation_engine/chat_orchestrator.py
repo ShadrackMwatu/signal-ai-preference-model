@@ -28,12 +28,28 @@ def run_chat_simulation(
         scenario["previous_context_note"] = "Previous context was supplied and preserved for future memory-aware routing."
     validation = validate_policy_shock(scenario)
 
-    run_result = run_chat_scenario(
-        prompt=user_prompt,
-        model_type="SAM multiplier",
-        sam_path=str(sam_file) if sam_file else None,
-    )
-    warnings = validation["warnings"] + flag_possible_inconsistencies(run_result)
+    fallback_warnings: list[str] = []
+    try:
+        run_result = run_chat_scenario(
+            prompt=user_prompt,
+            model_type="SAM multiplier",
+            sam_path=str(sam_file) if sam_file else None,
+        )
+    except Exception as exc:
+        if not sam_file:
+            raise
+        fallback_warnings.append(
+            "Uploaded SAM could not be read or validated. Signal used the built-in demonstration SAM fallback."
+        )
+        run_result = run_chat_scenario(prompt=user_prompt, model_type="SAM multiplier")
+        run_result.setdefault("diagnostics", {})
+        run_result["diagnostics"]["uploaded_sam_fallback"] = {
+            "valid": False,
+            "warnings": fallback_warnings,
+            "error": str(exc),
+        }
+
+    warnings = validation["warnings"] + fallback_warnings + flag_possible_inconsistencies(run_result)
     diagnostics = {"intent": intent, "validation": validation, **run_result.get("diagnostics", {})}
     policy_summary = generate_policy_summary(scenario, run_result.get("results", {}), diagnostics)
     explanation = {

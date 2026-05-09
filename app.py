@@ -13,9 +13,19 @@ import joblib
 import numpy as np
 import pandas as pd
 
-_MPLCONFIGDIR = Path(__file__).resolve().parent / "outputs" / f"matplotlib_{os.getpid()}"
-_MPLCONFIGDIR.mkdir(parents=True, exist_ok=True)
-os.environ.setdefault("MPLCONFIGDIR", str(_MPLCONFIGDIR))
+for _mpl_candidate in [
+    Path(os.environ.get("TEMP", "")) / f"signal_ai_matplotlib_{os.getpid()}",
+    Path(os.environ.get("LOCALAPPDATA", "")) / "SignalAI" / "matplotlib",
+    Path(__file__).resolve().parent / ".cache" / "matplotlib",
+    Path(__file__).resolve().parent / "outputs" / "matplotlib",
+]:
+    try:
+        if str(_mpl_candidate):
+            _mpl_candidate.mkdir(parents=True, exist_ok=True)
+            os.environ.setdefault("MPLCONFIGDIR", str(_mpl_candidate))
+            break
+    except OSError:
+        continue
 
 import gradio as gr
 
@@ -51,6 +61,12 @@ try:
     from cge_workbench.runners.gams_runner import find_gams_executable
     from cge_workbench.workbench import run_chat_scenario
     from signal_ai.conversation_engine.chat_orchestrator import run_chat_simulation
+    from signal_ai.conversation_engine.response_formatting import (
+        format_diagnostics,
+        format_policy_explanation,
+        format_recommendations,
+        format_results_summary,
+    )
 
     AI_CGE_WORKBENCH_AVAILABLE = True
     AI_CGE_WORKBENCH_IMPORT_ERROR = ""
@@ -554,27 +570,14 @@ def ai_cge_chat_studio_model(user_prompt: str, sam_file: Any | None = None) -> t
         sam_path = _uploaded_path(sam_file)
         result = run_chat_simulation(user_prompt, sam_file=sam_path)
         scenario_json = json.dumps(result["scenario"], indent=2)
-        diagnostics_json = json.dumps(
-            {
-                "diagnostics": result["diagnostics"],
-                "warnings": result["warnings"],
-            },
-            indent=2,
-        )
-        result_summary = json.dumps(result["results"], indent=2)
-        policy_summary = result["policy_summary"]
-        explanation = "\n\n".join(
-            [
-                policy_summary["executive_summary"],
-                policy_summary["expected_transmission_channel"],
-                "Suggested next simulations:\n"
-                + "\n".join(f"- {item}" for item in policy_summary["suggested_next_simulations"]),
-            ]
-        )
-        recommendations = "\n".join(f"- {item}" for item in policy_summary["suggested_next_simulations"])
+        diagnostics_json = format_diagnostics(result)
+        result_summary = format_results_summary(result)
+        explanation = format_policy_explanation(result)
+        recommendations = format_recommendations(result)
         return scenario_json, diagnostics_json, result_summary, explanation, recommendations
     except Exception as exc:
-        return "{}", json.dumps({"error": str(exc)}, indent=2), "{}", f"AI CGE Chat Studio failed: {exc}", ""
+        message = f"AI CGE Chat Studio failed gracefully: {exc}"
+        return "{}", f"## Diagnostics\n- {message}", "## Results Summary\n- No results were produced.", message, ""
 
 
 def _prompt_from_controls(scenario_family: str, shock_size: float, target_account: str) -> str:
@@ -1813,9 +1816,9 @@ with gr.Blocks(title="Signal AI Market Intelligence", css=SIGNAL_DASHBOARD_CSS) 
         run_chat_button = gr.Button("Run chat simulation")
         with gr.Row():
             chat_scenario_output = gr.Code(label="Structured scenario JSON", language="json", lines=14)
-            chat_diagnostics_output = gr.Code(label="Diagnostics and warnings", language="json", lines=14)
-        chat_results_output = gr.Code(label="Results summary", language="json", lines=16)
-        chat_policy_output = gr.Textbox(label="Policy explanation", lines=9)
+            chat_diagnostics_output = gr.Markdown(label="Diagnostics and warnings")
+        chat_results_output = gr.Markdown(label="Results summary")
+        chat_policy_output = gr.Markdown(label="Policy explanation")
         chat_recommendations_output = gr.Markdown(label="Recommended next simulations")
         run_chat_button.click(
             fn=ai_cge_chat_studio_model,
