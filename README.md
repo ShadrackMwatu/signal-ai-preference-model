@@ -36,6 +36,32 @@ Signal now includes an AI-native CGE/SAM architecture organized around the canon
 
 The current operational backend is the Python SAM multiplier fallback. Signal also includes a calibration prototype and formal model-core blocks that prepare the project for a future open-source equilibrium solver and recursive dynamics. Optional GAMS and future Pyomo/SciPy pathways remain guarded so Hugging Face deployment can start without them.
 
+## Signal CGE Canonical Architecture
+
+The canonical Signal CGE knowledge system is stored in `Documentation/signal_cge_reference/` and connected to the model through `signal_cge/model_registry.py` plus `signal_cge/knowledge/`.
+
+```mermaid
+flowchart TD
+  A["User guide and reference docs"] --> B["Signal CGE knowledge index"]
+  B --> C["Model registry"]
+  C --> D["signal_cge engine"]
+  D --> E["SAM multiplier fallback"]
+  D --> F["Future equilibrium solver"]
+  D --> G["Diagnostics and reporting"]
+  H["AI CGE Chat Studio"] --> B
+  H --> D
+```
+
+Canonical folders:
+
+- `Documentation/signal_cge_reference/user_guides/`: adapted Signal CGE user guide in Word and PDF form.
+- `Documentation/signal_cge_reference/equations/`: model-block equation references.
+- `Documentation/signal_cge_reference/calibration/`: SAM calibration workflow.
+- `Documentation/signal_cge_reference/closures/`: closure-system documentation.
+- `Documentation/signal_cge_reference/experiments/`: experiment workflow documentation.
+- `models/canonical/signal_cge_master/`: canonical model profile.
+- `models/canonical/templates/`, `calibration_profiles/`, and `experiment_templates/`: future reusable model assets.
+
 ## Documentation Navigation
 
 The full project documentation system is available under `Documentation/`.

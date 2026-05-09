@@ -10,3 +10,7 @@ cge_workbench/outputs/*
 !cge_workbench/outputs/.gitkeep
 docker/*.exe
 models/versions/v*/
+models/Model/
+models/Model.zip
+Documentation/signal_cge_reference/historical/source_package/**/*.docx
+Documentation/signal_cge_reference/historical/source_package/**/*.pdf

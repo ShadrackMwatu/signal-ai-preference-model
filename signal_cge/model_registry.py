@@ -1,6 +1,36 @@
-"""Central registry for Signal CGE model layers and capabilities."""
+"""Central registry for Signal CGE model layers, references, and capabilities."""
 
 from __future__ import annotations
+
+from pathlib import Path
+
+
+REPO_ROOT = Path(__file__).resolve().parents[1]
+REFERENCE_ROOT = REPO_ROOT / "Documentation" / "signal_cge_reference"
+CANONICAL_MODEL_ROOT = REPO_ROOT / "models" / "canonical"
+
+
+def get_canonical_reference_registry() -> dict[str, object]:
+    """Return canonical documentation and model-profile paths for Signal CGE."""
+
+    return {
+        "reference_root": str(REFERENCE_ROOT),
+        "user_guides": {
+            "adapted_docx": str(
+                REFERENCE_ROOT / "user_guides" / "Signal_CGE_User_Guide_Adapted.docx"
+            ),
+            "adapted_pdf": str(
+                REFERENCE_ROOT / "user_guides" / "Signal_CGE_User_Guide_Adapted.pdf"
+            ),
+        },
+        "knowledge_base": str(REPO_ROOT / "Documentation" / "SIGNAL_CGE_KNOWLEDGE_BASE.md"),
+        "architecture_docs": str(REFERENCE_ROOT / "architecture"),
+        "calibration_docs": str(REFERENCE_ROOT / "calibration"),
+        "equation_docs": str(REFERENCE_ROOT / "equations"),
+        "experiment_templates": str(CANONICAL_MODEL_ROOT / "experiment_templates"),
+        "closure_templates": str(REFERENCE_ROOT / "closures"),
+        "model_profile": str(CANONICAL_MODEL_ROOT / "signal_cge_master" / "model_profile.yaml"),
+    }
 
 
 def get_model_registry() -> dict[str, object]:
@@ -36,4 +66,6 @@ def get_model_registry() -> dict[str, object]:
         ],
         "supported_account_suffixes": ["fcp", "fcu", "fnp", "fnu", "mcp", "mcu", "mnp", "mnu"],
         "active_backend_status": "python_sam_multiplier_ready",
+        "canonical_model_structure": "signal_cge",
+        "canonical_references": get_canonical_reference_registry(),
     }

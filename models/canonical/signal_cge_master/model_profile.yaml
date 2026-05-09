@@ -1,0 +1,65 @@
+model_type: recursive_dynamic_single_country_cge
+model_identity: Signal CGE
+calibration_structure:
+  - SAM loading and account classification
+  - benchmark flow extraction
+  - share parameter calibration
+  - baseline consistency checks
+  - replication diagnostics
+solver_pathways:
+  - Python SAM multiplier fallback
+  - optional GAMS runner
+  - future open-source equilibrium solver
+  - future recursive dynamic solver
+closure_options:
+  - savings-driven investment
+  - government deficit closure
+  - foreign savings or exchange-rate closure
+  - numeraire choice
+  - factor-market closure
+dynamic_options:
+  - capital accumulation
+  - labor growth
+  - productivity growth
+  - recursive baseline projection
+supported_scenarios:
+  - fiscal policy
+  - care economy
+  - infrastructure
+  - trade policy
+  - productivity
+  - custom natural-language prompt
+required_datasets:
+  - square SAM with matching row and column accounts
+  - account mapping or classifiable account names
+  - optional macro closure assumptions
+  - optional dynamic baseline data
+experiment_workflow:
+  - validate baseline data
+  - calibrate benchmark
+  - define scenario shock container
+  - run baseline or fallback simulation
+  - run policy experiment
+  - compare results
+  - generate diagnostics and report
+reporting_outputs:
+  - executive summary
+  - macro indicators
+  - sector effects
+  - factor income effects
+  - household effects
+  - gender-care effects
+  - diagnostics and caveats
+diagnostics:
+  - SAM balance checks
+  - zero row and zero column checks
+  - negative value checks
+  - closure checks
+  - calibration readiness checks
+  - result plausibility checks
+AI_orchestration_support:
+  - natural-language scenario compiler
+  - economic reasoning checker
+  - policy explanation generator
+  - scenario recommender
+  - learning assistant
