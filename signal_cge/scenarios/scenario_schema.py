@@ -47,9 +47,12 @@ class ScenarioSpec:
             }
         )
         if payload["shock_type"] == "import_tariff":
-            payload["policy_instrument"] = "import tariff"
+            payload["policy_instrument"] = "import_tariff"
+            payload["target_account"] = payload["shock_account"]
             payload["target_commodity"] = payload["shock_account"]
-            payload["shock_direction"] = "reduction" if payload["shock_value"] < 0 else "increase"
+            payload["shock_direction"] = "decrease" if payload["shock_value"] < 0 else "increase"
+            payload["shock_magnitude_percent"] = abs(float(payload["shock_value"]))
+            payload["simulation_type"] = "trade_policy"
         return payload
 
 

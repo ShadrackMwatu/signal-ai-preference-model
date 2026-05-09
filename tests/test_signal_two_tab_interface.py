@@ -39,9 +39,11 @@ def test_run_signal_cge_prompt_without_upload() -> None:
 
     result = app.run_signal_cge_prompt("Simulate a 10 percent increase in government spending on care infrastructure.")
 
-    assert {"scenario", "readiness", "diagnostics", "results", "interpretation"}.issubset(result)
+    assert {"scenario", "readiness", "diagnostics", "results", "chart_data", "interpretation"}.issubset(result)
     assert result["readiness"]["sam_multiplier_readiness"] == "ready"
     assert app.FULL_CGE_FALLBACK_MESSAGE in result["fallback_message"]
+    assert "canonical repo model profile" in result["fallback_message"]
+    assert result["diagnostics"]["uploaded_sam"].startswith("not provided")
 
 
 def test_run_signal_cge_prompt_with_mock_sam() -> None:
@@ -75,9 +77,16 @@ def test_tariff_prompt_is_parsed_correctly() -> None:
     assert scenario["policy_shock"] == "import tariff"
     assert scenario["target_account_sector"] == "cmach"
     assert scenario["shock_magnitude"] == "-10.0 percent"
-    assert raw["policy_instrument"] == "import tariff"
+    assert scenario["policy_instrument"] == "import_tariff"
+    assert scenario["target_account"] == "cmach"
+    assert scenario["shock_direction"] == "decrease"
+    assert scenario["shock_magnitude_percent"] == 10.0
+    assert scenario["simulation_type"] == "trade_policy"
+    assert raw["policy_instrument"] == "import_tariff"
+    assert raw["target_account"] == "cmach"
     assert raw["target_commodity"] == "cmach"
-    assert raw["shock_direction"] == "reduction"
+    assert raw["shock_direction"] == "decrease"
+    assert raw["shock_magnitude_percent"] == 10.0
 
 
 def test_signal_cge_output_sections_and_fallback_message() -> None:
@@ -89,6 +98,28 @@ def test_signal_cge_output_sections_and_fallback_message() -> None:
     assert "readiness" in result
     assert "diagnostics" in result
     assert "results" in result
+    assert "chart_data" in result
     assert "interpretation" in result
     assert app.FULL_CGE_FALLBACK_MESSAGE in result["diagnostics"]["fallback_explanation"]
     assert result["backend_used"] == "python_sam_multiplier"
+
+
+def test_chart_data_and_download_files_are_created() -> None:
+    import app
+
+    result = app.run_signal_cge_prompt("reduce import tariffs on cmach by 10%")
+
+    assert result["chart_data"]
+    assert {row["metric"] for row in result["chart_data"]} >= {
+        "GDP/output",
+        "Household income",
+        "Government balance",
+        "Imports",
+        "Exports",
+        "Welfare/proxy welfare",
+    }
+    assert Path(result["downloads"]["results_json"]).name == "signal_cge_results.json"
+    assert Path(result["downloads"]["results_csv"]).name == "signal_cge_results.csv"
+    assert Path(result["downloads"]["policy_brief_md"]).name == "signal_cge_policy_brief.md"
+    for file_path in result["downloads"].values():
+        assert Path(file_path).exists()

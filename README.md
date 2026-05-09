@@ -30,7 +30,7 @@ The trained machine-learning model remains the primary prediction engine for dem
 The Hugging Face app exposes two public tabs:
 
 1. **Behavioral Signals AI**: aggregate behavioral signal prediction, demand classification, opportunity scoring, and live trend intelligence.
-2. **Signal CGE**: a prompt-driven AI-native CGE/SAM simulation studio for policy scenarios, diagnostics, readiness checks, fallback simulation, and policy interpretation.
+2. **Signal CGE**: a prompt-driven AI-native CGE/SAM simulation studio for policy scenarios, diagnostics, readiness checks, fallback simulation, charts, downloads, and policy interpretation. It runs from the repository-stored canonical model profile by default; uploads are optional custom overrides.
 
 Framework, SML, learning, and older chat-studio modules remain in the repository as backend/internal capabilities, but they are no longer exposed as separate public tabs. See [Signal Two-Tab Public Interface](Documentation/SIGNAL_TWO_TAB_INTERFACE.md).
 

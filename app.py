@@ -95,8 +95,8 @@ LIVE_TREND_FEATURE_PLUGINS = [
 PUBLIC_TABS = ["Behavioral Signals AI", "Signal CGE"]
 HIDDEN_PUBLIC_TABS = ["Signal CGE Framework", "AI CGE Chat Studio", "SML CGE Workbench", "Learning"]
 FULL_CGE_FALLBACK_MESSAGE = (
-    "Full equilibrium CGE solver is not yet active. Signal is using the currently available "
-    "SAM multiplier / prototype calibration backend."
+    "Prototype result: full equilibrium CGE solver is not yet active. Signal is using the available "
+    "SAM multiplier/prototype backend and canonical repo model profile."
 )
 SIGNAL_DASHBOARD_CSS = """
 .signal-trend-shell {
@@ -613,6 +613,7 @@ def run_signal_cge_prompt(prompt: str, uploaded_file: Any | None = None) -> dict
         "fallback_explanation": FULL_CGE_FALLBACK_MESSAGE,
     }
     structured_results = _signal_cge_structured_results(result.get("results", {}), scenario)
+    chart_data = _signal_cge_chart_data(structured_results)
     interpretation = _signal_cge_policy_interpretation(result)
     report_paths = _write_signal_cge_downloads(
         scenario=scenario,
@@ -627,6 +628,7 @@ def run_signal_cge_prompt(prompt: str, uploaded_file: Any | None = None) -> dict
         "readiness": readiness,
         "diagnostics": diagnostics,
         "results": structured_results,
+        "chart_data": chart_data,
         "interpretation": interpretation,
         "downloads": report_paths,
         "backend_used": result.get("results", {}).get("backend")
@@ -636,17 +638,22 @@ def run_signal_cge_prompt(prompt: str, uploaded_file: Any | None = None) -> dict
     }
 
 
-def signal_cge_prompt_ui(prompt: str, uploaded_file: Any | None = None) -> tuple[str, str, str, str, str, str | None, str | None, str | None]:
+def signal_cge_prompt_ui(prompt: str, uploaded_file: Any | None = None) -> tuple[str, pd.DataFrame, str, str, str | None, str | None, str | None]:
     """Return display-ready Signal CGE sections for the public Gradio tab."""
 
     result = run_signal_cge_prompt(prompt, uploaded_file)
     downloads = result.get("downloads", {})
     return (
-        _render_interpreted_scenario(result),
-        _render_readiness(result.get("readiness", {})),
-        _render_diagnostics(result.get("diagnostics", {})),
-        _render_simulation_results(result.get("results", {})),
+        _render_results_cards(result),
+        pd.DataFrame(result.get("chart_data", [])),
         _render_policy_interpretation(result.get("interpretation", {})),
+        "\n\n".join(
+            [
+                _render_interpreted_scenario(result),
+                _render_diagnostics(result.get("diagnostics", {})),
+                _render_readiness(result.get("readiness", {})),
+            ]
+        ),
         downloads.get("policy_brief_md"),
         downloads.get("results_json"),
         downloads.get("results_csv"),
@@ -681,10 +688,16 @@ def _signal_cge_error_response(prompt: str, message: str) -> dict[str, Any]:
 
 
 def _signal_cge_interpreted_scenario(scenario: dict[str, Any], results: dict[str, Any]) -> dict[str, Any]:
+    policy_shock = scenario.get("policy_instrument") or scenario.get("shock_type", "policy shock")
     return {
-        "policy_shock": scenario.get("policy_instrument") or scenario.get("shock_type", "policy shock"),
-        "target_account_sector": scenario.get("target_commodity") or scenario.get("shock_account", ""),
+        "policy_shock": str(policy_shock).replace("_", " "),
+        "policy_instrument": scenario.get("policy_instrument", scenario.get("shock_type", "")),
+        "target_account": scenario.get("target_account", scenario.get("target_commodity", scenario.get("shock_account", ""))),
+        "target_account_sector": scenario.get("target_account", scenario.get("target_commodity", scenario.get("shock_account", ""))),
+        "shock_direction": scenario.get("shock_direction", "increase" if float(scenario.get("shock_size", 0) or 0) >= 0 else "decrease"),
+        "shock_magnitude_percent": abs(float(scenario.get("shock_size", scenario.get("shock_value", 0)) or 0)),
         "shock_magnitude": f"{scenario.get('shock_size', scenario.get('shock_value', 0))} {scenario.get('shock_unit', 'percent')}",
+        "simulation_type": scenario.get("simulation_type", "sam_multiplier"),
         "closure_assumption": scenario.get("closure", scenario.get("closure_rule", "standard_sam_multiplier")),
         "model_backend_used": results.get("backend", "python_sam_multiplier"),
         "raw_scenario": scenario,
@@ -714,6 +727,25 @@ def _signal_cge_structured_results(results: dict[str, Any], scenario: dict[str, 
         "account_effects": accounts,
         "backend": results.get("backend", "python_sam_multiplier") if isinstance(results, dict) else "python_sam_multiplier",
     }
+
+
+def _signal_cge_chart_data(results: dict[str, Any]) -> list[dict[str, Any]]:
+    """Return chart-ready scenario effect rows for Gradio's native bar plot."""
+
+    metric_map = {
+        "GDP/output": results.get("GDP/output effect", 0.0),
+        "Household income": results.get("household income effect", 0.0),
+        "Government balance": results.get("government balance effect", 0.0),
+        "Imports": _account_effect(results, "imports"),
+        "Exports": _account_effect(results, "exports"),
+        "Welfare/proxy welfare": results.get("welfare/proxy welfare effect", 0.0),
+    }
+    return [{"metric": metric, "effect": _safe_float(value)} for metric, value in metric_map.items()]
+
+
+def _account_effect(results: dict[str, Any], account_name: str) -> float:
+    accounts = results.get("account_effects", {})
+    return float(accounts.get(account_name, 0.0)) if isinstance(accounts, dict) else 0.0
 
 
 def _signal_cge_policy_interpretation(result: dict[str, Any]) -> dict[str, Any]:
@@ -758,7 +790,7 @@ def _write_signal_cge_downloads(
     }
     md_path = output_dir / "signal_cge_policy_brief.md"
     json_path = output_dir / "signal_cge_results.json"
-    csv_path = output_dir / "signal_cge_account_effects.csv"
+    csv_path = output_dir / "signal_cge_results.csv"
     md_path.write_text(_policy_brief_markdown(payload), encoding="utf-8")
     json_path.write_text(json.dumps(payload, indent=2), encoding="utf-8")
     pd.DataFrame(
@@ -769,6 +801,30 @@ def _write_signal_cge_downloads(
         "results_json": str(json_path),
         "results_csv": str(csv_path),
     }
+
+
+def _render_results_cards(result: dict[str, Any]) -> str:
+    results = result.get("results", {})
+    cards = [
+        ("GDP/output effect", results.get("GDP/output effect", 0.0)),
+        ("Household income effect", results.get("household income effect", 0.0)),
+        ("Trade effect", results.get("trade effect", 0.0)),
+        ("Welfare/proxy welfare effect", results.get("welfare/proxy welfare effect", 0.0)),
+        ("Model backend used", result.get("backend_used", "python_sam_multiplier")),
+    ]
+    card_html = "".join(
+        (
+            "<div style='border:1px solid #dbe3ef;border-radius:8px;padding:12px;background:#fff;'>"
+            f"<div style='font-size:12px;color:#64748b;font-weight:700;'>{escape(label)}</div>"
+            f"<div style='font-size:20px;font-weight:800;color:#0f172a;margin-top:4px;'>{escape(str(value))}</div>"
+            "</div>"
+        )
+        for label, value in cards
+    )
+    return (
+        "<div style='display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:10px;margin:10px 0;'>"
+        f"{card_html}</div>"
+    )
 
 
 def _policy_brief_markdown(payload: dict[str, Any]) -> str:
@@ -2056,29 +2112,38 @@ with gr.Blocks(title="Signal AI Dashboard", css=SIGNAL_DASHBOARD_CSS) as demo:
             value="reduce import tariffs on cmach by 10%",
             lines=6,
         )
-        signal_cge_upload = gr.File(
-            label="Upload SAM or experiment workbook",
-            file_types=[".xlsx", ".csv"],
-        )
+        with gr.Accordion("Optional: Upload custom SAM/workbook", open=False):
+            gr.Markdown(
+                "No upload is required. Signal CGE uses the canonical model stored in the repository unless a custom file is uploaded."
+            )
+            signal_cge_upload = gr.File(
+                label="Upload SAM or experiment workbook",
+                file_types=[".xlsx", ".csv"],
+            )
         run_signal_cge_button = gr.Button("Run Signal CGE Simulation")
-        signal_cge_scenario_output = gr.Markdown(label="Interpreted Scenario")
-        signal_cge_readiness_output = gr.Markdown(label="Model Readiness")
+        signal_cge_summary_cards = gr.HTML(label="Results Summary")
+        signal_cge_effect_chart = gr.BarPlot(
+            label="Scenario effects",
+            x="metric",
+            y="effect",
+            title="Signal CGE Scenario Effects",
+            tooltip=["metric", "effect"],
+            vertical=False,
+        )
+        signal_cge_interpretation_output = gr.Markdown(label="Scenario Interpretation")
         signal_cge_diagnostics_output = gr.Markdown(label="Diagnostics")
-        signal_cge_results_output = gr.Markdown(label="Simulation Results")
-        signal_cge_interpretation_output = gr.Markdown(label="Policy Interpretation")
         with gr.Row():
-            signal_cge_brief_download = gr.File(label="Download Markdown policy brief")
             signal_cge_json_download = gr.File(label="Download JSON results")
             signal_cge_csv_download = gr.File(label="Download CSV results")
+            signal_cge_brief_download = gr.File(label="Download Markdown policy brief")
         run_signal_cge_button.click(
             fn=signal_cge_prompt_ui,
             inputs=[signal_cge_prompt, signal_cge_upload],
             outputs=[
-                signal_cge_scenario_output,
-                signal_cge_readiness_output,
-                signal_cge_diagnostics_output,
-                signal_cge_results_output,
+                signal_cge_summary_cards,
+                signal_cge_effect_chart,
                 signal_cge_interpretation_output,
+                signal_cge_diagnostics_output,
                 signal_cge_brief_download,
                 signal_cge_json_download,
                 signal_cge_csv_download,

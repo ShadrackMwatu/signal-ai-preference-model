@@ -18,7 +18,7 @@ Advanced modules remain available internally for development and future expansio
 
 ## Signal CGE Prompt Flow
 
-The Signal CGE tab accepts a natural-language simulation prompt and optional SAM or experiment workbook. The public callable is:
+The Signal CGE tab accepts a natural-language simulation prompt and runs directly from the repository-stored canonical model profile by default. Uploading a SAM or experiment workbook is optional and hidden in a collapsed accordion for custom runs. The public callable is:
 
 ```python
 run_signal_cge_prompt(prompt, uploaded_file=None)
@@ -32,7 +32,7 @@ The workflow:
 4. Detects policy instruments, targets, directions, and magnitudes.
 5. Checks model readiness.
 6. Runs the currently available backend.
-7. Produces diagnostics, structured results, policy interpretation, and downloadable files.
+7. Produces diagnostics, summary cards, chart-ready data, structured results, policy interpretation, and downloadable files.
 
 ## Tariff Prompt Handling
 
@@ -44,10 +44,10 @@ reduce import tariffs on cmach by 10%
 
 are interpreted as:
 
-- policy instrument: import tariff
+- policy instrument: `import_tariff`
 - target commodity: `cmach`
-- shock direction: reduction
-- shock magnitude: `-10 percent`
+- shock direction: decrease
+- shock magnitude: `10 percent`
 - closure assumption: external account adjusts
 
 ## Canonical Repo Model Files
@@ -65,7 +65,7 @@ The Hugging Face app does not require the local Windows model workspace.
 The full equilibrium CGE solver is not yet active. Signal clearly reports:
 
 ```text
-Full equilibrium CGE solver is not yet active. Signal is using the currently available SAM multiplier / prototype calibration backend.
+Prototype result: full equilibrium CGE solver is not yet active. Signal is using the available SAM multiplier/prototype backend and canonical repo model profile.
 ```
 
 The current public backend is suitable for deterministic scenario parsing, SAM multiplier fallback runs, prototype calibration checks, diagnostics, and policy explanation. It should not be described as a full equilibrium CGE solver.
