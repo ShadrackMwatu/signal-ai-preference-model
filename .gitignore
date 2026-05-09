@@ -14,3 +14,13 @@ models/Model/
 models/Model.zip
 Documentation/signal_cge_reference/historical/source_package/**/*.docx
 Documentation/signal_cge_reference/historical/source_package/**/*.pdf
+*.gdx
+*.g00
+*.lst
+*.log
+*.tmp
+*.bak
+runtime/
+outputs/
+checkpoints/
+archives/

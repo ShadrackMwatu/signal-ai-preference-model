@@ -1,0 +1,34 @@
+sync_to_github:
+  - source code
+  - templates
+  - YAML configs
+  - docs
+  - equations
+  - calibration logic
+  - lightweight reference data
+
+do_not_sync:
+  - .gdx
+  - .g00
+  - large outputs
+  - runtime checkpoints
+  - temporary solver artifacts
+  - cached runs
+  - logs
+
+ignored_patterns:
+  - "*.gdx"
+  - "*.g00"
+  - "*.lst"
+  - "*.log"
+  - "*.tmp"
+  - "*.bak"
+  - "runtime/"
+  - "outputs/"
+  - "checkpoints/"
+  - "archives/"
+
+authoritative_storage:
+  local_workspace: "models/Model"
+  repo_reference: "GitHub canonical architecture and code repository"
+  deployment: "Hugging Face uses lightweight repository files only"

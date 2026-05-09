@@ -4,6 +4,8 @@ from __future__ import annotations
 
 from pathlib import Path
 
+from signal_cge.local_workspace.workspace_registry import get_workspace_registry
+
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
 REFERENCE_ROOT = REPO_ROOT / "Documentation" / "signal_cge_reference"
@@ -70,4 +72,12 @@ def get_model_registry() -> dict[str, object]:
         "active_backend_status": "python_sam_multiplier_ready",
         "canonical_model_structure": "signal_cge",
         "canonical_references": get_canonical_reference_registry(),
+        "canonical_repo_models": {
+            "root": str(CANONICAL_MODEL_ROOT),
+            "signal_cge_master": str(CANONICAL_MODEL_ROOT / "signal_cge_master"),
+            "templates": str(CANONICAL_MODEL_ROOT / "templates"),
+            "calibration_profiles": str(CANONICAL_MODEL_ROOT / "calibration_profiles"),
+            "experiment_templates": str(CANONICAL_MODEL_ROOT / "experiment_templates"),
+        },
+        "local_workspace": get_workspace_registry(),
     }
