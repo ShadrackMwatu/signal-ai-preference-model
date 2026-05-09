@@ -34,6 +34,8 @@ The Hugging Face app exposes two public tabs:
 
 Framework, SML, learning, and older chat-studio modules remain in the repository as backend/internal capabilities, but they are no longer exposed as separate public tabs. See [Signal Two-Tab Public Interface](Documentation/SIGNAL_TWO_TAB_INTERFACE.md).
 
+Product-domain ownership is documented in [Signal Product Domain Map](Documentation/SIGNAL_PRODUCT_DOMAIN_MAP.md). The public app routes through `app_routes/` so Behavioral Signals AI and Signal CGE use their correct backend folders.
+
 ## Signal CGE Architecture
 
 Signal now includes an AI-native CGE/SAM architecture organized around the canonical `signal_cge/` package.

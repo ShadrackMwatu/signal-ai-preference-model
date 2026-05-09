@@ -29,6 +29,9 @@ for _mpl_candidate in [
 
 import gradio as gr
 
+from app_routes.behavioral_route import run_behavioral_signal_prediction
+from app_routes.signal_cge_route import run_signal_cge_prompt as route_run_signal_cge_prompt
+from app_routes.signal_cge_route import FULL_CGE_FALLBACK_MESSAGE
 from explainability import generate_prediction_explanation
 from privacy import PRIVACY_NOTICE
 from trend_intelligence import analyze_trend_batch, summarize_trend_batch
@@ -94,10 +97,6 @@ LIVE_TREND_FEATURE_PLUGINS = [
 ]
 PUBLIC_TABS = ["Behavioral Signals AI", "Signal CGE"]
 HIDDEN_PUBLIC_TABS = ["Signal CGE Framework", "AI CGE Chat Studio", "SML CGE Workbench", "Learning"]
-FULL_CGE_FALLBACK_MESSAGE = (
-    "Prototype result: full equilibrium CGE solver is not yet active. Signal is using the available "
-    "SAM multiplier/prototype backend and canonical repo model profile."
-)
 SIGNAL_DASHBOARD_CSS = """
 .signal-trend-shell {
     border: 1px solid var(--border-color-primary, #dbe3ef);
@@ -329,6 +328,15 @@ def predict_demand_details(
         guarded["risk_signals"] = _build_risk_signals(features, guarded)
         guarded.update(_calculate_intelligence_scores(features, guarded))
         guarded["why_this_matters"] = _build_why_this_matters(features, guarded)
+        guarded["product_domain_route"] = run_behavioral_signal_prediction(
+            likes,
+            comments,
+            shares,
+            searches,
+            engagement_intensity,
+            purchase_intent_score,
+            trend_growth,
+        )["route_domain"]
         return guarded
     except Exception as exc:
         return {
@@ -597,45 +605,7 @@ def run_signal_cge_prompt(prompt: str, uploaded_file: Any | None = None) -> dict
             prompt,
             f"Signal CGE backend unavailable: {AI_CGE_WORKBENCH_IMPORT_ERROR}",
         )
-
-    sam_path = _uploaded_path(uploaded_file)
-    model_profile = load_model_profile()
-    reference_index = build_reference_index()
-    result = run_chat_simulation(prompt or "Run baseline Signal CGE scenario", sam_file=sam_path)
-    scenario = result.get("scenario", {})
-    readiness = get_model_readiness()
-    diagnostics = {
-        **result.get("diagnostics", {}),
-        "model_profile_loaded": True,
-        "reference_sections": reference_index.get("sections", []),
-        "canonical_model_profile": "models/canonical/signal_cge_master/model_profile.yaml",
-        "uploaded_sam": "provided" if sam_path else "not provided; using canonical profile and fallback SAM where needed",
-        "fallback_explanation": FULL_CGE_FALLBACK_MESSAGE,
-    }
-    structured_results = _signal_cge_structured_results(result.get("results", {}), scenario)
-    chart_data = _signal_cge_chart_data(structured_results)
-    interpretation = _signal_cge_policy_interpretation(result)
-    report_paths = _write_signal_cge_downloads(
-        scenario=scenario,
-        readiness=readiness,
-        diagnostics=diagnostics,
-        results=structured_results,
-        interpretation=interpretation,
-        model_profile=model_profile,
-    )
-    return {
-        "scenario": _signal_cge_interpreted_scenario(scenario, result.get("results", {})),
-        "readiness": readiness,
-        "diagnostics": diagnostics,
-        "results": structured_results,
-        "chart_data": chart_data,
-        "interpretation": interpretation,
-        "downloads": report_paths,
-        "backend_used": result.get("results", {}).get("backend")
-        or result.get("backend")
-        or "python_sam_multiplier",
-        "fallback_message": FULL_CGE_FALLBACK_MESSAGE,
-    }
+    return route_run_signal_cge_prompt(prompt, uploaded_file)
 
 
 def signal_cge_prompt_ui(prompt: str, uploaded_file: Any | None = None) -> tuple[str, pd.DataFrame, str, str, str | None, str | None, str | None]:

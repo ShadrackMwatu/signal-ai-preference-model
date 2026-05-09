@@ -14,3 +14,9 @@ This folder is the permanent reference library for the canonical Signal CGE arch
 - `historical/`: source-package notes and historical reference material.
 
 Signal AI modules should use `signal_cge/knowledge/` to discover and load these references.
+
+Public app routing for this domain lives in:
+
+```text
+app_routes/signal_cge_route.py
+```
