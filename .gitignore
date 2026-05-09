@@ -3,3 +3,7 @@ __pycache__/
 *.py[cod] 
 .pytest_cache/ 
 tests/_tmp/ 
+tests/_scratch/
+outputs/matplotlib*/
+cge_workbench/outputs/*
+!cge_workbench/outputs/.gitkeep

@@ -1,0 +1,21 @@
+models:
+  - id: signal_sam_multiplier
+    name: Signal SAM Multiplier
+    backend: python
+    status: available
+    description: Open-source SAM multiplier fallback using Python matrix algebra.
+  - id: signal_cge_gams
+    name: Signal CGE Model
+    backend: gams
+    status: optional
+    description: GAMS-backed CGE execution when GAMS and model files are configured.
+  - id: signal_recursive_dynamic
+    name: Signal Recursive Dynamic Model
+    backend: placeholder
+    status: planned
+    description: Placeholder for future recursive dynamic CGE workflows.
+default_model: signal_sam_multiplier
+principles:
+  - AI assists setup, diagnostics, interpretation, and documentation.
+  - Equations and assumptions remain transparent.
+  - Runs are reproducible and archived.

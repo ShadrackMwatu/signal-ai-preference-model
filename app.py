@@ -13,6 +13,10 @@ import joblib
 import numpy as np
 import pandas as pd
 
+_MPLCONFIGDIR = Path(__file__).resolve().parent / "outputs" / f"matplotlib_{os.getpid()}"
+_MPLCONFIGDIR.mkdir(parents=True, exist_ok=True)
+os.environ.setdefault("MPLCONFIGDIR", str(_MPLCONFIGDIR))
+
 import gradio as gr
 
 from explainability import generate_prediction_explanation
@@ -42,6 +46,16 @@ except Exception as exc:  # pragma: no cover - exercised in constrained Space ru
     ADVANCED_AVAILABLE = False
     ADVANCED_IMPORT_ERROR = str(exc)
     DEFAULT_SCENARIO = "Baseline policy scenario"
+
+try:
+    from cge_workbench.runners.gams_runner import find_gams_executable
+    from cge_workbench.workbench import run_chat_scenario
+
+    AI_CGE_WORKBENCH_AVAILABLE = True
+    AI_CGE_WORKBENCH_IMPORT_ERROR = ""
+except Exception as exc:  # pragma: no cover - keep dashboard usable in minimal runtimes.
+    AI_CGE_WORKBENCH_AVAILABLE = False
+    AI_CGE_WORKBENCH_IMPORT_ERROR = str(exc)
 
 
 SML_EXAMPLE_PATH = Path("sml_workbench/examples/kenya_basic_cge_example.sml")
@@ -483,6 +497,64 @@ def cge_model(scenario_text: str) -> tuple[str, str, str]:
         return summary, json.dumps(policy_output, indent=2), gams_preview
     except Exception as exc:
         return f"CGE run failed: {exc}", "{}", ""
+
+
+def ai_cge_workbench_model(
+    model_type: str,
+    scenario_family: str,
+    custom_prompt: str,
+    shock_size: float,
+    target_account: str,
+    sam_file: Any | None = None,
+) -> tuple[str, str, str, str | None]:
+    """Run the chat-driven Signal CGE Workbench from dashboard controls."""
+
+    try:
+        if not AI_CGE_WORKBENCH_AVAILABLE:
+            raise RuntimeError(f"AI-CGE Workbench unavailable: {AI_CGE_WORKBENCH_IMPORT_ERROR}")
+        prompt = custom_prompt.strip() if custom_prompt else _prompt_from_controls(scenario_family, shock_size, target_account)
+        sam_path = _uploaded_path(sam_file)
+        result = run_chat_scenario(
+            prompt=prompt,
+            model_type=model_type,
+            shock_size=shock_size,
+            target_account=target_account.strip() if target_account else None,
+            sam_path=sam_path,
+        )
+        gams_path = find_gams_executable()
+        summary = "\n\n".join(
+            [
+                result["message"],
+                result["explanation"]["executive_summary"],
+                f"GAMS execution available: {'Yes - ' + gams_path if gams_path else 'No'}",
+                f"Policy brief: {result['artifacts'].get('policy_brief', '')}",
+            ]
+        )
+        scenario_json = json.dumps(result["scenario"], indent=2)
+        results_json = json.dumps(
+            {
+                "diagnostics": result["diagnostics"],
+                "results": result["results"],
+                "artifacts": result["artifacts"],
+            },
+            indent=2,
+        )
+        return summary, scenario_json, results_json, result["artifacts"].get("policy_brief")
+    except Exception as exc:
+        return f"AI-CGE Workbench run failed: {exc}", "{}", "{}", None
+
+
+def _prompt_from_controls(scenario_family: str, shock_size: float, target_account: str) -> str:
+    target = target_account.strip() if target_account else "selected account"
+    templates = {
+        "Care economy": f"Increase public investment in care infrastructure by {shock_size}%",
+        "Tax policy": f"Simulate a {abs(shock_size)}% VAT reduction on {target}",
+        "Infrastructure": f"Increase transport productivity by {shock_size}%",
+        "Trade policy": f"Run a trade facilitation shock for exports of {shock_size}%",
+        "Productivity": f"Increase {target} productivity by {shock_size}%",
+        "Custom prompt": f"Apply a {shock_size}% shock to {target}",
+    }
+    return templates.get(scenario_family, templates["Custom prompt"])
 
 
 def validate_sml_dashboard(sml_text: str, sml_file: Any | None = None) -> str:
@@ -1658,16 +1730,43 @@ with gr.Blocks(title="Signal AI Market Intelligence", css=SIGNAL_DASHBOARD_CSS) 
         )
 
     with gr.Tab("Signal CGE Framework"):
-        scenario_input = gr.Textbox(label="CGE Scenario", value=DEFAULT_SCENARIO, lines=8)
-        run_cge_button = gr.Button("Run CGE Scenario")
         with gr.Row():
-            cge_summary_output = gr.Textbox(label="CGE Simulation Summary", lines=9)
-            cge_policy_output = gr.Code(label="Policy Intelligence", language="json", lines=14)
-        gams_output = gr.Code(label="GAMS Compatibility Preview", language="python", lines=18)
+            model_type_input = gr.Dropdown(
+                label="Model type",
+                choices=["SAM multiplier", "CGE model", "Recursive dynamic model - placeholder"],
+                value="SAM multiplier",
+            )
+            scenario_family_input = gr.Dropdown(
+                label="Scenario",
+                choices=["Care economy", "Tax policy", "Infrastructure", "Trade policy", "Productivity", "Custom prompt"],
+                value="Care economy",
+            )
+        with gr.Row():
+            shock_size_input = gr.Number(label="Shock size", value=20)
+            target_account_input = gr.Textbox(label="Target sector/account", value="paid_care_services")
+        workbench_sam_upload = gr.File(label="Optional SAM CSV/XLSX", file_types=[".csv", ".xlsx", ".xls"])
+        scenario_input = gr.Textbox(
+            label="Custom prompt",
+            value="Increase public investment in care infrastructure by 20%",
+            lines=4,
+        )
+        run_cge_button = gr.Button("Run simulation")
+        with gr.Row():
+            cge_summary_output = gr.Textbox(label="Simulation summary", lines=9)
+            cge_policy_output = gr.Code(label="Structured scenario", language="json", lines=14)
+        gams_output = gr.Code(label="Diagnostics and results", language="json", lines=18)
+        cge_brief_download = gr.File(label="Download results / policy brief")
         run_cge_button.click(
-            fn=cge_model,
-            inputs=[scenario_input],
-            outputs=[cge_summary_output, cge_policy_output, gams_output],
+            fn=ai_cge_workbench_model,
+            inputs=[
+                model_type_input,
+                scenario_family_input,
+                scenario_input,
+                shock_size_input,
+                target_account_input,
+                workbench_sam_upload,
+            ],
+            outputs=[cge_summary_output, cge_policy_output, gams_output, cge_brief_download],
             show_api=False,
         )
 

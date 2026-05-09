@@ -1,0 +1,22 @@
+required:
+  - scenario_name
+  - shock_type
+  - target_accounts
+  - shock_value
+  - shock_unit
+  - closure_rule
+properties:
+  scenario_name:
+    type: string
+  shock_type:
+    type: string
+  target_accounts:
+    type: array
+  shock_value:
+    type: number
+  shock_unit:
+    enum: [percent, level, KSh]
+  closure_rule:
+    type: string
+  expected_outputs:
+    type: array

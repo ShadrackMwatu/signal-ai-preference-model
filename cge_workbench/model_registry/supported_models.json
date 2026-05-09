@@ -1,0 +1,22 @@
+{
+  "models": [
+    {
+      "id": "signal_sam_multiplier",
+      "label": "SAM multiplier",
+      "backend": "python",
+      "available_without_gams": true
+    },
+    {
+      "id": "signal_cge_model",
+      "label": "CGE model",
+      "backend": "gams",
+      "available_without_gams": false
+    },
+    {
+      "id": "signal_recursive_dynamic_placeholder",
+      "label": "Recursive dynamic model - placeholder",
+      "backend": "placeholder",
+      "available_without_gams": true
+    }
+  ]
+}

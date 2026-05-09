@@ -1,0 +1,32 @@
+templates:
+  double_care_services:
+    scenario_name: Double paid care services
+    shock_type: care_services_expansion
+    target_accounts: [paid_care_services, fcp, fcu, fnp, fnu, mcp, mcu, mnp, mnu]
+    shock_value: 100
+    shock_unit: percent
+    closure_rule: investment_driven_with_fixed_prices
+  convert_unpaid_care_to_paid:
+    scenario_name: Convert unpaid care to paid care
+    shock_type: care_formalization
+    target_accounts: [unpaid_care, paid_care_services, fcp, fcu, fnp, fnu, mcp, mcu, mnp, mnu]
+    shock_value: 25
+    shock_unit: percent
+    closure_rule: investment_driven_with_fixed_prices
+  care_infrastructure_investment:
+    scenario_name: Increase care infrastructure investment
+    shock_type: public_investment
+    target_accounts: [care_infrastructure, paid_care_services]
+    shock_value: 20
+    shock_unit: percent
+    closure_rule: investment_driven_with_fixed_prices
+  social_services_investment:
+    scenario_name: Increase health, education, water, and social services investment
+    shock_type: public_investment
+    target_accounts: [health, education, water, social_services]
+    shock_value: 20
+    shock_unit: percent
+    closure_rule: investment_driven_with_fixed_prices
+outputs:
+  - gender_disaggregated_labour_income_effects
+  - household_welfare_effects
