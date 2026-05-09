@@ -59,3 +59,4 @@ Added scenario-aware knowledge retrieval from repository-stored Signal CGE refer
 - Updated sample data references and SML templates to use product-domain paths.
 - Verified that tracked root compatibility wrappers are thin shims only and documented the result in `Documentation/TWO_DOMAIN_WRAPPER_COMPATIBILITY_AUDIT.md`.
 - Added deterministic repo-aware Signal CGE knowledge indexing, semantic mapping, adaptive learning memory, scenario pattern learning, model-gap reporting, and safe adaptation documentation.
+- Added full Signal CGE model blueprint modules for equation, variable, parameter, closure, experiment, recursive dynamic, reporting, calibration bridge, and full-model gap tracking while keeping the active backend clearly labeled as a prototype pathway.

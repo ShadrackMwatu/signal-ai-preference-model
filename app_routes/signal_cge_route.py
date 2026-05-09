@@ -26,6 +26,8 @@ from Signal_CGE.signal_cge.learning.recommendation_engine import recommend_adapt
 from Signal_CGE.signal_cge.learning.scenario_pattern_learning import find_similar_simulations
 from Signal_CGE.signal_cge.learning.simulation_memory import record_simulation_learning_event
 from Signal_CGE.signal_cge.learning.learning_registry import write_learning_summary
+from Signal_CGE.signal_cge.full_cge.model_gap_report import generate_full_cge_gap_report
+from Signal_CGE.signal_cge.experiments.experiment_runner import run_prototype_experiment
 
 
 FULL_CGE_FALLBACK_MESSAGE = (
@@ -47,6 +49,8 @@ def run_signal_cge_prompt(prompt: str, uploaded_file: Any | None = None) -> dict
     knowledge_context = get_scenario_context(scenario)
     similar_simulations = find_similar_simulations(prompt, scenario)
     gap_report = generate_model_gap_report(write=True)
+    full_cge_status = _full_cge_development_status()
+    experiment_payload = run_prototype_experiment(prompt or "")
     diagnostics = {
         **result.get("diagnostics", {}),
         "model_profile_loaded": True,
@@ -58,6 +62,8 @@ def run_signal_cge_prompt(prompt: str, uploaded_file: Any | None = None) -> dict
         "knowledge_references_used": knowledge_context["reference_labels"],
         "similar_prior_simulations": len(similar_simulations),
         "model_gap_report": gap_report,
+        "full_cge_development_status": full_cge_status,
+        "experiment_payload": experiment_payload,
     }
     structured_results = _structured_results(result.get("results", {}), scenario)
     chart_data = _chart_data(structured_results)
@@ -107,6 +113,8 @@ def run_signal_cge_prompt(prompt: str, uploaded_file: Any | None = None) -> dict
         similar_simulations=similar_simulations,
         gap_report=gap_report,
         learning_summary=learning_summary,
+        full_cge_status=full_cge_status,
+        experiment_payload=experiment_payload,
     )
     backend = result.get("results", {}).get("backend") or result.get("backend") or "python_sam_multiplier"
     return {
@@ -118,6 +126,8 @@ def run_signal_cge_prompt(prompt: str, uploaded_file: Any | None = None) -> dict
         "chart_data": chart_data,
         "interpretation": interpretation,
         "learning_trace": learning_trace,
+        "full_cge_development_status": full_cge_status,
+        "experiment_payload": experiment_payload,
         "knowledge_context": knowledge_context,
         "model_improvement_suggestions": model_improvements,
         "model_gap_report": gap_report,
@@ -292,6 +302,8 @@ def _write_downloads(
     similar_simulations: list[dict[str, Any]] | None = None,
     gap_report: dict[str, Any] | None = None,
     learning_summary: dict[str, Any] | None = None,
+    full_cge_status: dict[str, Any] | None = None,
+    experiment_payload: dict[str, Any] | None = None,
 ) -> dict[str, str]:
     output_dir = Path("outputs") / "signal_cge_public" / datetime.now(UTC).strftime("%Y%m%d_%H%M%S")
     output_dir.mkdir(parents=True, exist_ok=True)
@@ -313,6 +325,8 @@ def _write_downloads(
         "similar_prior_simulations": similar_simulations or [],
         "model_gap_report": gap_report or {},
         "learning_summary": learning_summary or {},
+        "full_cge_development_status": full_cge_status or {},
+        "experiment_payload": experiment_payload or {},
     }
     md_path = output_dir / "signal_cge_policy_brief.md"
     json_path = output_dir / "signal_cge_results.json"
@@ -336,6 +350,7 @@ def _policy_brief_markdown(payload: dict[str, Any]) -> str:
             "## Policy Interpretation\n```json\n" + json.dumps(payload["interpretation"], indent=2) + "\n```",
             "## Model Reference Used\n```json\n" + json.dumps(payload["model_references_used"], indent=2) + "\n```",
             "## Adaptive Learning Trace\n```json\n" + json.dumps(payload["learning_trace"], indent=2) + "\n```",
+            "## Full CGE Development Status\n```json\n" + json.dumps(payload["full_cge_development_status"], indent=2) + "\n```",
             "## Diagnostics\n```json\n" + json.dumps(payload["diagnostics"], indent=2) + "\n```",
             "## Model Readiness\n```json\n" + json.dumps(payload["readiness"], indent=2) + "\n```",
             "## Knowledge Trace\n```json\n" + json.dumps(payload["knowledge_context"], indent=2) + "\n```",
@@ -409,6 +424,19 @@ def _build_learning_trace(
         "scenario_pattern_recognized": scenario.get("shock_type") or scenario.get("simulation_type", "not classified"),
         "prior_similar_simulations_found": len(similar_simulations),
         "model_improvement_suggestions": model_improvements,
+    }
+
+
+def _full_cge_development_status() -> dict[str, Any]:
+    gap = generate_full_cge_gap_report()
+    return {
+        "calibration_bridge_status": "blueprint",
+        "equation_registry_status": "active blueprint",
+        "closure_manager_status": "active blueprint",
+        "experiment_engine_status": "prototype directional engine",
+        "solver_status": "placeholder; full nonlinear equilibrium solver not active",
+        "recursive_dynamics_status": "blueprint",
+        "gap_summary": gap,
     }
 
 

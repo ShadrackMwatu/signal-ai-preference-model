@@ -618,6 +618,7 @@ def signal_cge_prompt_ui(prompt: str, uploaded_file: Any | None = None) -> tuple
     str,
     str,
     str,
+    str,
     str | None,
     str | None,
     str | None,
@@ -634,6 +635,7 @@ def signal_cge_prompt_ui(prompt: str, uploaded_file: Any | None = None) -> tuple
         _render_policy_interpretation(result.get("interpretation", {})),
         _render_model_reference_used(result),
         _render_adaptive_learning_trace(result.get("learning_trace", {})),
+        _render_full_cge_status(result.get("full_cge_development_status", {})),
         _render_diagnostics(result.get("diagnostics", {})),
         _render_readiness(result.get("readiness", {})),
         downloads.get("policy_brief_md"),
@@ -944,6 +946,21 @@ def _render_adaptive_learning_trace(trace: dict[str, Any]) -> str:
         "- Model improvement suggestions:",
     ]
     lines.extend(f"  - {item}" for item in suggestion_items[:5]) if suggestion_items else lines.append("  - No new model improvement suggestion.")
+    return "\n".join(lines)
+
+
+def _render_full_cge_status(status: dict[str, Any]) -> str:
+    fields = [
+        "calibration_bridge_status",
+        "equation_registry_status",
+        "closure_manager_status",
+        "experiment_engine_status",
+        "solver_status",
+        "recursive_dynamics_status",
+    ]
+    lines = ["## Full CGE Development Status"]
+    for field in fields:
+        lines.append(f"- {field.replace('_', ' ').title()}: `{status.get(field, 'unknown')}`")
     return "\n".join(lines)
 
 
@@ -2176,6 +2193,7 @@ with gr.Blocks(title="Signal AI Dashboard", css=SIGNAL_DASHBOARD_CSS) as demo:
         signal_cge_interpretation_output = gr.Markdown(label="Policy Interpretation")
         signal_cge_reference_output = gr.Markdown(label="Model Reference Used")
         signal_cge_learning_trace_output = gr.Markdown(label="Adaptive Learning Trace")
+        signal_cge_full_status_output = gr.Markdown(label="Full CGE Development Status")
         signal_cge_diagnostics_output = gr.Markdown(label="Diagnostics")
         signal_cge_readiness_output = gr.Markdown(label="Model Readiness")
         with gr.Row():
@@ -2193,6 +2211,7 @@ with gr.Blocks(title="Signal AI Dashboard", css=SIGNAL_DASHBOARD_CSS) as demo:
                 signal_cge_interpretation_output,
                 signal_cge_reference_output,
                 signal_cge_learning_trace_output,
+                signal_cge_full_status_output,
                 signal_cge_diagnostics_output,
                 signal_cge_readiness_output,
                 signal_cge_brief_download,
