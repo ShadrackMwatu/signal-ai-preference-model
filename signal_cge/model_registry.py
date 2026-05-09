@@ -16,6 +16,8 @@ def get_canonical_reference_registry() -> dict[str, object]:
     return {
         "reference_root": str(REFERENCE_ROOT),
         "user_guides": {
+            "root_adapted_docx": str(REPO_ROOT / "Documentation" / "Signal_CGE_User_Guide_Adapted.docx"),
+            "root_adapted_pdf": str(REPO_ROOT / "Documentation" / "Signal_CGE_User_Guide_Adapted.pdf"),
             "adapted_docx": str(
                 REFERENCE_ROOT / "user_guides" / "Signal_CGE_User_Guide_Adapted.docx"
             ),

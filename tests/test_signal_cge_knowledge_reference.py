@@ -20,7 +20,10 @@ def test_canonical_reference_paths_exist() -> None:
     """The adapted user guides and model profile should be available."""
 
     user_guides = REFERENCE_ROOT / "user_guides"
+    documentation_root = REFERENCE_ROOT.parent
 
+    assert (documentation_root / "Signal_CGE_User_Guide_Adapted.docx").exists()
+    assert (documentation_root / "Signal_CGE_User_Guide_Adapted.pdf").exists()
     assert (user_guides / "Signal_CGE_User_Guide_Adapted.docx").exists()
     assert (user_guides / "Signal_CGE_User_Guide_Adapted.pdf").exists()
     assert MODEL_PROFILE_PATH.exists()
@@ -67,6 +70,9 @@ def test_model_registry_exposes_canonical_references() -> None:
     references = registry["canonical_references"]
 
     assert registry["canonical_model_structure"] == "signal_cge"
+    assert references["user_guides"]["root_adapted_docx"].endswith(
+        "Signal_CGE_User_Guide_Adapted.docx"
+    )
     assert references["model_profile"].endswith("model_profile.yaml")
     assert references["equation_docs"].endswith(str(Path("signal_cge_reference") / "equations"))
 
