@@ -8,3 +8,5 @@ tests/_scratch/
 outputs/matplotlib*/
 cge_workbench/outputs/*
 !cge_workbench/outputs/.gitkeep
+docker/*.exe
+models/versions/v*/
