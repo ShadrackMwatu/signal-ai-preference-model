@@ -14,7 +14,7 @@ class SMLParserTests(unittest.TestCase):
         model = parse_sml_file(EXAMPLE)
 
         self.assertIn("sectors", model["sets"])
-        self.assertEqual(model["parameters"]["sam"], "data/sample_sam.csv")
+        self.assertEqual(model["parameters"]["sam"], "Behavioral_Signals_AI/data/sample_sam.csv")
         self.assertEqual(model["solve"]["backend"], "gams")
         self.assertEqual(model["solve"]["solver"], "path")
         self.assertIn("output", model["variables"])
@@ -28,7 +28,7 @@ class SMLParserTests(unittest.TestCase):
             """SETS:
   sectors = [agriculture]
 PARAMETERS:
-  SAM = "data/sample_sam.csv"
+  SAM = "Behavioral_Signals_AI/data/sample_sam.csv"
 VARIABLES:
   output[unknown_set]
 EQUATIONS:

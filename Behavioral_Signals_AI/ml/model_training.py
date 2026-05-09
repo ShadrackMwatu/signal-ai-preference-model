@@ -17,7 +17,8 @@ from .model_evaluation import evaluate_classification, evaluate_regression
 from .model_registry import ModelRegistry
 
 
-DEFAULT_MODEL_DIR = Path("models_ml") / "trained_models"
+DOMAIN_ROOT = Path(__file__).resolve().parents[1]
+DEFAULT_MODEL_DIR = DOMAIN_ROOT / "models_ml" / "trained_models"
 
 
 def train_demand_classifier(

@@ -5,7 +5,7 @@ Signal now has two public product domains:
 1. **Behavioral Signals AI**
 2. **Signal CGE**
 
-The Hugging Face app exposes only those two public tabs. Backend folders now live primarily under `Behavioral_Signals_AI/` and `Signal_CGE/`; root-level wrappers remain in place for compatibility, tests, and future migration.
+The Hugging Face app exposes only those two public tabs. Domain-specific source, data, models, docs, and legacy modules now live under `Behavioral_Signals_AI/` or `Signal_CGE/`; root-level wrappers remain in place for compatibility, tests, and future migration.
 
 ## Domain Ownership
 
@@ -15,7 +15,15 @@ The Hugging Face app exposes only those two public tabs. Backend folders now liv
 |---|---|---|---:|---:|---|
 | `Behavioral_Signals_AI/` | Behavioral intelligence product root. | Behavioral Signals AI | Via route | Yes | New canonical home for behavioral-domain code. |
 | `Signal_CGE/` | CGE/SAM product root. | Signal CGE | Via route | Yes | New canonical home for CGE-domain code. |
-| root compatibility wrappers | Preserve imports such as `signal_cge`, `signal_ai`, `policy_ai`, `sml_workbench`, `cge_core`, `solvers`, `adaptive_learning`, and `explainability`. | Legacy / compatibility | Indirect | Yes | Retain temporarily until imports are fully migrated. |
+| root compatibility wrappers | Preserve imports such as `api`, `src`, `ml`, `data`, `signal_cge`, `signal_ai`, `policy_ai`, `sml_workbench`, `cge_core`, `solvers`, `adaptive_learning`, and `explainability`. | Legacy / compatibility | Indirect | Yes | Retain temporarily until imports are fully migrated. |
+
+## Physical Layout
+
+`Behavioral_Signals_AI/` now owns behavioral API code, ML utilities, training scripts, behavioral data, behavioral model artifacts, trend intelligence, and privacy/explainability helpers.
+
+`Signal_CGE/` now owns CGE/SAM engines, AI CGE orchestration, SML workbench code, CGE policy services, GAMS/backend adapters, CGE docs, knowledge-base notes, learning helpers, and local CGE model workspace references.
+
+The root is reserved for Hugging Face deployment and shared coordination files: `app.py`, `requirements.txt`, `README.md`, `tests/`, `app_routes/`, `.github/`, `.gitignore`, `.gitattributes`, and `pytest.ini`, plus temporary compatibility wrappers.
 
 | Folder | Purpose | Assigned domain | Used by `app.py` | Used by tests | Recommended action |
 |---|---|---|---:|---:|---|

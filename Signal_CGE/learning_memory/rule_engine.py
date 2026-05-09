@@ -12,7 +12,7 @@ RULE_RECOMMENDATIONS = {
     "experimental_solver_used": "For publication or policy-grade runs, require a GAMS-backed solver check before final reporting.",
     "sam_imbalance": "Add a pre-solve SAM balancing step and review accounts with percentage imbalance above tolerance.",
     "unknown_set_reference": "Update SML templates so every indexed symbol references a declared SETS entry.",
-    "missing_sam_parameter": "Ensure every SML template includes PARAMETERS: SAM = \"data/sample_sam.csv\" or an uploaded SAM path.",
+    "missing_sam_parameter": "Ensure every SML template includes PARAMETERS: SAM = \"Behavioral_Signals_AI/data/sample_sam.csv\" or an uploaded SAM path.",
     "unspecified_production_solver": "For GAMS runs, prefer explicit solver choices: PATH, CONOPT, or IPOPT.",
     "near_zero_macro_response": "Review shock magnitudes and equation linkage when macro response is near zero.",
 }

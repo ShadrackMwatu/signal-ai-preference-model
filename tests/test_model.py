@@ -8,7 +8,7 @@ from src.schemas import PreferenceRequest
 
 class ModelTests(unittest.TestCase):
     def test_model_trains_predicts_and_evaluates(self) -> None:
-        examples = load_examples(Path("data/sample_preferences.csv"))
+        examples = load_examples(Path("Behavioral_Signals_AI/data/sample_preferences.csv"))
         model = PreferenceModel().train(examples)
 
         prediction = model.predict(
@@ -33,7 +33,7 @@ class ModelTests(unittest.TestCase):
         self.assertIn("positive_rate", metrics)
 
     def test_model_persistence_round_trip(self) -> None:
-        examples = load_examples(Path("data/sample_preferences.csv"))
+        examples = load_examples(Path("Behavioral_Signals_AI/data/sample_preferences.csv"))
         request = PreferenceRequest(
             user_id="user_002",
             item_id="policy_digest",

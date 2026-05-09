@@ -6,7 +6,7 @@ from src.data_pipeline.privacy_filter import filter_private_data, validate_no_pi
 
 class PrivacyFilterTests(unittest.TestCase):
     def setUp(self) -> None:
-        self.frame = load_behavioral_signals("data/sample_behavioral_signals.csv", apply_privacy_filter=False)
+        self.frame = load_behavioral_signals("Behavioral_Signals_AI/data/sample_behavioral_signals.csv", apply_privacy_filter=False)
 
     def test_blocks_pii_columns_and_patterns(self) -> None:
         with_user = self.frame.copy()

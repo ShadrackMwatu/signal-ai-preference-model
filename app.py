@@ -84,9 +84,9 @@ except Exception as exc:  # pragma: no cover - keep dashboard usable in minimal 
 SML_EXAMPLE_PATH = Path("sml_workbench/examples/kenya_basic_cge_example.sml")
 DEFAULT_SML_TEXT = load_sml_workbench_text(SML_EXAMPLE_PATH) if SML_EXAMPLE_PATH.exists() else ""
 ROOT_DIR = Path(__file__).resolve().parent
-PRIMARY_MODEL_PATH = ROOT_DIR / "models" / "model.pkl"
+PRIMARY_MODEL_PATH = ROOT_DIR / "Behavioral_Signals_AI" / "models" / "model.pkl"
 LEGACY_MODEL_PATH = ROOT_DIR / "model.pkl"
-PRIMARY_MODEL_METADATA_PATH = ROOT_DIR / "models" / "metadata.json"
+PRIMARY_MODEL_METADATA_PATH = ROOT_DIR / "Behavioral_Signals_AI" / "models" / "metadata.json"
 LIVE_TREND_FEATURE_PLUGINS = [
     "Sentiment analysis",
     "Anomaly detection",

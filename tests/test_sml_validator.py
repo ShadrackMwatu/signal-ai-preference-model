@@ -11,7 +11,7 @@ class SMLValidatorTests(unittest.TestCase):
             """SETS:
   sectors = [agriculture]
 PARAMETERS:
-  SAM = "data/sample_sam.csv"
+  SAM = "Behavioral_Signals_AI/data/sample_sam.csv"
 VARIABLES:
   output[sectors]
 """
@@ -25,7 +25,7 @@ VARIABLES:
             """SETS:
   sectors = [agriculture]
 PARAMETERS:
-  SAM = "data/sample_sam.csv"
+  SAM = "Behavioral_Signals_AI/data/sample_sam.csv"
 VARIABLES:
   output[sectors]
 EQUATIONS:

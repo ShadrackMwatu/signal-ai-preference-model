@@ -9,7 +9,7 @@ from src.features.text_features import extract_text_features
 class FeatureEngineeringTests(unittest.TestCase):
     @classmethod
     def setUpClass(cls) -> None:
-        cls.raw = load_behavioral_signals("data/sample_behavioral_signals.csv")
+        cls.raw = load_behavioral_signals("Behavioral_Signals_AI/data/sample_behavioral_signals.csv")
 
     def test_text_features_extract_nlp_signals(self) -> None:
         features = extract_text_features("ready to buy solar kits but complaints about delays")

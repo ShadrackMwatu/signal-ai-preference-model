@@ -9,7 +9,8 @@ from pathlib import Path
 from typing import Any
 
 
-DEFAULT_REGISTRY_PATH = Path("models_ml") / "metadata" / "model_registry.json"
+DOMAIN_ROOT = Path(__file__).resolve().parents[1]
+DEFAULT_REGISTRY_PATH = DOMAIN_ROOT / "models_ml" / "metadata" / "model_registry.json"
 
 
 @dataclass(frozen=True)

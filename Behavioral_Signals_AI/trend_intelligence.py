@@ -9,8 +9,8 @@ from typing import Any
 from privacy import sanitize_trend_record
 
 
-REPO_ROOT = Path(__file__).resolve().parents[1]
-LOCATIONS_PATH = REPO_ROOT / "config" / "locations.json"
+DOMAIN_ROOT = Path(__file__).resolve().parent
+LOCATIONS_PATH = DOMAIN_ROOT / "config" / "locations.json"
 
 
 def predict_demand_details(*args: Any, **kwargs: Any) -> dict[str, Any]:

@@ -7,7 +7,7 @@ from src.models.clustering_model import SegmentClusterer
 
 class ClusteringTests(unittest.TestCase):
     def test_kmeans_clusters_aggregate_segments(self) -> None:
-        raw = load_behavioral_signals("data/sample_behavioral_signals.csv")
+        raw = load_behavioral_signals("Behavioral_Signals_AI/data/sample_behavioral_signals.csv")
         features = build_feature_table(raw)
         clusterer = SegmentClusterer(n_clusters=4).fit(features)
         clustered = clusterer.predict(features)

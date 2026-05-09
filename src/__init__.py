@@ -1,15 +1,5 @@
-"""Signal AI preference model prototype."""
+"""Compatibility wrapper for `Behavioral_Signals_AI/src`."""
 
-from .model import PreferenceModel
-from .research import cge_sam_row, export_cge_sam_csv
-from .schemas import FeatureContribution, PreferenceExample, PreferencePrediction, PreferenceRequest
+from pathlib import Path
 
-__all__ = [
-    "FeatureContribution",
-    "PreferenceExample",
-    "PreferenceModel",
-    "PreferencePrediction",
-    "PreferenceRequest",
-    "cge_sam_row",
-    "export_cge_sam_csv",
-]
+__path__ = [str(Path(__file__).resolve().parents[1] / "Behavioral_Signals_AI" / "src")]

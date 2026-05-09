@@ -9,7 +9,7 @@ from signal_modeling_language.parser import parse_sml_file
 class GAMSGenerationTests(unittest.TestCase):
     def test_gams_code_is_generated_from_sml(self) -> None:
         model = parse_sml_file("signal_modeling_language/examples/basic_cge.sml")
-        calibration = calibrate_from_sam(load_sam("data/sample_sam.csv"))
+        calibration = calibrate_from_sam(load_sam("Behavioral_Signals_AI/data/sample_sam.csv"))
         gams_code = generate_gams_code(model, calibration)
 
         self.assertIn("Sets", gams_code)

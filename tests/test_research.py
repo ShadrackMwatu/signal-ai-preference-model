@@ -10,7 +10,7 @@ from src.schemas import PreferenceRequest
 
 class ResearchOutputTests(unittest.TestCase):
     def setUp(self) -> None:
-        self.model = PreferenceModel().train(load_examples(Path("data/sample_preferences.csv")))
+        self.model = PreferenceModel().train(load_examples(Path("Behavioral_Signals_AI/data/sample_preferences.csv")))
         self.request = PreferenceRequest(
             user_id="user_001",
             item_id="dashboard_plus",

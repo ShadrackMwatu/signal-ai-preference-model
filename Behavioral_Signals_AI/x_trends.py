@@ -14,8 +14,8 @@ from urllib.request import Request, urlopen
 from privacy import assert_privacy_safe_records
 
 
-REPO_ROOT = Path(__file__).resolve().parents[1]
-LOCATIONS_PATH = REPO_ROOT / "config" / "locations.json"
+DOMAIN_ROOT = Path(__file__).resolve().parent
+LOCATIONS_PATH = DOMAIN_ROOT / "config" / "locations.json"
 X_TRENDS_ENDPOINT = "https://api.twitter.com/1.1/trends/place.json"
 
 

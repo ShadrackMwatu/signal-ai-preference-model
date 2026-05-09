@@ -7,7 +7,7 @@ from src.schemas import PreferenceExample
 
 class DataTests(unittest.TestCase):
     def test_load_examples_reads_csv(self) -> None:
-        examples = load_examples(Path("data/sample_preferences.csv"))
+        examples = load_examples(Path("Behavioral_Signals_AI/data/sample_preferences.csv"))
 
         self.assertEqual(len(examples), 12)
         self.assertEqual(examples[0].user_id, "user_001")

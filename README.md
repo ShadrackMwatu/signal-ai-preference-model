@@ -134,6 +134,7 @@ Product domains:
     docs/
 
   Signal_CGE/
+    backends/
     signal_cge/
     signal_ai/
     signal_sml/
@@ -158,12 +159,15 @@ Shared root:
   tests/
   Documentation/
   .github/
+  .gitattributes
   .gitignore
+  pytest.ini
 
 Compatibility wrappers:
-  root imports such as signal_cge, signal_ai, policy_ai, sml_workbench,
-  cge_workbench, cge_core, solvers, adaptive_learning, explainability,
-  trend_intelligence, and x_trends remain available during migration.
+  root imports such as api, src, ml, data, signal_cge, signal_ai,
+  policy_ai, sml_workbench, cge_workbench, cge_core, solvers,
+  adaptive_learning, explainability, train_model, trend_intelligence,
+  and x_trends remain available during migration.
 
 Testing and documentation:
   tests/
@@ -185,7 +189,7 @@ flowchart TD
   D --> H["Learning memory and adaptive recommendations"]
 ```
 
-Signal is organized as a modular intelligence platform. `app.py` provides the Gradio user experience; `train_model.py`, `ml/`, and `src/models/` support model training and prediction; `Behavioral_Signals_AI/trend_intelligence.py` and `Behavioral_Signals_AI/x_trends.py` support aggregate live trend intelligence; `Signal_CGE/signal_cge/` is the canonical CGE/SAM engine; `Signal_CGE/signal_ai/` provides the AI-native CGE chat layer; `Signal_CGE/sml_workbench/` remains the active SML workbench until migration into `Signal_CGE/signal_sml/`; `learning/` remains the active teaching layer; and `signal_learning/` plus `learning_memory/` support adaptive learning.
+Signal is organized as a modular intelligence platform. `app.py` provides the Gradio user experience; `Behavioral_Signals_AI/train_model.py`, `Behavioral_Signals_AI/ml/`, and `Behavioral_Signals_AI/src/models/` support model training and prediction; `Behavioral_Signals_AI/trend_intelligence.py` and `Behavioral_Signals_AI/x_trends.py` support aggregate live trend intelligence; `Signal_CGE/signal_cge/` is the canonical CGE/SAM engine; `Signal_CGE/signal_ai/` provides the AI-native CGE chat layer; `Signal_CGE/sml_workbench/` remains the active SML workbench until migration into `Signal_CGE/signal_sml/`; `Signal_CGE/learning/` remains the active teaching layer; and `Signal_CGE/signal_learning/` plus `Signal_CGE/learning_memory/` support adaptive learning.
 
 ## Module Descriptions
 

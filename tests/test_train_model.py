@@ -25,7 +25,7 @@ class TrainModelTests(unittest.TestCase):
         self.assertTrue(metadata_path.exists())
         artifact = joblib.load(model_path)
         metadata = json.loads(metadata_path.read_text(encoding="utf-8"))
-        version_dir = Path("models") / "versions" / result.model_version
+        version_dir = Path("Behavioral_Signals_AI") / "models" / "versions" / result.model_version
 
         self.assertIn("model", artifact)
         self.assertEqual(metadata["model_version"], result.model_version)

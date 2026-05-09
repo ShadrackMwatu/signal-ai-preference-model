@@ -54,3 +54,6 @@ Added scenario-aware knowledge retrieval from repository-stored Signal CGE refer
 - Updated app routes so Behavioral Signals AI imports from `Behavioral_Signals_AI/` and Signal CGE imports from `Signal_CGE/`.
 - Retained root-level compatibility wrappers for existing imports and tests.
 - Documented the migration in `Documentation/TWO_DOMAIN_REPOSITORY_REORGANIZATION_PLAN.md`.
+- Completed the physical domain split by moving behavioral API, ML, data, model artifacts, privacy, and training code into `Behavioral_Signals_AI/`.
+- Moved backend adapters, legacy docs, learning memory, knowledge-base notes, and Signal learning modules into `Signal_CGE/`.
+- Updated sample data references and SML templates to use product-domain paths.

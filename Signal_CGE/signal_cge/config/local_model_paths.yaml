@@ -1,4 +1,4 @@
-canonical_model_root: "C:/Users/smwatu/OneDrive - Kenya Institute for Public Policy Research and Analysis/Documents/Signal/models/Model"
+canonical_model_root: "C:/Users/smwatu/OneDrive - Kenya Institute for Public Policy Research and Analysis/Documents/Signal/Signal_CGE/models/Model"
 
 canonical_storage: "${canonical_model_root}/canonical"
 calibration_storage: "${canonical_model_root}/calibration"

@@ -10,7 +10,7 @@ from sml_workbench.parser.sml_parser import parse_sml
 SML_TEXT = """SETS:
   sectors = [agriculture]
 PARAMETERS:
-  SAM = "data/sample_sam.csv"
+  SAM = "Behavioral_Signals_AI/data/sample_sam.csv"
 VARIABLES:
   output[sectors]
 EQUATIONS:

@@ -4,7 +4,7 @@ SETS:
   households = [rural, urban]
 
 PARAMETERS:
-  SAM = "data/sample_sam.csv"
+  SAM = "Behavioral_Signals_AI/data/sample_sam.csv"
   elasticity_armington = 2.0
   elasticity_cet = 2.0
 

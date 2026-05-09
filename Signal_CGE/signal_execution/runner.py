@@ -122,11 +122,11 @@ class SignalRunner:
             if candidate.exists():
                 return candidate
             raise FileNotFoundError(f"Uploaded SAM file not found: {candidate}")
-        sam_value = str(model.parameters.get("sam", "data/sample_sam.csv"))
+        sam_value = str(model.parameters.get("sam", "Behavioral_Signals_AI/data/sample_sam.csv"))
         candidate = self.config.resolve(sam_value)
         if candidate.exists():
             return candidate
-        fallback = self.config.resolve("data/sample_sam.csv")
+        fallback = self.config.resolve("Behavioral_Signals_AI/data/sample_sam.csv")
         if fallback.exists():
             return fallback
         raise FileNotFoundError(f"SAM file not found: {candidate}")

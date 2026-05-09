@@ -8,7 +8,7 @@ from src.models.train_demand_model import TARGET_LABELS, train_demand_models
 
 class TrainingPipelineTests(unittest.TestCase):
     def test_training_pipeline_builds_all_models(self) -> None:
-        raw = load_behavioral_signals("data/sample_behavioral_signals.csv")
+        raw = load_behavioral_signals("Behavioral_Signals_AI/data/sample_behavioral_signals.csv")
         features = aggregate_features(build_feature_table(raw))
 
         bundle = train_demand_models(features, "tests/_tmp/test_training_bundle.joblib")

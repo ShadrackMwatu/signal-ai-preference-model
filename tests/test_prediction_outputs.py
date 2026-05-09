@@ -12,8 +12,8 @@ from src.models.train_demand_model import train_demand_models
 class PredictionOutputTests(unittest.TestCase):
     @classmethod
     def setUpClass(cls) -> None:
-        cls.raw = load_behavioral_signals("data/sample_behavioral_signals.csv")
-        cls.competitors = pd.read_csv("data/sample_competitors.csv")
+        cls.raw = load_behavioral_signals("Behavioral_Signals_AI/data/sample_behavioral_signals.csv")
+        cls.competitors = pd.read_csv("Behavioral_Signals_AI/data/sample_competitors.csv")
         cls.features = aggregate_features(build_feature_table(cls.raw))
         cls.bundle = train_demand_models(cls.features, "tests/_tmp/test_prediction_bundle.joblib")
 

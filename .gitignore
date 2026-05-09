@@ -12,6 +12,10 @@ docker/*.exe
 models/versions/v*/
 models/Model/
 models/Model.zip
+Signal_CGE/docker/*.exe
+Signal_CGE/models/Model/
+Signal_CGE/models/Model.zip
+Behavioral_Signals_AI/models/versions/v*/
 Documentation/signal_cge_reference/historical/source_package/**/*.docx
 Documentation/signal_cge_reference/historical/source_package/**/*.pdf
 *.gdx

@@ -11,7 +11,7 @@ from src.cge.sam import calibrate_sam, load_sam, sam_matrix, validate_sam
 from src.cge.simulation import run_cge_simulation
 
 
-SAMPLE_SAM = Path("data/sample_sam.csv")
+SAMPLE_SAM = Path("Behavioral_Signals_AI/data/sample_sam.csv")
 
 
 class CGEFrameworkTests(unittest.TestCase):

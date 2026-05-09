@@ -12,7 +12,8 @@ import pandas as pd
 from .model_training import train_demand_classifier
 
 
-DEFAULT_HISTORY_PATH = Path("models_ml") / "metadata" / "prediction_history.jsonl"
+DOMAIN_ROOT = Path(__file__).resolve().parents[1]
+DEFAULT_HISTORY_PATH = DOMAIN_ROOT / "models_ml" / "metadata" / "prediction_history.jsonl"
 
 
 class AdaptiveLearningStore:
@@ -68,7 +69,7 @@ def retrain_when_labelled_data_available(
     target_column: str = "demand_class",
     minimum_rows: int = 30,
     model_name: str = "adaptive_signal_demand_classifier",
-    output_dir: str | Path = Path("models_ml") / "trained_models",
+    output_dir: str | Path = DOMAIN_ROOT / "models_ml" / "trained_models",
     registry: Any | None = None,
 ) -> dict[str, Any]:
     """Retrain the default classifier when enough labelled data is available."""
