@@ -50,6 +50,7 @@ except Exception as exc:  # pragma: no cover - exercised in constrained Space ru
 try:
     from cge_workbench.runners.gams_runner import find_gams_executable
     from cge_workbench.workbench import run_chat_scenario
+    from signal_ai.conversation_engine.chat_orchestrator import run_chat_simulation
 
     AI_CGE_WORKBENCH_AVAILABLE = True
     AI_CGE_WORKBENCH_IMPORT_ERROR = ""
@@ -542,6 +543,38 @@ def ai_cge_workbench_model(
         return summary, scenario_json, results_json, result["artifacts"].get("policy_brief")
     except Exception as exc:
         return f"AI-CGE Workbench run failed: {exc}", "{}", "{}", None
+
+
+def ai_cge_chat_studio_model(user_prompt: str, sam_file: Any | None = None) -> tuple[str, str, str, str, str]:
+    """Run the deterministic AI CGE Chat Studio orchestration."""
+
+    try:
+        if not AI_CGE_WORKBENCH_AVAILABLE:
+            raise RuntimeError(f"AI-CGE Workbench unavailable: {AI_CGE_WORKBENCH_IMPORT_ERROR}")
+        sam_path = _uploaded_path(sam_file)
+        result = run_chat_simulation(user_prompt, sam_file=sam_path)
+        scenario_json = json.dumps(result["scenario"], indent=2)
+        diagnostics_json = json.dumps(
+            {
+                "diagnostics": result["diagnostics"],
+                "warnings": result["warnings"],
+            },
+            indent=2,
+        )
+        result_summary = json.dumps(result["results"], indent=2)
+        policy_summary = result["policy_summary"]
+        explanation = "\n\n".join(
+            [
+                policy_summary["executive_summary"],
+                policy_summary["expected_transmission_channel"],
+                "Suggested next simulations:\n"
+                + "\n".join(f"- {item}" for item in policy_summary["suggested_next_simulations"]),
+            ]
+        )
+        recommendations = "\n".join(f"- {item}" for item in policy_summary["suggested_next_simulations"])
+        return scenario_json, diagnostics_json, result_summary, explanation, recommendations
+    except Exception as exc:
+        return "{}", json.dumps({"error": str(exc)}, indent=2), "{}", f"AI CGE Chat Studio failed: {exc}", ""
 
 
 def _prompt_from_controls(scenario_family: str, shock_size: float, target_account: str) -> str:
@@ -1767,6 +1800,33 @@ with gr.Blocks(title="Signal AI Market Intelligence", css=SIGNAL_DASHBOARD_CSS) 
                 workbench_sam_upload,
             ],
             outputs=[cge_summary_output, cge_policy_output, gams_output, cge_brief_download],
+            show_api=False,
+        )
+
+    with gr.Tab("AI CGE Chat Studio"):
+        chat_policy_prompt = gr.Textbox(
+            label="Natural-language policy question",
+            value="increase government spending on care services by 10 percent",
+            lines=5,
+        )
+        chat_sam_upload = gr.File(label="Optional SAM CSV/XLSX", file_types=[".csv", ".xlsx", ".xls"])
+        run_chat_button = gr.Button("Run chat simulation")
+        with gr.Row():
+            chat_scenario_output = gr.Code(label="Structured scenario JSON", language="json", lines=14)
+            chat_diagnostics_output = gr.Code(label="Diagnostics and warnings", language="json", lines=14)
+        chat_results_output = gr.Code(label="Results summary", language="json", lines=16)
+        chat_policy_output = gr.Textbox(label="Policy explanation", lines=9)
+        chat_recommendations_output = gr.Markdown(label="Recommended next simulations")
+        run_chat_button.click(
+            fn=ai_cge_chat_studio_model,
+            inputs=[chat_policy_prompt, chat_sam_upload],
+            outputs=[
+                chat_scenario_output,
+                chat_diagnostics_output,
+                chat_results_output,
+                chat_policy_output,
+                chat_recommendations_output,
+            ],
             show_api=False,
         )
 
