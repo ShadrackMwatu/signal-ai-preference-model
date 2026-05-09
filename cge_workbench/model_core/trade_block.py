@@ -1,37 +1,11 @@
-"""Trade block for imports, exports, and external balance."""
+﻿"""Compatibility wrapper for $module.
 
-from __future__ import annotations
+cge_workbench is retained during the Signal CGE package transition.
+Use $module for new code.
+"""
 
-from typing import Any
+from importlib import import_module
+import sys
 
-
-BLOCK_NAME = "trade"
-
-
-def equation_placeholders() -> list[dict[str, str]]:
-    return [
-        {
-            "name": "import_price",
-            "equation": "PM[c] = exchange_rate * world_import_price[c] * (1 + import_tariff[c])",
-            "role": "Import prices combine world prices, tariffs, and exchange-rate assumptions.",
-        },
-        {
-            "name": "export_supply",
-            "equation": "QE[c] = EXPORT_FUNCTION(domestic_price[c], export_price[c], transform_elasticity[c])",
-            "role": "Export supply responds to relative domestic and export prices.",
-        },
-    ]
-
-
-def validate_trade_data(data: dict[str, Any]) -> dict[str, Any]:
-    warnings = []
-    accounts = {str(account).lower() for account in data.get("accounts", [])}
-    if not any("export" in account for account in accounts):
-        warnings.append("No export account was identified.")
-    if not any("import" in account for account in accounts):
-        warnings.append("No import account was identified.")
-    return {"valid": True, "errors": [], "warnings": warnings}
-
-
-def build_trade_block(parameters: dict[str, Any]) -> dict[str, Any]:
-    return {"block": BLOCK_NAME, "equations": equation_placeholders(), "validation": validate_trade_data(parameters)}
+_module = import_module("signal_cge.model_core.trade_block")
+sys.modules[__name__] = _module

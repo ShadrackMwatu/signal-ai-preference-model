@@ -25,6 +25,17 @@ Signal brings together five core capabilities:
 
 The trained machine-learning model remains the primary prediction engine for demand intelligence in the dashboard.
 
+## Signal CGE Architecture
+
+Signal now includes an AI-native CGE/SAM architecture organized around the canonical `signal_cge/` package.
+
+- **Signal CGE Framework:** formal model structure, calibration, closures, diagnostics, solver interfaces, and reporting.
+- **AI CGE Chat Studio:** natural-language policy simulation interface that compiles prompts into structured scenarios.
+- **SML CGE Workbench:** readable model specification, validation, and export preparation.
+- **Learning:** guided explanations of SAMs, CGE blocks, calibration, closures, diagnostics, and policy interpretation.
+
+The current operational backend is the Python SAM multiplier fallback. Signal also includes a calibration prototype and formal model-core blocks that prepare the project for a future open-source equilibrium solver and recursive dynamics. Optional GAMS and future Pyomo/SciPy pathways remain guarded so Hugging Face deployment can start without them.
+
 ## Documentation Navigation
 
 The full project documentation system is available under `Documentation/`.

@@ -1,0 +1,7 @@
+scenario_name: Baseline
+shock_type: baseline
+target_accounts: [all]
+shock_value: 0
+shock_unit: percent
+closure_rule: standard_sam_multiplier
+expected_outputs: [macro_results, sectoral_output, diagnostics]

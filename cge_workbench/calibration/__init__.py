@@ -1,10 +1,16 @@
-"""Signal CGE calibration prototype."""
+"""Compatibility wrapper for `signal_cge.calibration`."""
 
-from .account_classifier import CARE_SUFFIXES, classify_sam_accounts
-from .benchmark_extractor import extract_benchmark_flows, validate_sam_matrix
-from .calibration_diagnostics import run_calibration_diagnostics
-from .calibration_pipeline import calibrate_signal_cge
-from .share_parameters import calibrate_share_parameters
+from signal_cge.calibration import (
+    CARE_SUFFIXES,
+    calibrate_share_parameters,
+    calibrate_signal_cge,
+    classify_sam_accounts,
+    extract_benchmark_flows,
+    run_calibration_diagnostics,
+    validate_sam_matrix,
+)
+
+build_calibration_dataset = calibrate_signal_cge
 
 __all__ = [
     "CARE_SUFFIXES",
@@ -14,4 +20,5 @@ __all__ = [
     "extract_benchmark_flows",
     "run_calibration_diagnostics",
     "validate_sam_matrix",
+    "build_calibration_dataset",
 ]

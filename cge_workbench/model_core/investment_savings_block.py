@@ -1,35 +1,11 @@
-"""Investment-savings balance block."""
+﻿"""Compatibility wrapper for $module.
 
-from __future__ import annotations
+cge_workbench is retained during the Signal CGE package transition.
+Use $module for new code.
+"""
 
-from typing import Any
+from importlib import import_module
+import sys
 
-
-BLOCK_NAME = "investment_savings"
-
-
-def equation_placeholders() -> list[dict[str, str]]:
-    return [
-        {
-            "name": "total_savings",
-            "equation": "SAV = household_savings + government_savings + foreign_savings",
-            "role": "Aggregate savings pools domestic and foreign savings sources.",
-        },
-        {
-            "name": "investment_demand",
-            "equation": "QINV[c] = investment_share[c] * real_investment",
-            "role": "Investment demand allocates total investment across commodities.",
-        },
-    ]
-
-
-def validate_investment_savings_data(data: dict[str, Any]) -> dict[str, Any]:
-    errors = []
-    savings_rate = data.get("savings_rate")
-    if savings_rate is not None and float(savings_rate) < 0:
-        errors.append("Savings rate must be non-negative.")
-    return {"valid": not errors, "errors": errors}
-
-
-def build_investment_savings_block(parameters: dict[str, Any]) -> dict[str, Any]:
-    return {"block": BLOCK_NAME, "equations": equation_placeholders(), "validation": validate_investment_savings_data(parameters)}
+_module = import_module("signal_cge.model_core.investment_savings_block")
+sys.modules[__name__] = _module

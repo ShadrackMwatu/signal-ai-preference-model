@@ -1,8 +1,12 @@
-"""Signal AI-CGE Workbench package."""
+"""Compatibility package for the canonical `signal_cge` package.
 
-from .interpreters.natural_language_to_scenario import ScenarioSpec, parse_scenario_prompt
-from .runners.python_runner import PythonSAMRunner
-from .runners.runner_interface import ModelRunResult, RunnerConfig, SignalModelRunner
+New code should import from `signal_cge`. This package remains during the
+transition so existing Signal app and test imports continue to work.
+"""
+
+from signal_cge.scenarios.scenario_schema import ScenarioSpec, parse_scenario_prompt
+from signal_cge.solvers.python_runner import PythonSAMRunner
+from signal_cge.solvers.runner_interface import ModelRunResult, RunnerConfig, SignalModelRunner
 
 __all__ = [
     "ModelRunResult",

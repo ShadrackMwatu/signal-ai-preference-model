@@ -1,1 +1,1 @@
-"""Interpreters for scenarios, results, and policy briefs."""
+"""Compatibility wrappers for Signal CGE scenario and reporting modules."""

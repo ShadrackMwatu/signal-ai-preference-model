@@ -5,9 +5,9 @@ from __future__ import annotations
 from pathlib import Path
 from typing import Any
 
-from cge_workbench.interpreters.natural_language_to_scenario import parse_scenario_prompt
-from cge_workbench.workbench import run_chat_scenario
 from policy_ai.policy_brief_service import generate_policy_summary
+from signal_cge.scenarios.scenario_schema import parse_scenario_prompt
+from signal_cge.workbench import run_chat_scenario
 from signal_ai.memory.simulation_memory import save_simulation
 from signal_ai.prompt_router.intent_classifier import classify_intent
 from signal_ai.reasoning.economic_reasoner import (

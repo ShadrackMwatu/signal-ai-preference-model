@@ -1,0 +1,7 @@
+scenario_name: Export trade facilitation
+shock_type: trade_facilitation
+target_accounts: [exports]
+shock_value: 10
+shock_unit: percent
+closure_rule: external_account_adjusts
+expected_outputs: [sectoral_output, external_balance, household_income]

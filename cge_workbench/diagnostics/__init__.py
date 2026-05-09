@@ -1,1 +1,1 @@
-"""Diagnostics for Signal CGE Workbench."""
+"""Compatibility wrapper for `signal_cge.diagnostics`."""

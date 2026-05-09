@@ -1,0 +1,7 @@
+scenario_name: Transport productivity improvement
+shock_type: productivity
+target_accounts: [transport]
+shock_value: 5
+shock_unit: percent
+closure_rule: standard_sam_multiplier
+expected_outputs: [sectoral_output, household_income, diagnostics]

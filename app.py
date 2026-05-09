@@ -58,8 +58,8 @@ except Exception as exc:  # pragma: no cover - exercised in constrained Space ru
     DEFAULT_SCENARIO = "Baseline policy scenario"
 
 try:
-    from cge_workbench.runners.gams_runner import find_gams_executable
-    from cge_workbench.workbench import run_chat_scenario
+    from signal_cge.solvers.gams_runner import find_gams_executable
+    from signal_cge.workbench import run_chat_scenario
     from signal_ai.conversation_engine.chat_orchestrator import run_chat_simulation
     from signal_ai.conversation_engine.response_formatting import (
         format_diagnostics,
@@ -1766,6 +1766,9 @@ with gr.Blocks(title="Signal AI Market Intelligence", css=SIGNAL_DASHBOARD_CSS) 
         )
 
     with gr.Tab("Signal CGE Framework"):
+        gr.Markdown(
+            "**Purpose:** Formal model structure, calibration, closures, diagnostics, and solver status."
+        )
         with gr.Row():
             model_type_input = gr.Dropdown(
                 label="Model type",
@@ -1807,6 +1810,7 @@ with gr.Blocks(title="Signal AI Market Intelligence", css=SIGNAL_DASHBOARD_CSS) 
         )
 
     with gr.Tab("AI CGE Chat Studio"):
+        gr.Markdown("**Purpose:** Natural-language policy simulation interface.")
         chat_policy_prompt = gr.Textbox(
             label="Natural-language policy question",
             value="increase government spending on care services by 10 percent",
@@ -1834,6 +1838,7 @@ with gr.Blocks(title="Signal AI Market Intelligence", css=SIGNAL_DASHBOARD_CSS) 
         )
 
     with gr.Tab("SML CGE Workbench"):
+        gr.Markdown("**Purpose:** Readable model specification, validation, and export preparation.")
         sam_upload = gr.File(label="Upload SAM CSV/XLSX", file_types=[".csv", ".xlsx", ".xls"])
         sml_upload = gr.File(label="Upload SML Model", file_types=[".sml", ".txt"])
         sml_editor = gr.Textbox(label="Signal Modelling Language", value=DEFAULT_SML_TEXT, lines=20)
@@ -1857,6 +1862,9 @@ with gr.Blocks(title="Signal AI Market Intelligence", css=SIGNAL_DASHBOARD_CSS) 
         )
 
     with gr.Tab("Learning"):
+        gr.Markdown(
+            "**Purpose:** Guided explanations of SAM, CGE, SML, calibration, closures, diagnostics, and scenario interpretation."
+        )
         learning_topic = gr.Dropdown(
             label="Learning Topic",
             choices=[

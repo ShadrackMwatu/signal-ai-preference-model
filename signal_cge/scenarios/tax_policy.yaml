@@ -1,0 +1,7 @@
+scenario_name: VAT reduction on manufacturing
+shock_type: tax
+target_accounts: [manufacturing]
+shock_value: -10
+shock_unit: percent
+closure_rule: government_savings_adjusts
+expected_outputs: [macro_results, sectoral_output, fiscal_implications, household_income]
