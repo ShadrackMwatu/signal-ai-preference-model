@@ -11,7 +11,7 @@ pinned: false
 
 # Signal AI Preference Model
 
-Signal is an integrated AI platform for behavioral intelligence, revealed preference analysis, live trend monitoring, SML-based CGE/SAM modeling, and learning support.
+Signal is an integrated AI platform with two public product domains: Behavioral Signals AI and Signal CGE.
 
 ## Platform Overview
 
@@ -34,13 +34,13 @@ The Hugging Face app exposes two public tabs:
 
 Framework, SML, learning, and older chat-studio modules remain in the repository as backend/internal capabilities, but they are no longer exposed as separate public tabs. See [Signal Two-Tab Public Interface](Documentation/SIGNAL_TWO_TAB_INTERFACE.md).
 
-Product-domain ownership is documented in [Signal Product Domain Map](Documentation/SIGNAL_PRODUCT_DOMAIN_MAP.md). The public app routes through `app_routes/` so Behavioral Signals AI and Signal CGE use their correct backend folders.
+Product-domain ownership is documented in [Signal Product Domain Map](Documentation/SIGNAL_PRODUCT_DOMAIN_MAP.md). The public app routes through `app_routes/` so Behavioral Signals AI and Signal CGE use their product-domain backend folders.
 
 Signal CGE also includes repo-based knowledge retrieval and metadata-only adaptive learning. See [Signal CGE Repo Knowledge Integration](Documentation/SIGNAL_CGE_REPO_KNOWLEDGE_INTEGRATION.md) and [Signal CGE Adaptive Learning Policy](Documentation/SIGNAL_CGE_ADAPTIVE_LEARNING_POLICY.md).
 
 ## Signal CGE Architecture
 
-Signal now includes an AI-native CGE/SAM architecture organized around the canonical `signal_cge/` package.
+Signal now includes an AI-native CGE/SAM architecture organized around the canonical `Signal_CGE/signal_cge/` package.
 
 - **Signal CGE Framework:** formal model structure, calibration, closures, diagnostics, solver interfaces, and reporting.
 - **AI CGE Chat Studio:** natural-language policy simulation interface that compiles prompts into structured scenarios.
@@ -51,7 +51,7 @@ The current operational backend is the Python SAM multiplier fallback. Signal al
 
 ## Signal CGE Canonical Architecture
 
-The canonical Signal CGE knowledge system is stored in `Documentation/signal_cge_reference/` and connected to the model through `signal_cge/model_registry.py` plus `signal_cge/knowledge/`.
+The canonical Signal CGE knowledge system is stored in `Documentation/signal_cge_reference/` and connected to the model through `Signal_CGE/signal_cge/model_registry.py` plus `Signal_CGE/signal_cge/knowledge/`.
 
 ```mermaid
 flowchart TD
@@ -72,8 +72,8 @@ Canonical folders:
 - `Documentation/signal_cge_reference/calibration/`: SAM calibration workflow.
 - `Documentation/signal_cge_reference/closures/`: closure-system documentation.
 - `Documentation/signal_cge_reference/experiments/`: experiment workflow documentation.
-- `models/canonical/signal_cge_master/`: canonical model profile.
-- `models/canonical/templates/`, `calibration_profiles/`, and `experiment_templates/`: future reusable model assets.
+- `Signal_CGE/models/canonical/signal_cge_master/`: canonical model profile.
+- `Signal_CGE/models/canonical/templates/`, `calibration_profiles/`, and `experiment_templates/`: future reusable model assets.
 
 ## Documentation Navigation
 
@@ -123,37 +123,54 @@ app.py
 requirements.txt
 README.md
 
-Core production layers:
-  signal_cge/       official CGE/SAM model engine
-  signal_ai/        AI chat, scenario orchestration, reasoning, memory, explainability
-  policy_ai/        policy summaries and scenario recommendations
-  sml_workbench/    current active SML parser, validator, and exporters
-  learning/         current active teaching and concept explanation layer
+Product domains:
+  Behavioral_Signals_AI/
+    behavioral_ai/
+    adaptive_learning/
+    live_trends/
+    explainability/
+    data/
+    models/
+    docs/
 
-Compatibility and migration layers:
-  cge_workbench/    compatibility wrappers for old CGE imports
-  signal_sml/       future canonical SML namespace
-  signal_learning/  adaptive learning utilities and future canonical learning namespace
+  Signal_CGE/
+    signal_cge/
+    signal_ai/
+    signal_sml/
+    sml_workbench/
+    policy_ai/
+    cge_workbench/
+    cge_core/
+    cge_engine/
+    solvers/
+    signal_execution/
+    signal_modeling_language/
+    policy_intelligence/
+    models/
+    docs/
+    outputs/
 
-Legacy or experimental layers:
-  cge_core/                  early CGE/SAM core utilities
-  cge_engine/                historical CGE engine namespace
-  solvers/                   early solver registry and solver prototypes
-  signal_execution/          guarded SML execution workflow
-  signal_modeling_language/  earlier SML grammar and parser implementation
-  policy_intelligence/       earlier policy report utilities
+Shared root:
+  app.py
+  app_routes/
+  requirements.txt
+  README.md
+  tests/
+  Documentation/
+  .github/
+  .gitignore
 
-Data and outputs:
-  data/
-  models/
-  outputs/
+Compatibility wrappers:
+  root imports such as signal_cge, signal_ai, policy_ai, sml_workbench,
+  cge_workbench, cge_core, solvers, adaptive_learning, explainability,
+  trend_intelligence, and x_trends remain available during migration.
 
 Testing and documentation:
   tests/
   Documentation/
 ```
 
-For the current ownership map and migration plan, see [Signal Repository Duplication Audit](Documentation/SIGNAL_REPOSITORY_DUPLICATION_AUDIT.md) and [Signal Repository Migration Roadmap](Documentation/SIGNAL_REPOSITORY_MIGRATION_ROADMAP.md).
+For the current ownership map and migration plan, see [Signal Product Domain Map](Documentation/SIGNAL_PRODUCT_DOMAIN_MAP.md), [Two-Domain Reorganization Plan](Documentation/TWO_DOMAIN_REPOSITORY_REORGANIZATION_PLAN.md), and [Signal Repository Migration Roadmap](Documentation/SIGNAL_REPOSITORY_MIGRATION_ROADMAP.md).
 
 ## Architecture Summary
 
@@ -168,7 +185,7 @@ flowchart TD
   D --> H["Learning memory and adaptive recommendations"]
 ```
 
-Signal is organized as a modular intelligence platform. `app.py` provides the Gradio user experience; `train_model.py`, `ml/`, and `src/models/` support model training and prediction; `trend_intelligence.py` and `x_trends.py` support aggregate live trend intelligence; `signal_cge/` is the canonical CGE/SAM engine; `signal_ai/` provides the AI-native CGE chat layer; `sml_workbench/` remains the active SML workbench until migration into `signal_sml/`; `learning/` remains the active teaching layer; and `signal_learning/` plus `learning_memory/` support adaptive learning.
+Signal is organized as a modular intelligence platform. `app.py` provides the Gradio user experience; `train_model.py`, `ml/`, and `src/models/` support model training and prediction; `Behavioral_Signals_AI/trend_intelligence.py` and `Behavioral_Signals_AI/x_trends.py` support aggregate live trend intelligence; `Signal_CGE/signal_cge/` is the canonical CGE/SAM engine; `Signal_CGE/signal_ai/` provides the AI-native CGE chat layer; `Signal_CGE/sml_workbench/` remains the active SML workbench until migration into `Signal_CGE/signal_sml/`; `learning/` remains the active teaching layer; and `signal_learning/` plus `learning_memory/` support adaptive learning.
 
 ## Module Descriptions
 

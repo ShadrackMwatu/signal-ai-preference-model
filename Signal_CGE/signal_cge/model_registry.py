@@ -7,9 +7,9 @@ from pathlib import Path
 from signal_cge.local_workspace.workspace_registry import get_workspace_registry
 
 
-REPO_ROOT = Path(__file__).resolve().parents[1]
+REPO_ROOT = Path(__file__).resolve().parents[2]
 REFERENCE_ROOT = REPO_ROOT / "Documentation" / "signal_cge_reference"
-CANONICAL_MODEL_ROOT = REPO_ROOT / "models" / "canonical"
+CANONICAL_MODEL_ROOT = REPO_ROOT / "Signal_CGE" / "models" / "canonical"
 
 
 def get_canonical_reference_registry() -> dict[str, object]:
@@ -71,6 +71,7 @@ def get_model_registry() -> dict[str, object]:
         "supported_account_suffixes": ["fcp", "fcu", "fnp", "fnu", "mcp", "mcu", "mnp", "mnu"],
         "active_backend_status": "python_sam_multiplier_ready",
         "canonical_model_structure": "signal_cge",
+        "canonical_model_path": "Signal_CGE/signal_cge",
         "canonical_references": get_canonical_reference_registry(),
         "canonical_repo_models": {
             "root": str(CANONICAL_MODEL_ROOT),

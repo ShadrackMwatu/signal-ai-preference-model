@@ -15,6 +15,8 @@ class SMLParseError(ValueError):
 
 def parse_sml_file(path: str | Path) -> SMLModel:
     source = Path(path)
+    if not source.exists() and source.parts and source.parts[0] == "signal_modeling_language":
+        source = Path("Signal_CGE").joinpath(*source.parts)
     model = parse_sml_text(source.read_text(encoding="utf-8"))
     model.source_path = str(source)
     return model

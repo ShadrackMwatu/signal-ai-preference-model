@@ -42,7 +42,10 @@ def test_signal_cge_loads_canonical_model_profile_without_upload() -> None:
     result = run_signal_cge_prompt("reduce import tariffs on cmach by 10%")
 
     assert result["diagnostics"]["model_profile_loaded"] is True
-    assert result["diagnostics"]["canonical_model_profile"] == "models/canonical/signal_cge_master/model_profile.yaml"
+    assert (
+        result["diagnostics"]["canonical_model_profile"]
+        == "Signal_CGE/models/canonical/signal_cge_master/model_profile.yaml"
+    )
     assert result["diagnostics"]["uploaded_sam"].startswith("not provided")
     assert result["results"]["account_effects"]
 
@@ -53,5 +56,5 @@ def test_domain_map_documents_expected_ownership() -> None:
     assert "Behavioral Signals AI" in text
     assert "Signal CGE" in text
     assert "Legacy / compatibility" in text
-    assert "`signal_cge/`" in text
-    assert "`behavioral_ai/`" in text
+    assert "`Signal_CGE/`" in text
+    assert "`Behavioral_Signals_AI/`" in text

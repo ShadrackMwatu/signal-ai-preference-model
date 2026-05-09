@@ -1,8 +1,7 @@
-"""Integrated SML CGE workbench for Signal."""
+"""Compatibility wrapper for `Signal_CGE/sml_workbench`."""
 
-from __future__ import annotations
+from pathlib import Path
 
-from .parser.sml_parser import parse_sml, parse_sml_file, load_sml_text
-from .validators.sml_validator import validate_sml
+__path__ = [str(Path(__file__).resolve().parents[1] / "Signal_CGE" / "sml_workbench")]
 
-__all__ = ["parse_sml", "parse_sml_file", "load_sml_text", "validate_sml"]
+from Signal_CGE.sml_workbench import *  # noqa: F401,F403,E402

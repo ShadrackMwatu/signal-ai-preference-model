@@ -12,14 +12,16 @@ import json
 from pathlib import Path
 from typing import Any
 
-from signal_ai.conversation_engine.chat_orchestrator import run_chat_simulation
-from signal_cge.diagnostics.model_readiness import get_model_readiness
-from signal_cge.knowledge.document_loader import load_model_profile
-from signal_cge.knowledge.reference_index import build_reference_index
-from signal_cge.knowledge.scenario_context import get_scenario_context
-from signal_cge.learning.adaptive_rules import apply_adaptive_prompt_rules
-from signal_cge.learning.model_improvement_suggestions import generate_model_improvement_suggestions
-from signal_cge.learning.simulation_memory import record_simulation_learning_event
+from Signal_CGE.signal_ai.conversation_engine.chat_orchestrator import run_chat_simulation
+from Signal_CGE.signal_cge.diagnostics.model_readiness import get_model_readiness
+from Signal_CGE.signal_cge.knowledge.document_loader import load_model_profile
+from Signal_CGE.signal_cge.knowledge.reference_index import build_reference_index
+from Signal_CGE.signal_cge.knowledge.scenario_context import get_scenario_context
+from Signal_CGE.signal_cge.learning.adaptive_rules import apply_adaptive_prompt_rules
+from Signal_CGE.signal_cge.learning.model_improvement_suggestions import (
+    generate_model_improvement_suggestions,
+)
+from Signal_CGE.signal_cge.learning.simulation_memory import record_simulation_learning_event
 
 
 FULL_CGE_FALLBACK_MESSAGE = (
@@ -43,7 +45,7 @@ def run_signal_cge_prompt(prompt: str, uploaded_file: Any | None = None) -> dict
         **result.get("diagnostics", {}),
         "model_profile_loaded": True,
         "reference_sections": reference_index.get("sections", []),
-        "canonical_model_profile": "models/canonical/signal_cge_master/model_profile.yaml",
+        "canonical_model_profile": "Signal_CGE/models/canonical/signal_cge_master/model_profile.yaml",
         "uploaded_sam": "provided" if sam_path else "not provided; using canonical profile and fallback SAM where needed",
         "fallback_explanation": FULL_CGE_FALLBACK_MESSAGE,
         "adaptive_rules": adaptive_hints,

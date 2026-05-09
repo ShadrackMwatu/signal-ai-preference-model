@@ -7,9 +7,9 @@ from pathlib import Path
 from typing import Any
 
 
-REPO_ROOT = Path(__file__).resolve().parents[2]
+REPO_ROOT = Path(__file__).resolve().parents[3]
 REFERENCE_ROOT = REPO_ROOT / "Documentation" / "signal_cge_reference"
-CANONICAL_MODEL_ROOT = REPO_ROOT / "models" / "canonical"
+CANONICAL_MODEL_ROOT = REPO_ROOT / "Signal_CGE" / "models" / "canonical"
 MODEL_PROFILE_PATH = CANONICAL_MODEL_ROOT / "signal_cge_master" / "model_profile.yaml"
 KNOWLEDGE_BASE_PATH = REPO_ROOT / "Documentation" / "SIGNAL_CGE_KNOWLEDGE_BASE.md"
 

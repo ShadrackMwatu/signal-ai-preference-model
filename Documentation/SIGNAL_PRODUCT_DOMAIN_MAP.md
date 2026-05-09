@@ -5,9 +5,17 @@ Signal now has two public product domains:
 1. **Behavioral Signals AI**
 2. **Signal CGE**
 
-The Hugging Face app exposes only those two public tabs. Backend folders remain in place for compatibility, tests, and future migration.
+The Hugging Face app exposes only those two public tabs. Backend folders now live primarily under `Behavioral_Signals_AI/` and `Signal_CGE/`; root-level wrappers remain in place for compatibility, tests, and future migration.
 
 ## Domain Ownership
+
+## Current Product Roots
+
+| Folder | Purpose | Assigned domain | Used by `app.py` | Used by tests | Recommended action |
+|---|---|---|---:|---:|---|
+| `Behavioral_Signals_AI/` | Behavioral intelligence product root. | Behavioral Signals AI | Via route | Yes | New canonical home for behavioral-domain code. |
+| `Signal_CGE/` | CGE/SAM product root. | Signal CGE | Via route | Yes | New canonical home for CGE-domain code. |
+| root compatibility wrappers | Preserve imports such as `signal_cge`, `signal_ai`, `policy_ai`, `sml_workbench`, `cge_core`, `solvers`, `adaptive_learning`, and `explainability`. | Legacy / compatibility | Indirect | Yes | Retain temporarily until imports are fully migrated. |
 
 | Folder | Purpose | Assigned domain | Used by `app.py` | Used by tests | Recommended action |
 |---|---|---|---:|---:|---|
@@ -58,13 +66,13 @@ The Hugging Face app exposes only those two public tabs. Backend folders remain 
 
 ## Public App Routing
 
-- `Behavioral Signals AI` tab routes through `app_routes.behavioral_route`.
-- `Signal CGE` tab routes through `app_routes.signal_cge_route`.
+- `Behavioral Signals AI` tab routes through `app_routes.behavioral_route` and imports product code from `Behavioral_Signals_AI/`.
+- `Signal CGE` tab routes through `app_routes.signal_cge_route` and imports product code from `Signal_CGE/`.
 - Signal CGE uses repo-stored canonical files by default:
-  - `models/canonical/signal_cge_master/model_profile.yaml`
+  - `Signal_CGE/models/canonical/signal_cge_master/model_profile.yaml`
   - `Documentation/signal_cge_reference/`
-  - `signal_cge/knowledge/`
+  - `Signal_CGE/signal_cge/knowledge/`
 
 ## Remaining Legacy Folders
 
-The following folders remain for compatibility and tests: `cge_core/`, `cge_engine/`, `solvers/`, `signal_execution/`, `signal_modeling_language/`, and `policy_intelligence/`. They should not be deleted until imports and tests are migrated.
+The following root imports remain as compatibility wrappers: `cge_core`, `cge_engine`, `solvers`, `signal_execution`, `signal_modeling_language`, `policy_intelligence`, `cge_workbench`, `sml_workbench`, `signal_ai`, `signal_cge`, `policy_ai`, `adaptive_learning`, `explainability`, `trend_intelligence`, and `x_trends`. They should not be deleted until imports and tests are migrated.

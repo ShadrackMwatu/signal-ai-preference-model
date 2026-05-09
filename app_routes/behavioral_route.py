@@ -8,10 +8,10 @@ from __future__ import annotations
 
 from typing import Any
 
-import behavioral_ai  # noqa: F401
-import live_trends  # noqa: F401
-from adaptive_learning import aggregate_feedback_for_retraining  # noqa: F401
-from explainability import generate_prediction_explanation
+import Behavioral_Signals_AI.behavioral_ai  # noqa: F401
+import Behavioral_Signals_AI.live_trends  # noqa: F401
+from Behavioral_Signals_AI.adaptive_learning import aggregate_feedback_for_retraining  # noqa: F401
+from Behavioral_Signals_AI.explainability import generate_prediction_explanation
 
 
 def run_behavioral_signal_prediction(

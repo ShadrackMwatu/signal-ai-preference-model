@@ -6,8 +6,8 @@ from pathlib import Path
 from typing import Any
 
 
-REPO_ROOT = Path(__file__).resolve().parents[2]
-CONFIG_DIR = REPO_ROOT / "signal_cge" / "config"
+PACKAGE_ROOT = Path(__file__).resolve().parents[1]
+CONFIG_DIR = PACKAGE_ROOT / "config"
 LOCAL_PATHS_CONFIG = CONFIG_DIR / "local_model_paths.yaml"
 REQUIRED_WORKSPACE_FOLDERS = [
     "canonical",

@@ -45,3 +45,12 @@ Updated the Signal CGE tab so no upload is required. The public workflow now def
 ## Signal CGE Repo Knowledge and Adaptive Learning
 
 Added scenario-aware knowledge retrieval from repository-stored Signal CGE reference materials and threaded the knowledge context into Signal CGE outputs, diagnostics, policy interpretation, downloads, and the public UI. Added metadata-only simulation learning memory under `outputs/signal_cge_learning/`, deterministic adaptive prompt rules, learning summaries, and model improvement suggestions. Runtime learning logs are ignored from Git by default.
+# Two-Domain Repository Reorganization
+
+- Created `Behavioral_Signals_AI/` and `Signal_CGE/` as the two top-level product domains.
+- Moved stable Behavioral Signals AI modules into `Behavioral_Signals_AI/`.
+- Moved Signal CGE, AI orchestration, SML, policy, solver, execution, and legacy CGE folders into `Signal_CGE/`.
+- Moved the canonical Signal CGE model profile under `Signal_CGE/models/canonical/`.
+- Updated app routes so Behavioral Signals AI imports from `Behavioral_Signals_AI/` and Signal CGE imports from `Signal_CGE/`.
+- Retained root-level compatibility wrappers for existing imports and tests.
+- Documented the migration in `Documentation/TWO_DOMAIN_REPOSITORY_REORGANIZATION_PLAN.md`.
