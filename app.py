@@ -608,24 +608,34 @@ def run_signal_cge_prompt(prompt: str, uploaded_file: Any | None = None) -> dict
     return route_run_signal_cge_prompt(prompt, uploaded_file)
 
 
-def signal_cge_prompt_ui(prompt: str, uploaded_file: Any | None = None) -> tuple[str, pd.DataFrame, pd.DataFrame, str, str, str, str | None, str | None, str | None]:
+def signal_cge_prompt_ui(prompt: str, uploaded_file: Any | None = None) -> tuple[
+    str,
+    str,
+    pd.DataFrame,
+    pd.DataFrame,
+    str,
+    str,
+    str,
+    str,
+    str,
+    str | None,
+    str | None,
+    str | None,
+]:
     """Return display-ready Signal CGE sections for the public Gradio tab."""
 
     result = run_signal_cge_prompt(prompt, uploaded_file)
     downloads = result.get("downloads", {})
     return (
+        _render_interpreted_scenario(result),
         _render_results_cards(result),
+        _results_table_dataframe(result),
         pd.DataFrame(result.get("chart_data", [])),
-        _results_table_dataframe(result.get("results", {})),
-        _render_model_reference_used(result),
         _render_policy_interpretation(result.get("interpretation", {})),
-        "\n\n".join(
-            [
-                _render_interpreted_scenario(result),
-                _render_diagnostics(result.get("diagnostics", {})),
-                _render_readiness(result.get("readiness", {})),
-            ]
-        ),
+        _render_model_reference_used(result),
+        _render_adaptive_learning_trace(result.get("learning_trace", {})),
+        _render_diagnostics(result.get("diagnostics", {})),
+        _render_readiness(result.get("readiness", {})),
         downloads.get("policy_brief_md"),
         downloads.get("results_json"),
         downloads.get("results_csv"),
@@ -794,22 +804,26 @@ def _render_results_cards(result: dict[str, Any]) -> str:
         )
         for label, value in cards
     )
-
-
-def _results_table_dataframe(results: dict[str, Any]) -> pd.DataFrame:
-    rows = [
-        {"metric": "GDP/output", "effect": results.get("GDP/output effect", 0.0)},
-        {"metric": "Factor income", "effect": results.get("factor income effect", 0.0)},
-        {"metric": "Household income", "effect": results.get("household income effect", 0.0)},
-        {"metric": "Government balance", "effect": results.get("government balance effect", 0.0)},
-        {"metric": "Trade", "effect": results.get("trade effect", 0.0)},
-        {"metric": "Welfare/proxy welfare", "effect": results.get("welfare/proxy welfare effect", 0.0)},
-        {"metric": "Gender-care impact", "effect": results.get("gender-care impact", "Not applicable to this scenario.")},
-    ]
-    return pd.DataFrame(rows)
     return (
         "<div style='display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:10px;margin:10px 0;'>"
         f"{card_html}</div>"
+    )
+
+
+def _results_table_dataframe(result_or_results: dict[str, Any]) -> pd.DataFrame:
+    if "results_table" in result_or_results:
+        return pd.DataFrame(result_or_results.get("results_table", []))
+    results = result_or_results
+    return pd.DataFrame(
+        [
+            {"metric": "GDP/output", "effect": results.get("GDP/output effect", 0.0)},
+            {"metric": "Factor income", "effect": results.get("factor income effect", 0.0)},
+            {"metric": "Household income", "effect": results.get("household income effect", 0.0)},
+            {"metric": "Government balance", "effect": results.get("government balance effect", 0.0)},
+            {"metric": "Trade/import pressure", "effect": results.get("trade effect", 0.0)},
+            {"metric": "Welfare/proxy welfare", "effect": results.get("welfare/proxy welfare effect", 0.0)},
+            {"metric": "Gender-care impact", "effect": results.get("gender-care impact", "Not applicable to this scenario.")},
+        ]
     )
 
 
@@ -884,13 +898,20 @@ def _render_simulation_results(results: dict[str, Any]) -> str:
 def _render_policy_interpretation(interpretation: dict[str, Any]) -> str:
     winners = interpretation.get("winners_and_losers", {}).get("likely_winners", [])
     losers = interpretation.get("winners_and_losers", {}).get("likely_losers", [])
+    risks = interpretation.get("risks", [])
+    winner_lines = [f"- {winner}" for winner in winners] if winners else ["- None identified."]
+    loser_lines = [f"- {loser}" for loser in losers] if losers else ["- None identified."]
+    risk_lines = [f"- {risk}" for risk in risks] if risks else ["- No major warning raised."]
     return "\n".join(
         [
             "## Policy Interpretation",
             f"- Transmission mechanism: {interpretation.get('transmission_mechanism', '')}",
-            f"- Winners: {', '.join(winners) if winners else 'None identified.'}",
-            f"- Losers: {', '.join(losers) if losers else 'None identified.'}",
-            f"- Risks: {', '.join(interpretation.get('risks', [])) or 'No major warning raised.'}",
+            "### Likely Winners",
+            *winner_lines,
+            "### Possible Losers/Risks",
+            *loser_lines,
+            "### Policy Risks",
+            *risk_lines,
             f"- Caveats: {', '.join(item for item in interpretation.get('caveats', []) if item)}",
             f"- Recommended next simulations: {', '.join(interpretation.get('recommended_next_simulations', []))}",
         ]
@@ -899,12 +920,30 @@ def _render_policy_interpretation(interpretation: dict[str, Any]) -> str:
 
 def _render_model_reference_used(result: dict[str, Any]) -> str:
     references = result.get("knowledge_context", {}).get("reference_labels", [])
-    lines = ["## Model Knowledge Used"]
+    lines = ["## Model Reference Used"]
     if references:
         lines.extend(f"- {reference} loaded" for reference in references)
     else:
         lines.append("- Canonical model profile loaded")
     lines.append("- Solver limitation note loaded")
+    return "\n".join(lines)
+
+
+def _render_adaptive_learning_trace(trace: dict[str, Any]) -> str:
+    suggestions = trace.get("model_improvement_suggestions", {})
+    if isinstance(suggestions, dict):
+        suggestion_items = suggestions.get("suggested_improvements") or suggestions.get("suggestions") or []
+    else:
+        suggestion_items = []
+    lines = [
+        "## Adaptive Learning Trace",
+        f"- Learning event recorded: `{trace.get('learning_event_recorded', 'no')}`",
+        f"- Adaptive rule used: `{', '.join(trace.get('adaptive_rule_used', [])) or 'none'}`",
+        f"- Scenario pattern recognized: `{trace.get('scenario_pattern_recognized', 'not classified')}`",
+        f"- Prior similar simulations found: `{trace.get('prior_similar_simulations_found', 0)}`",
+        "- Model improvement suggestions:",
+    ]
+    lines.extend(f"  - {item}" for item in suggestion_items[:5]) if suggestion_items else lines.append("  - No new model improvement suggestion.")
     return "\n".join(lines)
 
 
@@ -2120,10 +2159,12 @@ with gr.Blocks(title="Signal AI Dashboard", css=SIGNAL_DASHBOARD_CSS) as demo:
             signal_cge_upload = gr.File(
                 label="Upload SAM or experiment workbook",
                 file_types=[".xlsx", ".csv"],
-            )
+        )
         run_signal_cge_button = gr.Button("Run Signal CGE Simulation")
+        signal_cge_scenario_output = gr.Markdown(label="Interpreted Scenario")
+        gr.Markdown("## Prototype Directional Results")
         signal_cge_summary_cards = gr.HTML(label="Results Summary")
-        signal_cge_results_table = gr.Dataframe(label="Results Table", interactive=False)
+        signal_cge_results_table = gr.Dataframe(label="Numeric Results Table", interactive=False)
         signal_cge_effect_chart = gr.BarPlot(
             label="Scenario effects",
             x="metric",
@@ -2132,9 +2173,11 @@ with gr.Blocks(title="Signal AI Dashboard", css=SIGNAL_DASHBOARD_CSS) as demo:
             tooltip=["metric", "effect"],
             vertical=False,
         )
-        signal_cge_reference_output = gr.Markdown(label="Model Knowledge Used")
-        signal_cge_interpretation_output = gr.Markdown(label="Scenario Interpretation")
+        signal_cge_interpretation_output = gr.Markdown(label="Policy Interpretation")
+        signal_cge_reference_output = gr.Markdown(label="Model Reference Used")
+        signal_cge_learning_trace_output = gr.Markdown(label="Adaptive Learning Trace")
         signal_cge_diagnostics_output = gr.Markdown(label="Diagnostics")
+        signal_cge_readiness_output = gr.Markdown(label="Model Readiness")
         with gr.Row():
             signal_cge_json_download = gr.File(label="Download JSON results")
             signal_cge_csv_download = gr.File(label="Download CSV results")
@@ -2143,12 +2186,15 @@ with gr.Blocks(title="Signal AI Dashboard", css=SIGNAL_DASHBOARD_CSS) as demo:
             fn=signal_cge_prompt_ui,
             inputs=[signal_cge_prompt, signal_cge_upload],
             outputs=[
+                signal_cge_scenario_output,
                 signal_cge_summary_cards,
-                signal_cge_effect_chart,
                 signal_cge_results_table,
-                signal_cge_reference_output,
+                signal_cge_effect_chart,
                 signal_cge_interpretation_output,
+                signal_cge_reference_output,
+                signal_cge_learning_trace_output,
                 signal_cge_diagnostics_output,
+                signal_cge_readiness_output,
                 signal_cge_brief_download,
                 signal_cge_json_download,
                 signal_cge_csv_download,

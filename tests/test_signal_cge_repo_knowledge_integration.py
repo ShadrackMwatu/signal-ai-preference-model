@@ -71,8 +71,9 @@ def test_ui_output_includes_model_reference_used() -> None:
 
     outputs = app.signal_cge_prompt_ui("reduce import tariffs on cmach by 10%", None)
 
-    assert "Trade Block loaded" in outputs[3]
-    assert "Solver limitation note loaded" in outputs[3]
+    assert "Trade Block loaded" in outputs[5]
+    assert "Solver limitation note loaded" in outputs[5]
+    assert "Adaptive Learning Trace" in outputs[6]
 
 
 def test_downloadable_report_includes_knowledge_trace() -> None:
@@ -81,6 +82,8 @@ def test_downloadable_report_includes_knowledge_trace() -> None:
     json_text = Path(result["downloads"]["results_json"]).read_text(encoding="utf-8")
 
     assert "Knowledge Trace" in report
+    assert "Adaptive Learning Trace" in report
     assert "Suggested Model Improvements" in report
     assert "knowledge_context" in json_text
+    assert "learning_trace" in json_text
     assert "learning_event_id" in json_text

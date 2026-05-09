@@ -98,10 +98,25 @@ def test_signal_cge_output_sections_and_fallback_message() -> None:
     assert "readiness" in result
     assert "diagnostics" in result
     assert "results" in result
+    assert "results_table" in result
     assert "chart_data" in result
     assert "interpretation" in result
+    assert "learning_trace" in result
     assert app.FULL_CGE_FALLBACK_MESSAGE in result["diagnostics"]["fallback_explanation"]
     assert result["backend_used"] == "python_sam_multiplier"
+    assert result["learning_trace"]["learning_event_recorded"] == "yes"
+
+
+def test_tariff_winners_do_not_include_government_when_revenue_falls() -> None:
+    import app
+
+    result = app.run_signal_cge_prompt("reduce import tariffs on cmach by 10%")
+    winners = result["interpretation"]["winners_and_losers"]["likely_winners"]
+    losers = result["interpretation"]["winners_and_losers"]["likely_losers"]
+
+    assert "government tariff revenue" not in winners
+    assert "government tariff revenue" in losers
+    assert "machinery-using sectors" in winners
 
 
 def test_chart_data_and_download_files_are_created() -> None:
@@ -110,6 +125,7 @@ def test_chart_data_and_download_files_are_created() -> None:
     result = app.run_signal_cge_prompt("reduce import tariffs on cmach by 10%")
 
     assert result["chart_data"]
+    assert result["results_table"]
     assert {row["metric"] for row in result["chart_data"]} >= {
         "GDP/output",
         "Household income",
@@ -123,3 +139,13 @@ def test_chart_data_and_download_files_are_created() -> None:
     assert Path(result["downloads"]["policy_brief_md"]).name == "signal_cge_policy_brief.md"
     for file_path in result["downloads"].values():
         assert Path(file_path).exists()
+
+    json_text = Path(result["downloads"]["results_json"]).read_text(encoding="utf-8")
+    brief_text = Path(result["downloads"]["policy_brief_md"]).read_text(encoding="utf-8")
+    csv_text = Path(result["downloads"]["results_csv"]).read_text(encoding="utf-8")
+    assert "results_table" in json_text
+    assert "model_references_used" in json_text
+    assert "learning_trace" in json_text
+    assert "prototype_directional_indicator" in json_text
+    assert "Adaptive Learning Trace" in brief_text
+    assert "Trade/import pressure" in csv_text

@@ -61,6 +61,7 @@ def run_signal_cge_prompt(prompt: str, uploaded_file: Any | None = None) -> dict
     }
     structured_results = _structured_results(result.get("results", {}), scenario)
     chart_data = _chart_data(structured_results)
+    results_table = _results_table(structured_results)
     interpretation = _policy_interpretation(result, knowledge_context, adaptive_hints, similar_simulations)
     model_improvements = generate_model_improvement_suggestions()
     interpretation["recommended_next_simulations"] = _dedupe(
@@ -83,17 +84,26 @@ def run_signal_cge_prompt(prompt: str, uploaded_file: Any | None = None) -> dict
         }
     )
     learning_summary = write_learning_summary(limit=100)
+    learning_trace = _build_learning_trace(
+        learning_event=learning_event,
+        adaptive_hints=adaptive_hints,
+        scenario=scenario,
+        similar_simulations=similar_simulations,
+        model_improvements=model_improvements,
+    )
     downloads = _write_downloads(
         prompt=prompt,
         scenario=scenario,
         readiness=readiness,
         diagnostics=diagnostics,
         results=structured_results,
+        results_table=results_table,
         interpretation=interpretation,
         model_profile=model_profile,
         knowledge_context=knowledge_context,
         learning_event_id=learning_event["event_id"],
         model_improvements=model_improvements,
+        learning_trace=learning_trace,
         similar_simulations=similar_simulations,
         gap_report=gap_report,
         learning_summary=learning_summary,
@@ -104,8 +114,10 @@ def run_signal_cge_prompt(prompt: str, uploaded_file: Any | None = None) -> dict
         "readiness": readiness,
         "diagnostics": diagnostics,
         "results": structured_results,
+        "results_table": results_table,
         "chart_data": chart_data,
         "interpretation": interpretation,
+        "learning_trace": learning_trace,
         "knowledge_context": knowledge_context,
         "model_improvement_suggestions": model_improvements,
         "model_gap_report": gap_report,
@@ -178,6 +190,19 @@ def _chart_data(results: dict[str, Any]) -> list[dict[str, Any]]:
     ]
 
 
+def _results_table(results: dict[str, Any]) -> list[dict[str, Any]]:
+    return [
+        {"metric": "GDP/output", "effect": results.get("GDP/output effect", 0.0)},
+        {"metric": "Factor income", "effect": results.get("factor income effect", 0.0)},
+        {"metric": "Household income", "effect": results.get("household income effect", 0.0)},
+        {"metric": "Government balance", "effect": results.get("government balance effect", 0.0)},
+        {"metric": "Trade/import pressure", "effect": results.get("trade effect", 0.0)},
+        {"metric": "Welfare/proxy welfare", "effect": results.get("welfare/proxy welfare effect", 0.0)},
+        {"metric": "Gender-care impact", "effect": results.get("gender-care impact", "Not applicable to this scenario.")},
+        {"metric": "Result type", "effect": results.get("result_type", "prototype_directional_indicator")},
+    ]
+
+
 def _account_effect(results: dict[str, Any], account_name: str) -> float:
     accounts = results.get("account_effects", {})
     return float(accounts.get(account_name, 0.0)) if isinstance(accounts, dict) else 0.0
@@ -192,7 +217,7 @@ def _policy_interpretation(
     summary = result.get("policy_summary", {})
     scenario = result.get("scenario", {})
     transmission = summary.get("expected_transmission_channel", "")
-    if scenario.get("shock_type") == "import_tariff":
+    if scenario.get("shock_type") == "import_tariff" or scenario.get("policy_instrument") == "import_tariff":
         target = scenario.get("target_account") or scenario.get("target_commodity") or scenario.get("shock_account", "target commodity")
         transmission = (
             f"`{target}` is treated as the target commodity/account. A tariff reduction affects the import tax wedge; "
@@ -200,13 +225,33 @@ def _policy_interpretation(
             "machinery-using sectors may benefit through lower input or investment costs, domestic substitutes may face "
             "competitive pressure, and trade-balance effects are ambiguous without full equilibrium solving."
         )
+        likely_winners = [
+            "machinery-using sectors",
+            "investment-related activities",
+            "consumers/users of machinery-linked goods",
+            f"importers of {target}",
+        ]
+        likely_losers = [
+            "government tariff revenue",
+            "domestic substitutes",
+            "trade balance if imports rise strongly",
+        ]
+        risks = [
+            "Government tariff revenue may fall.",
+            "Domestic substitutes may face stronger import competition.",
+            "The trade balance may weaken if imports rise strongly.",
+        ]
+    else:
+        likely_winners = summary.get("likely_winners", [])
+        likely_losers = ["Accounts facing higher relative costs or reduced demand, subject to SAM mapping."]
+        risks = summary.get("likely_risks", [])
     return {
         "transmission_mechanism": transmission,
         "winners_and_losers": {
-            "likely_winners": summary.get("likely_winners", []),
-            "likely_losers": ["Accounts facing higher relative costs or reduced demand, subject to SAM mapping."],
+            "likely_winners": likely_winners,
+            "likely_losers": likely_losers,
         },
-        "risks": summary.get("likely_risks", []),
+        "risks": risks,
         "caveats": [
             summary.get("interpretation_caveat", ""),
             FULL_CGE_FALLBACK_MESSAGE,
@@ -237,11 +282,13 @@ def _write_downloads(
     readiness: dict[str, Any],
     diagnostics: dict[str, Any],
     results: dict[str, Any],
+    results_table: list[dict[str, Any]],
     interpretation: dict[str, Any],
     model_profile: dict[str, Any],
     knowledge_context: dict[str, Any],
     learning_event_id: str,
     model_improvements: dict[str, Any],
+    learning_trace: dict[str, Any],
     similar_simulations: list[dict[str, Any]] | None = None,
     gap_report: dict[str, Any] | None = None,
     learning_summary: dict[str, Any] | None = None,
@@ -254,10 +301,13 @@ def _write_downloads(
         "readiness": readiness,
         "diagnostics": diagnostics,
         "results": results,
+        "results_table": results_table,
         "interpretation": interpretation,
         "model_profile": model_profile,
         "knowledge_context": knowledge_context,
+        "model_references_used": knowledge_context.get("reference_labels", []),
         "learning_event_id": learning_event_id,
+        "learning_trace": learning_trace,
         "result_type": "prototype_directional_indicator",
         "model_improvement_suggestions": model_improvements,
         "similar_prior_simulations": similar_simulations or [],
@@ -270,10 +320,10 @@ def _write_downloads(
     md_path.write_text(_policy_brief_markdown(payload), encoding="utf-8")
     json_path.write_text(json.dumps(payload, indent=2), encoding="utf-8")
     with csv_path.open("w", newline="", encoding="utf-8") as handle:
-        writer = csv.DictWriter(handle, fieldnames=["account", "effect"])
+        writer = csv.DictWriter(handle, fieldnames=["metric", "effect"])
         writer.writeheader()
-        for account, effect in results.get("account_effects", {}).items():
-            writer.writerow({"account": account, "effect": effect})
+        for row in results_table:
+            writer.writerow({"metric": row["metric"], "effect": row["effect"]})
     return {"policy_brief_md": str(md_path), "results_json": str(json_path), "results_csv": str(csv_path)}
 
 
@@ -282,10 +332,12 @@ def _policy_brief_markdown(payload: dict[str, Any]) -> str:
         [
             "# Signal CGE Policy Simulation Brief",
             "## Interpreted Scenario\n```json\n" + json.dumps(payload["scenario"], indent=2) + "\n```",
-            "## Model Readiness\n```json\n" + json.dumps(payload["readiness"], indent=2) + "\n```",
-            "## Diagnostics\n```json\n" + json.dumps(payload["diagnostics"], indent=2) + "\n```",
-            "## Simulation Results\n```json\n" + json.dumps(payload["results"], indent=2) + "\n```",
+            "## Prototype Directional Results\n```json\n" + json.dumps(payload["results_table"], indent=2) + "\n```",
             "## Policy Interpretation\n```json\n" + json.dumps(payload["interpretation"], indent=2) + "\n```",
+            "## Model Reference Used\n```json\n" + json.dumps(payload["model_references_used"], indent=2) + "\n```",
+            "## Adaptive Learning Trace\n```json\n" + json.dumps(payload["learning_trace"], indent=2) + "\n```",
+            "## Diagnostics\n```json\n" + json.dumps(payload["diagnostics"], indent=2) + "\n```",
+            "## Model Readiness\n```json\n" + json.dumps(payload["readiness"], indent=2) + "\n```",
             "## Knowledge Trace\n```json\n" + json.dumps(payload["knowledge_context"], indent=2) + "\n```",
             "## Suggested Model Improvements\n```json\n" + json.dumps(payload["model_improvement_suggestions"], indent=2) + "\n```",
             "## Model Gap Report\n```json\n" + json.dumps(payload["model_gap_report"], indent=2) + "\n```",
@@ -340,6 +392,24 @@ def _recommended_next_simulations(summary: dict[str, Any], adaptive_hints: dict[
             ]
         )
     return list(dict.fromkeys(recommendations))
+
+
+def _build_learning_trace(
+    learning_event: dict[str, Any],
+    adaptive_hints: dict[str, Any],
+    scenario: dict[str, Any],
+    similar_simulations: list[dict[str, Any]],
+    model_improvements: dict[str, Any],
+) -> dict[str, Any]:
+    rules = adaptive_hints.get("rules_applied", [])
+    return {
+        "learning_event_recorded": "yes" if learning_event.get("event_id") else "no",
+        "learning_event_id": learning_event.get("event_id", ""),
+        "adaptive_rule_used": rules,
+        "scenario_pattern_recognized": scenario.get("shock_type") or scenario.get("simulation_type", "not classified"),
+        "prior_similar_simulations_found": len(similar_simulations),
+        "model_improvement_suggestions": model_improvements,
+    }
 
 
 def _dedupe(items: list[Any]) -> list[Any]:
