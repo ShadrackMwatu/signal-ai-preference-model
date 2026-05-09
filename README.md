@@ -84,30 +84,37 @@ app.py
 requirements.txt
 README.md
 
-behavioral_ai/
-live_trends/
-adaptive_learning/
-explainability/
+Core production layers:
+  signal_cge/       official CGE/SAM model engine
+  signal_ai/        AI chat, scenario orchestration, reasoning, memory, explainability
+  policy_ai/        policy summaries and scenario recommendations
+  sml_workbench/    current active SML parser, validator, and exporters
+  learning/         current active teaching and concept explanation layer
 
-sml_workbench/
-learning/
-cge_engine/
+Compatibility and migration layers:
+  cge_workbench/    compatibility wrappers for old CGE imports
+  signal_sml/       future canonical SML namespace
+  signal_learning/  adaptive learning utilities and future canonical learning namespace
 
-data/
-models/
-tests/
-Documentation/
-outputs/
+Legacy or experimental layers:
+  cge_core/                  early CGE/SAM core utilities
+  cge_engine/                historical CGE engine namespace
+  solvers/                   early solver registry and solver prototypes
+  signal_execution/          guarded SML execution workflow
+  signal_modeling_language/  earlier SML grammar and parser implementation
+  policy_intelligence/       earlier policy report utilities
+
+Data and outputs:
+  data/
+  models/
+  outputs/
+
+Testing and documentation:
+  tests/
+  Documentation/
 ```
 
-Important existing integrated layers also remain in the repository:
-
-- `signal_modeling_language/`
-- `signal_execution/`
-- `signal_learning/`
-- `cge_core/`
-- `policy_intelligence/`
-- `src/`
+For the current ownership map and migration plan, see [Signal Repository Duplication Audit](Documentation/SIGNAL_REPOSITORY_DUPLICATION_AUDIT.md) and [Signal Repository Migration Roadmap](Documentation/SIGNAL_REPOSITORY_MIGRATION_ROADMAP.md).
 
 ## Architecture Summary
 
@@ -122,7 +129,7 @@ flowchart TD
   D --> H["Learning memory and adaptive recommendations"]
 ```
 
-Signal is organized as a modular intelligence platform. `app.py` provides the Gradio user experience; `train_model.py`, `ml/`, and `src/models/` support model training and prediction; `trend_intelligence.py` and `x_trends.py` support aggregate live trend intelligence; `signal_modeling_language/`, `sml_workbench/`, `cge_core/`, `solvers/`, and `signal_execution/` support SML/CGE workflows; and `signal_learning/` plus `learning_memory/` support adaptive learning.
+Signal is organized as a modular intelligence platform. `app.py` provides the Gradio user experience; `train_model.py`, `ml/`, and `src/models/` support model training and prediction; `trend_intelligence.py` and `x_trends.py` support aggregate live trend intelligence; `signal_cge/` is the canonical CGE/SAM engine; `signal_ai/` provides the AI-native CGE chat layer; `sml_workbench/` remains the active SML workbench until migration into `signal_sml/`; `learning/` remains the active teaching layer; and `signal_learning/` plus `learning_memory/` support adaptive learning.
 
 ## Module Descriptions
 
