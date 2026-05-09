@@ -57,3 +57,4 @@ Added scenario-aware knowledge retrieval from repository-stored Signal CGE refer
 - Completed the physical domain split by moving behavioral API, ML, data, model artifacts, privacy, and training code into `Behavioral_Signals_AI/`.
 - Moved backend adapters, legacy docs, learning memory, knowledge-base notes, and Signal learning modules into `Signal_CGE/`.
 - Updated sample data references and SML templates to use product-domain paths.
+- Verified that tracked root compatibility wrappers are thin shims only and documented the result in `Documentation/TWO_DOMAIN_WRAPPER_COMPATIBILITY_AUDIT.md`.
