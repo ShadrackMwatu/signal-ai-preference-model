@@ -1,0 +1,75 @@
+# Signal Two-Tab Public Interface
+
+Signal's public Hugging Face interface now exposes only two sections:
+
+1. Behavioral Signals AI
+2. Signal CGE
+
+Backend modules for the framework, AI chat studio, SML workbench, and learning remain in the repository. They are hidden from the public app surface so users have one clear behavioral workflow and one clear CGE simulation workflow.
+
+## Why Two Tabs
+
+The earlier public app exposed several overlapping CGE-related surfaces. The simplified interface reduces confusion by keeping:
+
+- Behavioral intelligence in one tab.
+- Prompt-driven CGE/SAM simulation in one tab.
+
+Advanced modules remain available internally for development and future expansion.
+
+## Signal CGE Prompt Flow
+
+The Signal CGE tab accepts a natural-language simulation prompt and optional SAM or experiment workbook. The public callable is:
+
+```python
+run_signal_cge_prompt(prompt, uploaded_file=None)
+```
+
+The workflow:
+
+1. Loads the canonical model profile from `models/canonical/signal_cge_master/model_profile.yaml`.
+2. Loads the Signal CGE reference index from `Documentation/signal_cge_reference/`.
+3. Parses the policy prompt into a structured scenario.
+4. Detects policy instruments, targets, directions, and magnitudes.
+5. Checks model readiness.
+6. Runs the currently available backend.
+7. Produces diagnostics, structured results, policy interpretation, and downloadable files.
+
+## Tariff Prompt Handling
+
+Prompts such as:
+
+```text
+reduce import tariffs on cmach by 10%
+```
+
+are interpreted as:
+
+- policy instrument: import tariff
+- target commodity: `cmach`
+- shock direction: reduction
+- shock magnitude: `-10 percent`
+- closure assumption: external account adjusts
+
+## Canonical Repo Model Files
+
+When no upload is provided, the public app uses repository-stored canonical references:
+
+- `models/canonical/signal_cge_master/model_profile.yaml`
+- `Documentation/signal_cge_reference/`
+- `signal_cge/knowledge/`
+
+The Hugging Face app does not require the local Windows model workspace.
+
+## Current Solver Limitations
+
+The full equilibrium CGE solver is not yet active. Signal clearly reports:
+
+```text
+Full equilibrium CGE solver is not yet active. Signal is using the currently available SAM multiplier / prototype calibration backend.
+```
+
+The current public backend is suitable for deterministic scenario parsing, SAM multiplier fallback runs, prototype calibration checks, diagnostics, and policy explanation. It should not be described as a full equilibrium CGE solver.
+
+## Future Solver Pathway
+
+Future work can add a full open-source equilibrium solver and recursive dynamics behind the same prompt-driven public interface. The public contract should remain stable while backend readiness moves from placeholder to active.

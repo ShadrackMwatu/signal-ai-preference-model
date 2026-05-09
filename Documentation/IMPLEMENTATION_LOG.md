@@ -31,3 +31,11 @@ Added `Documentation/SIGNAL_CGE_KNOWLEDGE_BASE.md` as the high-level canonical k
 Added `models/canonical/signal_cge_master/model_profile.yaml` and connected it to `signal_cge/model_registry.py`. Added `signal_cge/knowledge/` helpers so Signal AI modules and future LLM integrations can list, load, and index canonical references without adding a YAML dependency.
 
 The canonical layer is documentation and registry infrastructure only. It does not change model execution logic, Hugging Face startup behavior, or the current SAM multiplier fallback.
+
+## Two-Tab Public Interface
+
+Simplified the public Hugging Face app to two tabs: **Behavioral Signals AI** and **Signal CGE**. The existing behavioral prediction workflow remains public. Older public CGE-facing tabs for the framework, AI chat studio, SML workbench, and learning were hidden from the app UI but their backend modules remain available internally.
+
+Added `run_signal_cge_prompt(prompt, uploaded_file=None)` as the public Signal CGE callable. It loads the canonical model profile and reference index from the repository, interprets prompts, checks readiness, runs the available SAM multiplier/prototype calibration backend, and returns display-ready scenario, readiness, diagnostics, results, policy interpretation, and downloadable report paths.
+
+Added explicit import-tariff parsing for prompts such as `reduce import tariffs on cmach by 10%`. Signal now reports the full-solver limitation clearly instead of implying full equilibrium CGE solving.

@@ -25,6 +25,15 @@ Signal brings together five core capabilities:
 
 The trained machine-learning model remains the primary prediction engine for demand intelligence in the dashboard.
 
+## Public Interface
+
+The Hugging Face app exposes two public tabs:
+
+1. **Behavioral Signals AI**: aggregate behavioral signal prediction, demand classification, opportunity scoring, and live trend intelligence.
+2. **Signal CGE**: a prompt-driven AI-native CGE/SAM simulation studio for policy scenarios, diagnostics, readiness checks, fallback simulation, and policy interpretation.
+
+Framework, SML, learning, and older chat-studio modules remain in the repository as backend/internal capabilities, but they are no longer exposed as separate public tabs. See [Signal Two-Tab Public Interface](Documentation/SIGNAL_TWO_TAB_INTERFACE.md).
+
 ## Signal CGE Architecture
 
 Signal now includes an AI-native CGE/SAM architecture organized around the canonical `signal_cge/` package.

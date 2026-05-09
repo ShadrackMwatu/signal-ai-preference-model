@@ -60,6 +60,9 @@ except Exception as exc:  # pragma: no cover - exercised in constrained Space ru
 try:
     from signal_cge.solvers.gams_runner import find_gams_executable
     from signal_cge.workbench import run_chat_scenario
+    from signal_cge.diagnostics.model_readiness import get_model_readiness
+    from signal_cge.knowledge.document_loader import load_model_profile
+    from signal_cge.knowledge.reference_index import build_reference_index
     from signal_ai.conversation_engine.chat_orchestrator import run_chat_simulation
     from signal_ai.conversation_engine.response_formatting import (
         format_diagnostics,
@@ -89,6 +92,12 @@ LIVE_TREND_FEATURE_PLUGINS = [
     "Election intelligence",
     "Market pulse indicators",
 ]
+PUBLIC_TABS = ["Behavioral Signals AI", "Signal CGE"]
+HIDDEN_PUBLIC_TABS = ["Signal CGE Framework", "AI CGE Chat Studio", "SML CGE Workbench", "Learning"]
+FULL_CGE_FALLBACK_MESSAGE = (
+    "Full equilibrium CGE solver is not yet active. Signal is using the currently available "
+    "SAM multiplier / prototype calibration backend."
+)
 SIGNAL_DASHBOARD_CSS = """
 .signal-trend-shell {
     border: 1px solid var(--border-color-primary, #dbe3ef);
@@ -578,6 +587,272 @@ def ai_cge_chat_studio_model(user_prompt: str, sam_file: Any | None = None) -> t
     except Exception as exc:
         message = f"AI CGE Chat Studio failed gracefully: {exc}"
         return "{}", f"## Diagnostics\n- {message}", "## Results Summary\n- No results were produced.", message, ""
+
+
+def run_signal_cge_prompt(prompt: str, uploaded_file: Any | None = None) -> dict[str, Any]:
+    """Run the single public Signal CGE prompt-driven workflow."""
+
+    if not AI_CGE_WORKBENCH_AVAILABLE:
+        return _signal_cge_error_response(
+            prompt,
+            f"Signal CGE backend unavailable: {AI_CGE_WORKBENCH_IMPORT_ERROR}",
+        )
+
+    sam_path = _uploaded_path(uploaded_file)
+    model_profile = load_model_profile()
+    reference_index = build_reference_index()
+    result = run_chat_simulation(prompt or "Run baseline Signal CGE scenario", sam_file=sam_path)
+    scenario = result.get("scenario", {})
+    readiness = get_model_readiness()
+    diagnostics = {
+        **result.get("diagnostics", {}),
+        "model_profile_loaded": True,
+        "reference_sections": reference_index.get("sections", []),
+        "canonical_model_profile": "models/canonical/signal_cge_master/model_profile.yaml",
+        "uploaded_sam": "provided" if sam_path else "not provided; using canonical profile and fallback SAM where needed",
+        "fallback_explanation": FULL_CGE_FALLBACK_MESSAGE,
+    }
+    structured_results = _signal_cge_structured_results(result.get("results", {}), scenario)
+    interpretation = _signal_cge_policy_interpretation(result)
+    report_paths = _write_signal_cge_downloads(
+        scenario=scenario,
+        readiness=readiness,
+        diagnostics=diagnostics,
+        results=structured_results,
+        interpretation=interpretation,
+        model_profile=model_profile,
+    )
+    return {
+        "scenario": _signal_cge_interpreted_scenario(scenario, result.get("results", {})),
+        "readiness": readiness,
+        "diagnostics": diagnostics,
+        "results": structured_results,
+        "interpretation": interpretation,
+        "downloads": report_paths,
+        "backend_used": result.get("results", {}).get("backend")
+        or result.get("backend")
+        or "python_sam_multiplier",
+        "fallback_message": FULL_CGE_FALLBACK_MESSAGE,
+    }
+
+
+def signal_cge_prompt_ui(prompt: str, uploaded_file: Any | None = None) -> tuple[str, str, str, str, str, str | None, str | None, str | None]:
+    """Return display-ready Signal CGE sections for the public Gradio tab."""
+
+    result = run_signal_cge_prompt(prompt, uploaded_file)
+    downloads = result.get("downloads", {})
+    return (
+        _render_interpreted_scenario(result),
+        _render_readiness(result.get("readiness", {})),
+        _render_diagnostics(result.get("diagnostics", {})),
+        _render_simulation_results(result.get("results", {})),
+        _render_policy_interpretation(result.get("interpretation", {})),
+        downloads.get("policy_brief_md"),
+        downloads.get("results_json"),
+        downloads.get("results_csv"),
+    )
+
+
+def get_public_tab_labels() -> list[str]:
+    """Return the public Gradio tab labels."""
+
+    return PUBLIC_TABS.copy()
+
+
+def _signal_cge_error_response(prompt: str, message: str) -> dict[str, Any]:
+    scenario = {
+        "scenario_name": prompt or "Signal CGE prompt",
+        "policy_shock": "unavailable",
+        "shock_account": "",
+        "shock_magnitude": "",
+        "closure_assumption": "",
+        "model_backend_used": "unavailable",
+    }
+    return {
+        "scenario": scenario,
+        "readiness": get_model_readiness() if "get_model_readiness" in globals() else {},
+        "diagnostics": {"solver_warnings": [message], "fallback_explanation": FULL_CGE_FALLBACK_MESSAGE},
+        "results": {},
+        "interpretation": {"caveats": [message]},
+        "downloads": {},
+        "backend_used": "unavailable",
+        "fallback_message": FULL_CGE_FALLBACK_MESSAGE,
+    }
+
+
+def _signal_cge_interpreted_scenario(scenario: dict[str, Any], results: dict[str, Any]) -> dict[str, Any]:
+    return {
+        "policy_shock": scenario.get("policy_instrument") or scenario.get("shock_type", "policy shock"),
+        "target_account_sector": scenario.get("target_commodity") or scenario.get("shock_account", ""),
+        "shock_magnitude": f"{scenario.get('shock_size', scenario.get('shock_value', 0))} {scenario.get('shock_unit', 'percent')}",
+        "closure_assumption": scenario.get("closure", scenario.get("closure_rule", "standard_sam_multiplier")),
+        "model_backend_used": results.get("backend", "python_sam_multiplier"),
+        "raw_scenario": scenario,
+    }
+
+
+def _signal_cge_structured_results(results: dict[str, Any], scenario: dict[str, Any]) -> dict[str, Any]:
+    accounts = results.get("accounts", {}) if isinstance(results, dict) else {}
+    account_total = sum(float(value) for value in accounts.values()) if accounts else 0.0
+    household_effect = sum(float(value) for account, value in accounts.items() if "household" in account.lower())
+    trade_effect = sum(float(value) for account, value in accounts.items() if account.lower() in {"imports", "exports", "cmach"})
+    government_effect = sum(float(value) for account, value in accounts.items() if "government" in account.lower())
+    factor_effect = sum(
+        float(value)
+        for account, value in accounts.items()
+        if any(term in account.lower() for term in ["labour", "labor", "capital", "fcp", "fcu", "fnp", "fnu", "mcp", "mcu", "mnp", "mnu"])
+    )
+    care_effect = sum(float(value) for account, value in accounts.items() if "care" in account.lower())
+    return {
+        "GDP/output effect": round(account_total, 6),
+        "factor income effect": round(factor_effect, 6),
+        "household income effect": round(household_effect, 6),
+        "government balance effect": round(government_effect, 6),
+        "trade effect": round(trade_effect, 6),
+        "welfare/proxy welfare effect": round(household_effect or account_total, 6),
+        "gender-care impact": round(care_effect, 6) if _is_care_scenario(scenario) else "Not a care-focused scenario.",
+        "account_effects": accounts,
+        "backend": results.get("backend", "python_sam_multiplier") if isinstance(results, dict) else "python_sam_multiplier",
+    }
+
+
+def _signal_cge_policy_interpretation(result: dict[str, Any]) -> dict[str, Any]:
+    summary = result.get("policy_summary", {})
+    return {
+        "transmission_mechanism": summary.get("expected_transmission_channel", ""),
+        "winners_and_losers": {
+            "likely_winners": summary.get("likely_winners", []),
+            "likely_losers": ["Accounts facing higher relative costs or reduced demand, subject to SAM mapping."],
+        },
+        "risks": summary.get("likely_risks", []),
+        "caveats": [
+            summary.get("interpretation_caveat", ""),
+            FULL_CGE_FALLBACK_MESSAGE,
+        ],
+        "recommended_next_simulations": summary.get("suggested_next_simulations", []),
+    }
+
+
+def _is_care_scenario(scenario: dict[str, Any]) -> bool:
+    text = json.dumps(scenario).lower()
+    return "care" in text or any(suffix in text for suffix in ["fcp", "fcu", "fnp", "fnu", "mcp", "mcu", "mnp", "mnu"])
+
+
+def _write_signal_cge_downloads(
+    scenario: dict[str, Any],
+    readiness: dict[str, Any],
+    diagnostics: dict[str, Any],
+    results: dict[str, Any],
+    interpretation: dict[str, Any],
+    model_profile: dict[str, Any],
+) -> dict[str, str]:
+    output_dir = Path("outputs") / "signal_cge_public" / datetime.now().strftime("%Y%m%d_%H%M%S")
+    output_dir.mkdir(parents=True, exist_ok=True)
+    payload = {
+        "scenario": scenario,
+        "readiness": readiness,
+        "diagnostics": diagnostics,
+        "results": results,
+        "interpretation": interpretation,
+        "model_profile": model_profile,
+    }
+    md_path = output_dir / "signal_cge_policy_brief.md"
+    json_path = output_dir / "signal_cge_results.json"
+    csv_path = output_dir / "signal_cge_account_effects.csv"
+    md_path.write_text(_policy_brief_markdown(payload), encoding="utf-8")
+    json_path.write_text(json.dumps(payload, indent=2), encoding="utf-8")
+    pd.DataFrame(
+        [{"account": account, "effect": value} for account, value in results.get("account_effects", {}).items()]
+    ).to_csv(csv_path, index=False)
+    return {
+        "policy_brief_md": str(md_path),
+        "results_json": str(json_path),
+        "results_csv": str(csv_path),
+    }
+
+
+def _policy_brief_markdown(payload: dict[str, Any]) -> str:
+    return "\n\n".join(
+        [
+            "# Signal CGE Policy Simulation Brief",
+            "## Interpreted Scenario\n```json\n" + json.dumps(payload["scenario"], indent=2) + "\n```",
+            "## Model Readiness\n```json\n" + json.dumps(payload["readiness"], indent=2) + "\n```",
+            "## Diagnostics\n```json\n" + json.dumps(payload["diagnostics"], indent=2) + "\n```",
+            "## Simulation Results\n```json\n" + json.dumps(payload["results"], indent=2) + "\n```",
+            "## Policy Interpretation\n```json\n" + json.dumps(payload["interpretation"], indent=2) + "\n```",
+        ]
+    )
+
+
+def _render_interpreted_scenario(result: dict[str, Any]) -> str:
+    scenario = result.get("scenario", {})
+    return "\n".join(
+        [
+            "## Interpreted Scenario",
+            f"- Policy shock: `{scenario.get('policy_shock', '')}`",
+            f"- Target account/sector: `{scenario.get('target_account_sector', '')}`",
+            f"- Shock magnitude: `{scenario.get('shock_magnitude', '')}`",
+            f"- Closure assumption: `{scenario.get('closure_assumption', '')}`",
+            f"- Model backend used: `{result.get('backend_used', '')}`",
+        ]
+    )
+
+
+def _render_readiness(readiness: dict[str, Any]) -> str:
+    labels = [
+        "sam_multiplier_readiness",
+        "calibration_readiness",
+        "prototype_cge_readiness",
+        "full_cge_solver_readiness",
+        "recursive_dynamic_readiness",
+    ]
+    return "\n".join(["## Model Readiness", *[f"- {label.replace('_', ' ').title()}: `{readiness.get(label, 'unknown')}`" for label in labels]])
+
+
+def _render_diagnostics(diagnostics: dict[str, Any]) -> str:
+    pre_run = diagnostics.get("pre_run", {})
+    calibration = diagnostics.get("preflight", {}).get("calibration", {})
+    closure = diagnostics.get("preflight", {}).get("closure", {})
+    lines = [
+        "## Diagnostics",
+        f"- SAM balance status: `{pre_run.get('balanced', pre_run.get('is_balanced', 'not available'))}`",
+        f"- Calibration status: `{calibration.get('valid', 'prototype checks only')}`",
+        f"- Closure warnings: `{'; '.join(closure.get('warnings', [])) if isinstance(closure, dict) else 'none'}`",
+        f"- Solver warnings: `{diagnostics.get('fallback_explanation', FULL_CGE_FALLBACK_MESSAGE)}`",
+        f"- Fallback explanation: {diagnostics.get('fallback_explanation', FULL_CGE_FALLBACK_MESSAGE)}",
+    ]
+    return "\n".join(lines)
+
+
+def _render_simulation_results(results: dict[str, Any]) -> str:
+    lines = ["## Simulation Results"]
+    for key in [
+        "GDP/output effect",
+        "factor income effect",
+        "household income effect",
+        "government balance effect",
+        "trade effect",
+        "welfare/proxy welfare effect",
+        "gender-care impact",
+    ]:
+        lines.append(f"- {key}: `{results.get(key, 'not available')}`")
+    return "\n".join(lines)
+
+
+def _render_policy_interpretation(interpretation: dict[str, Any]) -> str:
+    winners = interpretation.get("winners_and_losers", {}).get("likely_winners", [])
+    losers = interpretation.get("winners_and_losers", {}).get("likely_losers", [])
+    return "\n".join(
+        [
+            "## Policy Interpretation",
+            f"- Transmission mechanism: {interpretation.get('transmission_mechanism', '')}",
+            f"- Winners: {', '.join(winners) if winners else 'None identified.'}",
+            f"- Losers: {', '.join(losers) if losers else 'None identified.'}",
+            f"- Risks: {', '.join(interpretation.get('risks', [])) or 'No major warning raised.'}",
+            f"- Caveats: {', '.join(item for item in interpretation.get('caveats', []) if item)}",
+            f"- Recommended next simulations: {', '.join(interpretation.get('recommended_next_simulations', []))}",
+        ]
+    )
 
 
 def _prompt_from_controls(scenario_family: str, shock_size: float, target_account: str) -> str:
@@ -1565,11 +1840,10 @@ def _fallback_live_trend_html(message: str = "Live API unavailable — displayin
 """
 
 
-with gr.Blocks(title="Signal AI Market Intelligence", css=SIGNAL_DASHBOARD_CSS) as demo:
+with gr.Blocks(title="Signal AI Dashboard", css=SIGNAL_DASHBOARD_CSS) as demo:
     gr.HTML(value=_dashboard_status_banner())
     gr.Markdown(
-        "Behavioral Signals AI for revealed demand intelligence, plus a Signal CGE "
-        "Modelling Framework for policy simulation and GAMS-compatible exports."
+        "Behavioral intelligence and AI-native CGE simulation for policy analysis."
     )
 
     with gr.Tab("Behavioral Signals AI"):
@@ -1765,150 +2039,52 @@ with gr.Blocks(title="Signal AI Market Intelligence", css=SIGNAL_DASHBOARD_CSS) 
             show_api=False,
         )
 
-    with gr.Tab("Signal CGE Framework"):
+    with gr.Tab("Signal CGE"):
         gr.Markdown(
-            "**Purpose:** Formal model structure, calibration, closures, diagnostics, and solver status."
+            "## Signal CGE\n"
+            "AI-native CGE simulation engine for policy prompts, SAM calibration, scenario execution, diagnostics, and policy interpretation."
         )
-        with gr.Row():
-            model_type_input = gr.Dropdown(
-                label="Model type",
-                choices=["SAM multiplier", "CGE model", "Recursive dynamic model - placeholder"],
-                value="SAM multiplier",
-            )
-            scenario_family_input = gr.Dropdown(
-                label="Scenario",
-                choices=["Care economy", "Tax policy", "Infrastructure", "Trade policy", "Productivity", "Custom prompt"],
-                value="Care economy",
-            )
-        with gr.Row():
-            shock_size_input = gr.Number(label="Shock size", value=20)
-            target_account_input = gr.Textbox(label="Target sector/account", value="paid_care_services")
-        workbench_sam_upload = gr.File(label="Optional SAM CSV/XLSX", file_types=[".csv", ".xlsx", ".xls"])
-        scenario_input = gr.Textbox(
-            label="Custom prompt",
-            value="Increase public investment in care infrastructure by 20%",
-            lines=4,
+        signal_cge_prompt = gr.Textbox(
+            label="Enter simulation prompt",
+            placeholder=(
+                "reduce import tariffs on cmach by 10%\n"
+                "Simulate a 10 percent increase in government spending on care infrastructure.\n"
+                "Run a VAT increase scenario and show household welfare effects.\n"
+                "Double investment in care services and report GDP, employment, and household income effects.\n"
+                "Simulate an import tariff reduction and explain trade, prices, and welfare impacts."
+            ),
+            value="reduce import tariffs on cmach by 10%",
+            lines=6,
         )
-        run_cge_button = gr.Button("Run simulation")
-        with gr.Row():
-            cge_summary_output = gr.Textbox(label="Simulation summary", lines=9)
-            cge_policy_output = gr.Code(label="Structured scenario", language="json", lines=14)
-        gams_output = gr.Code(label="Diagnostics and results", language="json", lines=18)
-        cge_brief_download = gr.File(label="Download results / policy brief")
-        run_cge_button.click(
-            fn=ai_cge_workbench_model,
-            inputs=[
-                model_type_input,
-                scenario_family_input,
-                scenario_input,
-                shock_size_input,
-                target_account_input,
-                workbench_sam_upload,
-            ],
-            outputs=[cge_summary_output, cge_policy_output, gams_output, cge_brief_download],
-            show_api=False,
+        signal_cge_upload = gr.File(
+            label="Upload SAM or experiment workbook",
+            file_types=[".xlsx", ".csv"],
         )
-
-    with gr.Tab("AI CGE Chat Studio"):
-        gr.Markdown("**Purpose:** Natural-language policy simulation interface.")
-        chat_policy_prompt = gr.Textbox(
-            label="Natural-language policy question",
-            value="increase government spending on care services by 10 percent",
-            lines=5,
-        )
-        chat_sam_upload = gr.File(label="Optional SAM CSV/XLSX", file_types=[".csv", ".xlsx", ".xls"])
-        run_chat_button = gr.Button("Run chat simulation")
+        run_signal_cge_button = gr.Button("Run Signal CGE Simulation")
+        signal_cge_scenario_output = gr.Markdown(label="Interpreted Scenario")
+        signal_cge_readiness_output = gr.Markdown(label="Model Readiness")
+        signal_cge_diagnostics_output = gr.Markdown(label="Diagnostics")
+        signal_cge_results_output = gr.Markdown(label="Simulation Results")
+        signal_cge_interpretation_output = gr.Markdown(label="Policy Interpretation")
         with gr.Row():
-            chat_scenario_output = gr.Code(label="Structured scenario JSON", language="json", lines=14)
-            chat_diagnostics_output = gr.Markdown(label="Diagnostics and warnings")
-        chat_results_output = gr.Markdown(label="Results summary")
-        chat_policy_output = gr.Markdown(label="Policy explanation")
-        chat_recommendations_output = gr.Markdown(label="Recommended next simulations")
-        run_chat_button.click(
-            fn=ai_cge_chat_studio_model,
-            inputs=[chat_policy_prompt, chat_sam_upload],
+            signal_cge_brief_download = gr.File(label="Download Markdown policy brief")
+            signal_cge_json_download = gr.File(label="Download JSON results")
+            signal_cge_csv_download = gr.File(label="Download CSV results")
+        run_signal_cge_button.click(
+            fn=signal_cge_prompt_ui,
+            inputs=[signal_cge_prompt, signal_cge_upload],
             outputs=[
-                chat_scenario_output,
-                chat_diagnostics_output,
-                chat_results_output,
-                chat_policy_output,
-                chat_recommendations_output,
+                signal_cge_scenario_output,
+                signal_cge_readiness_output,
+                signal_cge_diagnostics_output,
+                signal_cge_results_output,
+                signal_cge_interpretation_output,
+                signal_cge_brief_download,
+                signal_cge_json_download,
+                signal_cge_csv_download,
             ],
             show_api=False,
         )
-
-    with gr.Tab("SML CGE Workbench"):
-        gr.Markdown("**Purpose:** Readable model specification, validation, and export preparation.")
-        sam_upload = gr.File(label="Upload SAM CSV/XLSX", file_types=[".csv", ".xlsx", ".xls"])
-        sml_upload = gr.File(label="Upload SML Model", file_types=[".sml", ".txt"])
-        sml_editor = gr.Textbox(label="Signal Modelling Language", value=DEFAULT_SML_TEXT, lines=20)
-        validate_sml_button = gr.Button("Validate Model")
-        run_sml_button = gr.Button("Run Scenario")
-        validation_output = gr.Textbox(label="Validation", lines=8)
-        balance_output = gr.Markdown(label="Balance Check")
-        sml_results_output = gr.Code(label="Results", language="json", lines=16)
-        report_download = gr.File(label="Download Policy Report")
-        validate_sml_button.click(
-            fn=validate_sml_dashboard,
-            inputs=[sml_editor, sml_upload],
-            outputs=[validation_output],
-            show_api=False,
-        )
-        run_sml_button.click(
-            fn=run_sml_dashboard,
-            inputs=[sml_editor, sml_upload, sam_upload],
-            outputs=[validation_output, balance_output, sml_results_output, report_download],
-            show_api=False,
-        )
-
-    with gr.Tab("Learning"):
-        gr.Markdown(
-            "**Purpose:** Guided explanations of SAM, CGE, SML, calibration, closures, diagnostics, and scenario interpretation."
-        )
-        learning_topic = gr.Dropdown(
-            label="Learning Topic",
-            choices=[
-                "Signal",
-                "Revealed Preference Intelligence",
-                "Behavioral Signals",
-                "Demand Classification",
-                "Opportunity Scoring",
-                "Unmet Demand",
-                "Emerging Trends",
-                "SAMs",
-                "CGE Models",
-                "SML",
-                "Policy Simulation",
-            ],
-            value="Signal",
-        )
-        learning_explanation_output = gr.Textbox(label="Learning Explanation", lines=6, interactive=False)
-        refresh_learning_button = gr.Button("Refresh Learning")
-        with gr.Row():
-            recent_lessons_output = gr.Code(label="Recent Lessons", language="json", lines=16)
-            recurring_issues_output = gr.Code(label="Recurring Issues", language="json", lines=16)
-        recommended_fixes_output = gr.Code(label="Recommended Fixes", language="json", lines=14)
-        apply_learning_button = gr.Button("Apply Latest Low-Risk Fix")
-        ignore_learning_button = gr.Button("Ignore Latest Recommendation")
-        learning_action_output = gr.Code(label="Learning Action Result", language="json", lines=10)
-        rollback_version_input = gr.Textbox(label="Rollback Version", value="v001")
-        rollback_learning_button = gr.Button("Rollback")
-        refresh_learning_button.click(
-            fn=refresh_learning_dashboard,
-            inputs=[],
-            outputs=[recent_lessons_output, recurring_issues_output, recommended_fixes_output],
-            show_api=False,
-        )
-        apply_learning_button.click(fn=apply_latest_learning_dashboard, inputs=[], outputs=[learning_action_output], show_api=False)
-        ignore_learning_button.click(fn=ignore_latest_learning_dashboard, inputs=[], outputs=[learning_action_output], show_api=False)
-        rollback_learning_button.click(
-            fn=rollback_learning_dashboard,
-            inputs=[rollback_version_input],
-            outputs=[learning_action_output],
-            show_api=False,
-        )
-        learning_topic.change(fn=explain_learning_topic, inputs=[learning_topic], outputs=[learning_explanation_output], show_api=False)
-        demo.load(fn=explain_learning_topic, inputs=[learning_topic], outputs=[learning_explanation_output], show_api=False)
 
     gr.Markdown(
         "Signal is a privacy-preserving AI dashboard for aggregate behavioural signal intelligence, "

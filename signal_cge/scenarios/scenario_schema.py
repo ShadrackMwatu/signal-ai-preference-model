@@ -46,6 +46,10 @@ class ScenarioSpec:
                 "closure": payload["closure_rule"],
             }
         )
+        if payload["shock_type"] == "import_tariff":
+            payload["policy_instrument"] = "import tariff"
+            payload["target_commodity"] = payload["shock_account"]
+            payload["shock_direction"] = "reduction" if payload["shock_value"] < 0 else "increase"
         return payload
 
 
@@ -61,7 +65,14 @@ def parse_scenario_prompt(prompt: str) -> ScenarioSpec:
     name = _scenario_name(text)
     notes: list[str] = []
 
-    if "compare" in lowered and "unpaid care" in lowered and "paid care" in lowered:
+    if "tariff" in lowered and "import" in lowered:
+        shock_type = "import_tariff"
+        accounts = [_extract_target_after_on(lowered) or _extract_known_account(lowered) or "imports"]
+        if "reduction" in lowered or "reduce" in lowered or "cut" in lowered or "lower" in lowered:
+            value = -abs(value)
+        elif value == 0:
+            value = 5.0
+    elif "compare" in lowered and "unpaid care" in lowered and "paid care" in lowered:
         shock_type = "care_comparison"
         simulation_type = "scenario_comparison"
         accounts = ["unpaid_care", "paid_care"] + CARE_FACTOR_SUFFIXES
@@ -164,7 +175,7 @@ def _closure_for(shock_type: str) -> str:
         "infrastructure_investment",
     }:
         return "investment_driven_with_fixed_prices"
-    if shock_type == "trade_facilitation":
+    if shock_type in {"trade_facilitation", "import_tariff"}:
         return "external_account_adjusts"
     return "standard_sam_multiplier"
 
@@ -173,8 +184,22 @@ def _validation_warnings(shock_type: str, accounts: list[str], value: float) -> 
     warnings: list[str] = []
     if not accounts:
         warnings.append("No shock account was identified.")
-    if value < 0 and shock_type not in {"tax"}:
+    if value < 0 and shock_type not in {"tax", "import_tariff"}:
         warnings.append("Negative shock size detected; confirm that this is intended.")
     if shock_type in {"demand", "baseline"} and value == 0:
         warnings.append("No active policy shock was detected.")
     return warnings
+
+
+def _extract_target_after_on(text: str) -> str | None:
+    match = re.search(r"\bon\s+([a-zA-Z][a-zA-Z0-9_/-]*)", text)
+    if not match:
+        return None
+    return match.group(1).strip(" .,/;:")
+
+
+def _extract_known_account(text: str) -> str | None:
+    for token in ["cmach", "manufacturing", "imports", "exports", "agriculture", "transport"]:
+        if token in text:
+            return token
+    return None
