@@ -13,6 +13,9 @@ from datetime import UTC, datetime
 import json
 import csv
 
+from Signal_CGE.solvers.gdx_reader import summarize_gdx_results
+from Signal_CGE.solvers.result_parser import parse_signal_results
+
 
 # =========================================================
 # SAFE IMPORTS WITH FALLBACKS
@@ -252,6 +255,12 @@ def run_signal_cge_prompt(
         interpretation=interpretation,
     )
 
+    # ==========================================
+    # READ REAL GAMS RESULT FILES
+    # ==========================================
+
+    summary_text, results_df, diagnostics_df, interpretation_text = parse_signal_results()
+
     return {
         "scenario": scenario,
         "readiness": readiness,
@@ -262,6 +271,12 @@ def run_signal_cge_prompt(
         "interpretation": interpretation,
         "downloads": downloads,
         "backend_used": solver_used,
+
+        # Real GAMS outputs
+        "gams_summary": summary_text,
+        "gams_results_df": results_df,
+        "gams_diagnostics_df": diagnostics_df,
+        "gams_interpretation": interpretation_text,
     }
 
 

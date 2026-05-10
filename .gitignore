@@ -82,3 +82,51 @@ Signal_CGE/outputs/runtime/
 Signal_CGE/tests/_tmp/
 *_runner_outputs/
 *.xlsx.tmp
+
+# Ignore local GAMS installation binaries
+Signal_CGE/solvers/**/*.exe
+Signal_CGE/solvers/**/*.dll
+Signal_CGE/solvers/**/*.lic
+Signal_CGE/solvers/**/*.pdf
+Signal_CGE/solvers/**/*.chm
+Signal_CGE/solvers/**/*.dat
+Signal_CGE/solvers/**/*.xpr
+Signal_CGE/solvers/**/*.ini
+Signal_CGE/solvers/**/*.yaml
+Signal_CGE/solvers/**/*.json
+Signal_CGE/solvers/**/*.txt
+Signal_CGE/solvers/**/*.cmd
+
+Signal_CGE/solvers/docs/
+Signal_CGE/solvers/studio/
+Signal_CGE/solvers/api/
+Signal_CGE/solvers/apifiles/
+Signal_CGE/solvers/GMSPython/
+Signal_CGE/solvers/gbin/
+Signal_CGE/solvers/inclib/
+Signal_CGE/solvers/Dictionaries/
+Signal_CGE/solvers/*lib*/
+
+# Additional local GAMS configs
+Signal_CGE/solvers/*.def
+Signal_CGE/solvers/*.html
+Signal_CGE/solvers/*.md
+Signal_CGE/solvers/*.py
+Signal_CGE/solvers/*.xml
+
+# Keep ONLY our custom runner
+!Signal_CGE/solvers/gams_runner.py
+
+# Ignore generated GAMS runtime artifacts
+Signal_CGE/models/gams/70_Result/
+Signal_CGE/solvers/mpsgeset
+!Signal_CGE/solvers/gdx_reader.py
+!Signal_CGE/solvers/result_parser.py
+Signal_CGE/models/gams/70_Result
+Signal_CGE/models/gams/70_Result/
+# GAMS runtime outputs
+Signal_CGE/models/gams/70_Result/
+Signal_CGE/models/gams/70_Result/*
+*.gdx
+*.lst
+*.log

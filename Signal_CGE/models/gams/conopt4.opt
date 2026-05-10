@@ -1,0 +1,26 @@
+* -------------------------------------------------
+*   General Option file for CONOPT3
+* -------------------------------------------------
+* Maximum and minimum jacobian element
+
+Lim_Variable = 1.00e+30
+*Mtd_Step_Phase0 = 0
+*Flg_Convex = 1
+*Flg_NoPen  = 0
+*Flg_RedHess = 1
+
+* iteration log frequency
+lfilos =  1
+lfilog =  1
+rtpiva = 1.E-15
+rtnwmi = 1.E-7
+rtnwma = 5.E-7
+*Lmmxsf = 1
+threads  = 1
+thread2D = 1
+threadf  = 1
+maxmem = t
+num_rounds = 1
+*Flg_Hessian = 1
+Tol_Piv_Abs = 1.E-10
+Tol_Piv_Abs_NLTr = 1.E-12
