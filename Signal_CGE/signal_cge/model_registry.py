@@ -5,6 +5,7 @@ from __future__ import annotations
 from pathlib import Path
 
 from .local_workspace.workspace_registry import get_workspace_registry
+from .solvers.solver_registry import get_solver_registry
 
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
@@ -49,16 +50,10 @@ def get_model_registry() -> dict[str, object]:
             "AI CGE Chat Studio interface",
             "SML specification layer",
         ],
-        "current_solver_options": {
-            "sam_multiplier": "ready",
-            "gams_runner": "optional",
-            "open_source_equilibrium_solver": "placeholder",
-            "recursive_dynamic_solver": "placeholder",
-        },
+        "current_solver_options": get_solver_registry(),
         "current_limitations": [
-            "Full equilibrium solving is not implemented yet.",
             "Recursive dynamics are placeholders.",
-            "GAMS and open-source solver pathways are optional future backends.",
+            "GAMS is optional and unavailable in many hosted runtimes.",
         ],
         "supported_scenario_types": [
             "fiscal_policy",
@@ -69,7 +64,8 @@ def get_model_registry() -> dict[str, object]:
             "custom_prompt",
         ],
         "supported_account_suffixes": ["fcp", "fcu", "fnp", "fnu", "mcp", "mcu", "mnp", "mnu"],
-        "active_backend_status": "python_sam_multiplier_ready",
+        "active_backend_status": "validated_static_equilibrium_solver_ready",
+        "solver_registry": get_solver_registry(),
         "canonical_model_structure": "signal_cge",
         "canonical_model_path": "Signal_CGE/signal_cge",
         "canonical_references": get_canonical_reference_registry(),

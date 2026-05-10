@@ -875,9 +875,15 @@ def _render_diagnostics(diagnostics: dict[str, Any]) -> str:
     calibration = diagnostics.get("preflight", {}).get("calibration", {})
     closure = diagnostics.get("preflight", {}).get("closure", {})
     solver = diagnostics.get("equilibrium_solver", {})
+    available_solvers = diagnostics.get("available_solvers", {})
+    gams_status = available_solvers.get("gams_optional_solver", {}) if isinstance(available_solvers, dict) else {}
     lines = [
         "## Diagnostics",
         f"- Solver used: `{diagnostics.get('solver_used', 'unknown')}`",
+        "## Available Solvers",
+        f"- Python SAM multiplier: `{_solver_status(available_solvers, 'python_sam_multiplier')}`",
+        f"- Open-source equilibrium solver: `{_solver_status(available_solvers, 'open_source_equilibrium_solver')}`",
+        f"- GAMS optional solver: `{gams_status.get('status', 'unavailable')}`",
         f"- SAM balance status: `{pre_run.get('balanced', pre_run.get('is_balanced', 'not available'))}`",
         "- Calibration status: Prototype calibration available; full equilibrium calibration not yet active.",
         f"- Closure warnings: {_format_warning_text(closure.get('warnings', []) if isinstance(closure, dict) else [])}",
@@ -891,6 +897,13 @@ def _render_diagnostics(diagnostics: dict[str, Any]) -> str:
         f"- Equations solved: `{len(solver.get('equations_solved', []))}`",
     ]
     return "\n".join(lines)
+
+
+def _solver_status(registry: dict[str, Any], key: str) -> str:
+    if not isinstance(registry, dict):
+        return "unknown"
+    payload = registry.get(key, {})
+    return payload.get("status", "unknown") if isinstance(payload, dict) else str(payload)
 
 
 def _render_simulation_results(results: dict[str, Any]) -> str:

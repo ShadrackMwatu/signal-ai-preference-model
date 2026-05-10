@@ -64,7 +64,7 @@ def test_model_registry_returns_expected_fields():
     assert "current_solver_options" in registry
     assert "supported_scenario_types" in registry
     assert "supported_account_suffixes" in registry
-    assert registry["active_backend_status"] == "python_sam_multiplier_ready"
+    assert registry["active_backend_status"] == "validated_static_equilibrium_solver_ready"
 
 
 def test_model_readiness_returns_expected_statuses():

@@ -41,6 +41,7 @@ The newer adaptive intelligence layer is documented in [Signal CGE Adaptive Inte
 The full-model blueprint is documented in [Signal CGE Full Model Roadmap](Documentation/SIGNAL_CGE_FULL_MODEL_ROADMAP.md), [Signal CGE Equation Registry](Documentation/SIGNAL_CGE_EQUATION_REGISTRY.md), [Signal CGE Experiment Engine](Documentation/SIGNAL_CGE_EXPERIMENT_ENGINE.md), and [Signal CGE Closure Manager](Documentation/SIGNAL_CGE_CLOSURE_MANAGER.md).
 The first static open-source equilibrium backend is documented in [Signal CGE Open-Source Prototype Equilibrium Solver](Documentation/SIGNAL_CGE_OPEN_SOURCE_EQUILIBRIUM_SOLVER.md).
 The validated static solver is documented in [Signal CGE Validated Static Equilibrium Solver](Documentation/SIGNAL_CGE_VALIDATED_STATIC_SOLVER.md).
+Optional local GAMS integration is documented in [Signal CGE GAMS Solver Integration](Documentation/SIGNAL_CGE_GAMS_SOLVER_INTEGRATION.md).
 
 ## Signal CGE Architecture
 

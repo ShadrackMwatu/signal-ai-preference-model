@@ -22,10 +22,17 @@ Documentation/signal_cge_reference/historical/source_package/**/*.pdf
 *.g00
 *.lst
 *.log
+gamslice.txt
+gamslice.dat
+*.pf
 *.tmp
 *.bak
 *.lnk
 *.url
+Signal_CGE/solvers/*.lnk
+Signal_CGE/solvers/*.url
+Signal_CGE/solvers/*Installer*
+Signal_CGE/solvers/*Uninstall*
 runtime/
 outputs/
 !Signal_CGE/outputs/
@@ -45,3 +52,4 @@ Signal_CGE/outputs/signal_cge_learning/*.json
 Signal_CGE/outputs/signal_cge_learning/*.md
 Signal_CGE/outputs/model_improvement_reports/*.json
 Signal_CGE/outputs/learning_summaries/*.json
+Signal_CGE/outputs/runtime/

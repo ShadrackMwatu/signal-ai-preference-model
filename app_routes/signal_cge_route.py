@@ -33,6 +33,7 @@ from Signal_CGE.signal_cge.solvers.static_equilibrium_solver import (
     calibration_from_sam_path,
     solve_static_equilibrium,
 )
+from Signal_CGE.signal_cge.solvers.solver_registry import get_solver_registry
 
 
 FULL_CGE_FALLBACK_MESSAGE = (
@@ -77,6 +78,7 @@ def run_signal_cge_prompt(prompt: str, uploaded_file: Any | None = None) -> dict
         "model_gap_report": gap_report,
         "full_cge_development_status": full_cge_status,
         "experiment_payload": experiment_payload,
+        "available_solvers": get_solver_registry(),
     }
     try:
         solver_calibration = calibration_from_sam_path(sam_path)
