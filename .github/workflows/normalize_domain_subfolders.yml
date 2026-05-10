@@ -1,0 +1,204 @@
+name: Normalize domain subfolders
+
+on:
+  push:
+    branches: [main]
+
+permissions:
+  contents: write
+
+jobs:
+  normalize-domain-subfolders:
+    if: contains(github.event.head_commit.message, '[normalize-domains]')
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Configure git
+        run: |
+          git config user.name "Signal Domain Normalizer"
+          git config user.email "actions@github.com"
+
+      - name: Normalize internal domain folders
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          B="Behavioral_Signals_AI"
+          C="Signal_CGE"
+
+          mkdir -p \
+            "$B/adaptive_learning" \
+            "$B/api" \
+            "$B/app" \
+            "$B/behavioral_ai" \
+            "$B/dashboards" \
+            "$B/explainability" \
+            "$B/live_trends" \
+            "$B/ml" \
+            "$B/models" \
+            "$B/training" \
+            "$B/utils" \
+            "$C/cge_core" \
+            "$C/cge_engine" \
+            "$C/cge_workbench" \
+            "$C/data" \
+            "$C/learning" \
+            "$C/models" \
+            "$C/outputs" \
+            "$C/sam" \
+            "$C/sml_workbench" \
+            "$C/tests" \
+            "$C/Documentation"
+
+          safe_mv_contents() {
+            local src="$1"
+            local dst="$2"
+            if [ ! -e "$src" ]; then
+              return 0
+            fi
+            mkdir -p "$dst"
+            shopt -s dotglob nullglob
+            for item in "$src"/*; do
+              [ -e "$item" ] || continue
+              local base
+              base="$(basename "$item")"
+              if [ -e "$dst/$base" ]; then
+                mkdir -p "$dst/_merged"
+                local target="$dst/_merged/$base"
+                local i=1
+                while [ -e "$target" ]; do
+                  target="$dst/_merged/${base}_$i"
+                  i=$((i+1))
+                done
+                git mv "$item" "$target"
+              else
+                git mv "$item" "$dst/$base"
+              fi
+            done
+            shopt -u dotglob nullglob
+            rmdir "$src" 2>/dev/null || true
+          }
+
+          safe_mv_file() {
+            local src="$1"
+            local dst="$2"
+            if [ ! -e "$src" ]; then
+              return 0
+            fi
+            mkdir -p "$dst"
+            local base
+            base="$(basename "$src")"
+            if [ -e "$dst/$base" ]; then
+              mkdir -p "$dst/_merged"
+              git mv "$src" "$dst/_merged/$base"
+            else
+              git mv "$src" "$dst/$base"
+            fi
+          }
+
+          # Behavioral domain normalization
+          safe_mv_contents "$B/learning_memory" "$B/adaptive_learning/learning_memory"
+          safe_mv_contents "$B/learning_versions" "$B/adaptive_learning/learning_versions"
+          safe_mv_contents "$B/signal_learning" "$B/adaptive_learning/signal_learning"
+          safe_mv_contents "$B/learning" "$B/adaptive_learning/learning"
+          safe_mv_file "$B/adaptive_learning.py" "$B/adaptive_learning"
+
+          safe_mv_contents "$B/app_routes" "$B/app/routes"
+          safe_mv_contents "$B/src" "$B/app/src"
+          safe_mv_contents "$B/config" "$B/app/config"
+
+          safe_mv_contents "$B/api" "$B/api"
+          safe_mv_contents "$B/behavioral_ai" "$B/behavioral_ai"
+          safe_mv_contents "$B/explainability" "$B/explainability"
+          safe_mv_file "$B/explainability.py" "$B/explainability"
+          safe_mv_file "$B/privacy.py" "$B/explainability"
+          safe_mv_contents "$B/live_trends" "$B/live_trends"
+          safe_mv_file "$B/trend_intelligence.py" "$B/live_trends"
+          safe_mv_file "$B/x_trends.py" "$B/live_trends"
+          safe_mv_contents "$B/ml" "$B/ml"
+          safe_mv_file "$B/train_model.py" "$B/training"
+          safe_mv_contents "$B/models_ml" "$B/models"
+          safe_mv_contents "$B/knowledge_base" "$B/utils/knowledge_base"
+          safe_mv_contents "$B/data" "$B/utils/data"
+          safe_mv_contents "$B/docs" "$B/utils/docs"
+          safe_mv_contents "$B/outputs" "$B/utils/outputs"
+
+          # CGE domain normalization
+          safe_mv_contents "$C/backends" "$C/cge_engine/backends"
+          safe_mv_contents "$C/policy_ai" "$C/cge_engine/policy_ai"
+          safe_mv_contents "$C/policy_intelligence" "$C/cge_engine/policy_intelligence"
+          safe_mv_contents "$C/signal_ai" "$C/cge_engine/signal_ai"
+          safe_mv_contents "$C/solvers" "$C/cge_engine/solvers"
+          safe_mv_contents "$C/signal_execution" "$C/cge_engine/signal_execution"
+
+          safe_mv_contents "$C/cge_core" "$C/cge_core"
+          safe_mv_contents "$C/cge_engine" "$C/cge_engine"
+          safe_mv_contents "$C/cge_workbench" "$C/cge_workbench"
+          safe_mv_contents "$C/models" "$C/models"
+          safe_mv_contents "$C/signal_cge" "$C/cge_core/signal_cge_legacy"
+          safe_mv_contents "$C/signal_modeling_language" "$C/sml_workbench/signal_modeling_language"
+          safe_mv_contents "$C/signal_sml" "$C/sml_workbench/signal_sml"
+          safe_mv_contents "$C/sml_workbench" "$C/sml_workbench"
+          safe_mv_contents "$C/documents" "$C/Documentation/documents"
+          safe_mv_contents "$C/Documentation" "$C/Documentation"
+          safe_mv_contents "$C/outputs" "$C/outputs"
+
+          # Keep canonical package if it already exists.
+          mkdir -p "$C/data" "$C/sam" "$C/learning"
+
+          cat > "$B/README.md" <<'EOF'
+          # Behavioral_Signals_AI
+
+          Behavioral_Signals_AI contains the behavioral intelligence side of Signal.
+
+          Canonical internal structure:
+
+          ```text
+          adaptive_learning/
+          api/
+          app/
+          behavioral_ai/
+          dashboards/
+          explainability/
+          live_trends/
+          ml/
+          models/
+          training/
+          utils/
+          ```
+          EOF
+
+          cat > "$C/README.md" <<'EOF'
+          # Signal_CGE
+
+          Signal_CGE contains the economic modeling side of Signal: SAM handling, CGE/SML modeling, solver backends, scenario simulation, diagnostics, reporting, and learning services.
+
+          Canonical internal structure:
+
+          ```text
+          cge_core/
+          cge_engine/
+          cge_workbench/
+          data/
+          learning/
+          models/
+          outputs/
+          sam/
+          sml_workbench/
+          tests/
+          Documentation/
+          ```
+          EOF
+
+          git add -A
+          if git diff --cached --quiet; then
+            echo "Domain subfolders already normalized."
+            exit 0
+          fi
+
+          git commit -m "Normalize internal domain subfolders"
+          git push
