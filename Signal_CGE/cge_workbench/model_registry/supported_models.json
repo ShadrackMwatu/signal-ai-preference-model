@@ -7,6 +7,12 @@
       "available_without_gams": true
     },
     {
+      "id": "signal_static_equilibrium_cge",
+      "label": "Static equilibrium CGE solver",
+      "backend": "python_scipy",
+      "available_without_gams": true
+    },
+    {
       "id": "signal_cge_model",
       "label": "CGE model",
       "backend": "gams",

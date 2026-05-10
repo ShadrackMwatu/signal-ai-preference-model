@@ -597,7 +597,7 @@ def ai_cge_chat_studio_model(user_prompt: str, sam_file: Any | None = None) -> t
         return "{}", f"## Diagnostics\n- {message}", "## Results Summary\n- No results were produced.", message, ""
 
 
-def run_signal_cge_prompt(prompt: str, uploaded_file: Any | None = None) -> dict[str, Any]:
+def run_signal_cge_prompt(prompt: str, uploaded_file: Any | None = None, backend: str = "Static equilibrium CGE solver") -> dict[str, Any]:
     """Run the single public Signal CGE prompt-driven workflow."""
 
     if not AI_CGE_WORKBENCH_AVAILABLE:
@@ -605,10 +605,10 @@ def run_signal_cge_prompt(prompt: str, uploaded_file: Any | None = None) -> dict
             prompt,
             f"Signal CGE backend unavailable: {AI_CGE_WORKBENCH_IMPORT_ERROR}",
         )
-    return route_run_signal_cge_prompt(prompt, uploaded_file)
+    return route_run_signal_cge_prompt(prompt, uploaded_file, backend)
 
 
-def signal_cge_prompt_ui(prompt: str, uploaded_file: Any | None = None) -> tuple[
+def signal_cge_prompt_ui(prompt: str, backend: str, uploaded_file: Any | None = None) -> tuple[
     str,
     str,
     pd.DataFrame,
@@ -625,7 +625,7 @@ def signal_cge_prompt_ui(prompt: str, uploaded_file: Any | None = None) -> tuple
 ]:
     """Return display-ready Signal CGE sections for the public Gradio tab."""
 
-    result = run_signal_cge_prompt(prompt, uploaded_file)
+    result = run_signal_cge_prompt(prompt, uploaded_file, backend)
     downloads = result.get("downloads", {})
     return (
         _render_interpreted_scenario(result),
@@ -2201,6 +2201,15 @@ with gr.Blocks(title="Signal AI Dashboard", css=SIGNAL_DASHBOARD_CSS) as demo:
             value="reduce import tariffs on cmach by 10%",
             lines=6,
         )
+        signal_cge_backend = gr.Dropdown(
+            label="Simulation backend",
+            choices=[
+                "Static equilibrium CGE solver",
+                "SAM multiplier backend",
+                "Optional GAMS backend if available",
+            ],
+            value="Static equilibrium CGE solver",
+        )
         with gr.Accordion("Optional: Upload custom SAM/workbook", open=False):
             gr.Markdown(
                 "No upload is required. Signal CGE uses the canonical model stored in the repository unless a custom file is uploaded."
@@ -2234,7 +2243,7 @@ with gr.Blocks(title="Signal AI Dashboard", css=SIGNAL_DASHBOARD_CSS) as demo:
             signal_cge_brief_download = gr.File(label="Download Markdown policy brief")
         run_signal_cge_button.click(
             fn=signal_cge_prompt_ui,
-            inputs=[signal_cge_prompt, signal_cge_upload],
+            inputs=[signal_cge_prompt, signal_cge_backend, signal_cge_upload],
             outputs=[
                 signal_cge_scenario_output,
                 signal_cge_summary_cards,

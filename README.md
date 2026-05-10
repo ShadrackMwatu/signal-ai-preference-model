@@ -42,6 +42,19 @@ The full-model blueprint is documented in [Signal CGE Full Model Roadmap](Docume
 The first static open-source equilibrium backend is documented in [Signal CGE Open-Source Prototype Equilibrium Solver](Documentation/SIGNAL_CGE_OPEN_SOURCE_EQUILIBRIUM_SOLVER.md).
 The validated static solver is documented in [Signal CGE Validated Static Equilibrium Solver](Documentation/SIGNAL_CGE_VALIDATED_STATIC_SOLVER.md).
 Optional local GAMS integration is documented in [Signal CGE GAMS Solver Integration](Documentation/SIGNAL_CGE_GAMS_SOLVER_INTEGRATION.md).
+The production-facing static equilibrium backend is documented in [Signal CGE Static Equilibrium Solver](Documentation/Signal_CGE_Static_Equilibrium_Solver.md).
+
+## Signal CGE Simulation Modes
+
+Signal CGE now supports three simulation modes:
+
+1. **SAM multiplier mode**: fixed-price multiplier screening for quick scenario checks.
+2. **Static equilibrium CGE mode**: an actual open-source numerical equilibrium solver built with Python, NumPy, pandas, and SciPy. It calibrates from a balanced SAM, solves baseline and counterfactual equilibria, and reports price, quantity, income, fiscal, trade, and welfare-proxy changes.
+3. **Optional external solver mode**: local-only external solver execution when configured, with Python backends preserved for hosted deployment.
+
+The static equilibrium CGE mode is not just a label. It solves a calibrated
+nonlinear equilibrium system and reports convergence diagnostics before results
+are shown.
 
 ## Signal CGE Architecture
 

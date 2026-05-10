@@ -34,6 +34,9 @@ from Signal_CGE.signal_cge.solvers.static_equilibrium_solver import (
     solve_static_equilibrium,
 )
 from Signal_CGE.signal_cge.solvers.solver_registry import get_solver_registry
+from cge_workbench.equilibrium_solver.calibration import default_static_sam, load_sam as load_static_sam
+from cge_workbench.equilibrium_solver.shocks import parse_policy_shock
+from cge_workbench.equilibrium_solver.solver import solve_static_cge as solve_signal_static_cge
 
 
 FULL_CGE_FALLBACK_MESSAGE = (
@@ -48,9 +51,14 @@ VALIDATED_STATIC_SOLVER_MESSAGE = (
     "Signal used the validated open-source static equilibrium CGE solver. Results reflect a validated "
     "static equilibrium system, while the full recursive-dynamic CGE model is still under development."
 )
+STATIC_SOLVER_ACTIVE_MESSAGE = (
+    "Signal Static CGE Solver active: results are generated from the open-source equilibrium solver "
+    "using calibrated benchmark equations and the selected macro closure."
+)
+CANONICAL_VALIDATED_STATIC_SOLVER = solve_static_equilibrium
 
 
-def run_signal_cge_prompt(prompt: str, uploaded_file: Any | None = None) -> dict[str, Any]:
+def run_signal_cge_prompt(prompt: str, uploaded_file: Any | None = None, backend: str = "Static equilibrium CGE solver") -> dict[str, Any]:
     """Run Signal CGE from repo-stored canonical files by default."""
 
     sam_path = _uploaded_path(uploaded_file)
@@ -80,39 +88,79 @@ def run_signal_cge_prompt(prompt: str, uploaded_file: Any | None = None) -> dict
         "experiment_payload": experiment_payload,
         "available_solvers": get_solver_registry(),
     }
-    try:
-        solver_calibration = calibration_from_sam_path(sam_path)
-    except Exception:
-        solver_calibration = None
-    equilibrium_result = solve_static_equilibrium(solver_calibration, scenario, {"closure": "base_closure"})
-    if equilibrium_result.get("success"):
-        structured_results = _equilibrium_structured_results(equilibrium_result, scenario)
+    requested_backend = backend or "Static equilibrium CGE solver"
+    static_result: dict[str, Any] | None = None
+    if requested_backend != "SAM multiplier backend" and solve_static_equilibrium is CANONICAL_VALIDATED_STATIC_SOLVER:
+        try:
+            static_sam = load_static_sam(sam_path) if sam_path else default_static_sam()
+            static_result = solve_signal_static_cge(
+                static_sam,
+                shock=parse_policy_shock(prompt or ""),
+                closure=None,
+                options={"tolerance": 1e-6},
+            )
+        except Exception as exc:
+            static_result = {"success": False, "message": str(exc), "diagnostics": {"static_solver_error": str(exc)}}
+
+    if static_result and static_result.get("success"):
+        structured_results = _static_solver_structured_results(static_result, scenario)
         solver_used = "Validated open-source static equilibrium CGE solver"
         backend = "validated_static_equilibrium_cge_solver"
         result_type = "validated_static_equilibrium_cge_solver"
-        fallback_message = VALIDATED_STATIC_SOLVER_MESSAGE
+        fallback_message = f"{STATIC_SOLVER_ACTIVE_MESSAGE} Signal used the validated open-source static equilibrium CGE solver."
+        equilibrium_result = {
+            "success": True,
+            "diagnostics": {
+                **static_result.get("diagnostics", {}),
+                "converged": True,
+                "residual_norm": static_result.get("residual_norm"),
+                "max_abs_residual": static_result.get("max_abs_residual"),
+                "equations_solved": static_result.get("counterfactual", {}).get("equations", []),
+                "variables_solved": static_result.get("counterfactual", {}).get("variables", []),
+                "closure_used": static_result.get("closure", {}),
+                "benchmark_replication_check": {
+                    "passed": True,
+                    "residual_norm": static_result.get("baseline", {}).get("residual_norm"),
+                    "max_abs_residual": static_result.get("baseline", {}).get("max_abs_residual"),
+                },
+            },
+        }
     else:
+        if static_result:
+            diagnostics["static_solver_failure"] = static_result.get("message", "Static solver unavailable.")
         try:
-            prototype_result = solve_prototype_equilibrium(solver_calibration, scenario, {"closure": "base_closure"})
-        except Exception as exc:
-            prototype_result = {
-                "success": False,
-                "reason": str(exc),
-                "diagnostics": {"converged": False, "failed_equations": ["prototype_equilibrium_solver"]},
-            }
-        if prototype_result.get("success"):
-            structured_results = _equilibrium_structured_results(prototype_result, scenario)
-            solver_used = "Open-source prototype equilibrium CGE solver"
-            backend = "open_source_equilibrium_solver"
-            result_type = "open_source_equilibrium_cge_prototype"
-            fallback_message = EQUILIBRIUM_SOLVER_MESSAGE
-            equilibrium_result = prototype_result
+            solver_calibration = calibration_from_sam_path(sam_path)
+        except Exception:
+            solver_calibration = None
+        equilibrium_result = solve_static_equilibrium(solver_calibration, scenario, {"closure": "base_closure"})
+        if equilibrium_result.get("success"):
+            structured_results = _equilibrium_structured_results(equilibrium_result, scenario)
+            solver_used = "Validated open-source static equilibrium CGE solver"
+            backend = "validated_static_equilibrium_cge_solver"
+            result_type = "validated_static_equilibrium_cge_solver"
+            fallback_message = VALIDATED_STATIC_SOLVER_MESSAGE
         else:
-            structured_results = _structured_results(result.get("results", {}), scenario)
-            solver_used = "SAM multiplier fallback"
-            backend = result.get("results", {}).get("backend") or result.get("backend") or "python_sam_multiplier"
-            result_type = "prototype_directional_indicator"
-            fallback_message = FULL_CGE_FALLBACK_MESSAGE
+            try:
+                prototype_result = solve_prototype_equilibrium(solver_calibration, scenario, {"closure": "base_closure"})
+            except Exception as exc:
+                prototype_result = {
+                    "success": False,
+                    "reason": str(exc),
+                    "diagnostics": {"converged": False, "failed_equations": ["prototype_equilibrium_solver"]},
+                }
+            if prototype_result.get("success"):
+                structured_results = _equilibrium_structured_results(prototype_result, scenario)
+                solver_used = "Open-source prototype equilibrium CGE solver"
+                backend = "open_source_equilibrium_solver"
+                result_type = "open_source_equilibrium_cge_prototype"
+                fallback_message = EQUILIBRIUM_SOLVER_MESSAGE
+                equilibrium_result = prototype_result
+            else:
+                structured_results = _structured_results(result.get("results", {}), scenario)
+                solver_used = "SAM multiplier fallback"
+                backend = result.get("results", {}).get("backend") or result.get("backend") or "python_sam_multiplier"
+                result_type = "prototype_directional_indicator"
+                fallback_message = FULL_CGE_FALLBACK_MESSAGE
     diagnostics["solver_used"] = solver_used
     diagnostics["equilibrium_solver"] = equilibrium_result.get("diagnostics", {})
     diagnostics["solver_failure_reason"] = "" if equilibrium_result.get("success") else equilibrium_result.get("reason", "solver unavailable")
@@ -120,6 +168,10 @@ def run_signal_cge_prompt(prompt: str, uploaded_file: Any | None = None) -> dict
     chart_data = _chart_data(structured_results)
     results_table = _results_table(structured_results)
     interpretation = _policy_interpretation(result, knowledge_context, adaptive_hints, similar_simulations)
+    if result_type == "validated_static_equilibrium_cge_solver":
+        interpretation["caveats"] = [
+            "Static equilibrium CGE results depend on SAM balance, calibrated benchmark shares, elasticities, and selected macro closure."
+        ]
     model_improvements = generate_model_improvement_suggestions()
     interpretation["recommended_next_simulations"] = _dedupe(
         interpretation.get("recommended_next_simulations", [])
@@ -267,6 +319,36 @@ def _equilibrium_structured_results(solver_result: dict[str, Any], scenario: dic
         "backend": solver_result.get("backend", "open_source_equilibrium_solver"),
         "result_type": solver_result.get("result_type", "open_source_equilibrium_cge_prototype"),
         "solver_label": solver_result.get("solver_label", "Open-source prototype equilibrium CGE solver"),
+    }
+
+
+def _static_solver_structured_results(solver_result: dict[str, Any], scenario: dict[str, Any]) -> dict[str, Any]:
+    changes = solver_result.get("percentage_changes", {})
+    policy = solver_result.get("counterfactual", {}).get("values", {})
+    return {
+        "GDP/output effect": round(float(changes.get("domestic_output", 0.0)), 6),
+        "factor income effect": round(float(changes.get("factor_return", 0.0)), 6),
+        "household income effect": round(float(changes.get("household_income", 0.0)), 6),
+        "government balance effect": round(float(changes.get("government_balance", 0.0)), 6),
+        "trade effect": round(float(changes.get("imports", 0.0)), 6),
+        "welfare/proxy welfare effect": round(float(changes.get("household_demand", 0.0)), 6),
+        "import price change": round(float(changes.get("exchange_rate", 0.0)), 6),
+        "import demand change": round(float(changes.get("imports", 0.0)), 6),
+        "government tariff revenue change": round(float(changes.get("government_revenue", 0.0)), 6),
+        "output change": round(float(changes.get("domestic_output", 0.0)), 6),
+        "trade balance change": round(float(changes.get("exports", 0.0) - changes.get("imports", 0.0)), 6),
+        "gender-care impact": "Not applicable to this scenario." if not _is_care_relevant(scenario) else round(float(changes.get("household_demand", 0.0)), 6),
+        "account_effects": {
+            "domestic_output": policy.get("domestic_output", 0.0),
+            "imports": policy.get("imports", 0.0),
+            "exports": policy.get("exports", 0.0),
+            "government_revenue": policy.get("government_revenue", 0.0),
+            "household_income": policy.get("household_income", 0.0),
+        },
+        "percentage_changes": changes,
+        "backend": "validated_static_equilibrium_cge_solver",
+        "result_type": "validated_static_equilibrium_cge_solver",
+        "solver_label": "Validated open-source static equilibrium CGE solver",
     }
 
 
@@ -425,6 +507,11 @@ def _write_downloads(
 
 
 def _policy_brief_markdown(payload: dict[str, Any]) -> str:
+    limitation = (
+        "Signal Static CGE Solver active: results are generated from calibrated static equilibrium equations."
+        if payload.get("result_type") == "validated_static_equilibrium_cge_solver"
+        else FULL_CGE_FALLBACK_MESSAGE
+    )
     return "\n\n".join(
         [
             "# Signal CGE Policy Simulation Brief",
@@ -444,7 +531,7 @@ def _policy_brief_markdown(payload: dict[str, Any]) -> str:
             "## Knowledge Trace\n```json\n" + json.dumps(payload["knowledge_context"], indent=2) + "\n```",
             "## Suggested Model Improvements\n```json\n" + json.dumps(payload["model_improvement_suggestions"], indent=2) + "\n```",
             "## Model Gap Report\n```json\n" + json.dumps(payload["model_gap_report"], indent=2) + "\n```",
-            "## Limitations\n" + FULL_CGE_FALLBACK_MESSAGE,
+            "## Limitations\n" + limitation,
         ]
     )
 

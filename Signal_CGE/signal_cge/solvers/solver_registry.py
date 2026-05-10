@@ -15,6 +15,10 @@ def get_solver_registry() -> dict[str, Any]:
             "status": "ready",
             "required_runtime": "Python/SciPy",
         },
+        "static_equilibrium_cge_solver": {
+            "status": "ready",
+            "required_runtime": "Python/SciPy",
+        },
         "open_source_equilibrium_solver": {
             "status": "ready",
             "required_runtime": "Python/SciPy",

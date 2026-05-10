@@ -38,7 +38,7 @@ def test_run_signal_cge_prompt_is_knowledge_aware() -> None:
     assert result["knowledge_context"]["reference_labels"]
     assert result["model_gap_report"]
     assert "prior_learning_used" in result["interpretation"]
-    assert "Full equilibrium effects require the future solver." in result["interpretation"]["caveats"]
+    assert "future solver" not in " ".join(result["interpretation"]["caveats"]).lower()
 
 
 def test_model_gap_report_and_pattern_learning_generate() -> None:

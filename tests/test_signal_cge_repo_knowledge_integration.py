@@ -49,7 +49,8 @@ def test_tariff_prompt_returns_improved_interpretation() -> None:
     assert "import tax wedge" in interpretation
     assert "government tariff revenue may fall" in interpretation
     assert "trade-balance effects are ambiguous" in interpretation
-    assert "future solver" in " ".join(result["interpretation"]["caveats"])
+    assert "future solver" not in " ".join(result["interpretation"]["caveats"]).lower()
+    assert "Static equilibrium CGE results" in " ".join(result["interpretation"]["caveats"])
 
 
 def test_equilibrium_results_are_open_source_prototype() -> None:
