@@ -1,10 +1,35 @@
 .venv/ 
 __pycache__/ 
+**/__pycache__/
 *.py[cod] 
+*.pyc
+*.pyo
 .pytest_cache/ 
 .cache/
+.cache*/
+
+# Temporary and generated test artifacts
 tests/_tmp/ 
 tests/_scratch/
+Signal_CGE/tests/_tmp/
+Signal_CGE/tests/tmp/
+Signal_CGE/tests/runner_outputs/
+Signal_CGE/tests/learning_runner_outputs/
+Signal_CGE/tests/**/_tmp/
+Signal_CGE/tests/**/tmp/
+Signal_CGE/tests/**/runner_outputs/
+Signal_CGE/tests/**/learning_runner_outputs/
+Behavioral_Signals_AI/tmp/
+Behavioral_Signals_AI/cache/
+Behavioral_Signals_AI/**/tmp/
+Behavioral_Signals_AI/**/cache/
+
+# Generated model/output binaries and spreadsheets
+*.joblib
+*.xlsx
+*.xlsm
+*.xls
+
 outputs/matplotlib*/
 cge_workbench/outputs/*
 !cge_workbench/outputs/.gitkeep
@@ -36,6 +61,7 @@ Signal_CGE/solvers/*Uninstall*
 runtime/
 outputs/
 !Signal_CGE/outputs/
+!Signal_CGE/outputs/.gitkeep
 !Signal_CGE/outputs/signal_cge_learning/
 !Signal_CGE/outputs/signal_cge_learning/.gitkeep
 !Signal_CGE/outputs/model_improvement_reports/
