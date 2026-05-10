@@ -1,11 +1,19 @@
-# Behavioral Signals AI
+# Behavioral_Signals_AI
 
-This product folder contains the behavioral intelligence side of Signal:
+Behavioral_Signals_AI contains the behavioral intelligence side of Signal.
 
-- behavioral prediction support,
-- adaptive feedback utilities,
-- live trend support,
-- behavioral explainability helpers,
-- future behavioral data and model documentation.
+Canonical internal structure:
 
-Root-level compatibility wrappers remain during migration so existing imports and tests continue to work.
+```text
+adaptive_learning/
+api/
+app/
+behavioral_ai/
+dashboards/
+explainability/
+live_trends/
+ml/
+models/
+training/
+utils/
+```
