@@ -1,0 +1,580 @@
+{
+  "models": [
+    {
+      "dataset_used": "in-memory",
+      "file_path": "tests\\_scratch\\ml_prediction\\signal_demand_classifier_ml_prediction.joblib",
+      "model_name": "signal_demand_classifier_ml_prediction",
+      "model_type": "classification:random_forest",
+      "notes": "Default scikit-learn Signal demand classifier.",
+      "performance": {
+        "accuracy": 1.0
+      },
+      "training_date": "2026-05-07T19:56:40.828062+00:00",
+      "version": 1
+    },
+    {
+      "dataset_used": "in-memory",
+      "file_path": "tests\\_scratch\\ml_prediction\\signal_demand_classifier_ml_prediction.joblib",
+      "model_name": "signal_demand_classifier_ml_prediction",
+      "model_type": "classification:random_forest",
+      "notes": "Default scikit-learn Signal demand classifier.",
+      "performance": {
+        "accuracy": 1.0
+      },
+      "training_date": "2026-05-07T19:56:43.344663+00:00",
+      "version": 2
+    },
+    {
+      "dataset_used": "in-memory",
+      "file_path": "tests\\_scratch\\ml_prediction\\signal_demand_classifier_ml_prediction.joblib",
+      "model_name": "signal_demand_classifier_ml_prediction",
+      "model_type": "classification:random_forest",
+      "notes": "Default scikit-learn Signal demand classifier.",
+      "performance": {
+        "accuracy": 1.0
+      },
+      "training_date": "2026-05-07T19:57:54.722530+00:00",
+      "version": 3
+    },
+    {
+      "dataset_used": "in-memory",
+      "file_path": "tests\\_scratch\\ml_prediction\\signal_demand_classifier_ml_prediction.joblib",
+      "model_name": "signal_demand_classifier_ml_prediction",
+      "model_type": "classification:random_forest",
+      "notes": "Default scikit-learn Signal demand classifier.",
+      "performance": {
+        "accuracy": 1.0
+      },
+      "training_date": "2026-05-07T20:14:34.647027+00:00",
+      "version": 4
+    },
+    {
+      "dataset_used": "in-memory",
+      "file_path": "tests\\_scratch\\ml_prediction\\signal_demand_classifier_ml_prediction.joblib",
+      "model_name": "signal_demand_classifier_ml_prediction",
+      "model_type": "classification:random_forest",
+      "notes": "Default scikit-learn Signal demand classifier.",
+      "performance": {
+        "accuracy": 1.0
+      },
+      "training_date": "2026-05-07T20:16:28.497014+00:00",
+      "version": 5
+    },
+    {
+      "dataset_used": "in-memory",
+      "file_path": "tests\\_scratch\\ml_prediction\\signal_demand_classifier_ml_prediction.joblib",
+      "model_name": "signal_demand_classifier_ml_prediction",
+      "model_type": "classification:random_forest",
+      "notes": "Default scikit-learn Signal demand classifier.",
+      "performance": {
+        "accuracy": 1.0
+      },
+      "training_date": "2026-05-07T20:20:59.466757+00:00",
+      "version": 6
+    },
+    {
+      "dataset_used": "in-memory",
+      "file_path": "tests\\_scratch\\ml_prediction\\signal_demand_classifier_ml_prediction.joblib",
+      "model_name": "signal_demand_classifier_ml_prediction",
+      "model_type": "classification:random_forest",
+      "notes": "Default scikit-learn Signal demand classifier.",
+      "performance": {
+        "accuracy": 1.0
+      },
+      "training_date": "2026-05-07T20:29:38.025113+00:00",
+      "version": 7
+    },
+    {
+      "dataset_used": "in-memory",
+      "file_path": "tests\\_scratch\\ml_prediction\\signal_demand_classifier_ml_prediction.joblib",
+      "model_name": "signal_demand_classifier_ml_prediction",
+      "model_type": "classification:random_forest",
+      "notes": "Default scikit-learn Signal demand classifier.",
+      "performance": {
+        "accuracy": 1.0
+      },
+      "training_date": "2026-05-07T20:30:50.564891+00:00",
+      "version": 8
+    },
+    {
+      "dataset_used": "in-memory",
+      "file_path": "tests\\_scratch\\ml_prediction\\signal_demand_classifier_ml_prediction.joblib",
+      "model_name": "signal_demand_classifier_ml_prediction",
+      "model_type": "classification:random_forest",
+      "notes": "Default scikit-learn Signal demand classifier.",
+      "performance": {
+        "accuracy": 1.0
+      },
+      "training_date": "2026-05-07T20:43:12.609109+00:00",
+      "version": 9
+    },
+    {
+      "dataset_used": "in-memory",
+      "file_path": "tests\\_scratch\\ml_prediction\\signal_demand_classifier_ml_prediction.joblib",
+      "model_name": "signal_demand_classifier_ml_prediction",
+      "model_type": "classification:random_forest",
+      "notes": "Default scikit-learn Signal demand classifier.",
+      "performance": {
+        "accuracy": 1.0
+      },
+      "training_date": "2026-05-07T20:59:44.283718+00:00",
+      "version": 10
+    },
+    {
+      "dataset_used": "in-memory",
+      "file_path": "tests\\_scratch\\ml_prediction\\signal_demand_classifier_ml_prediction.joblib",
+      "model_name": "signal_demand_classifier_ml_prediction",
+      "model_type": "classification:random_forest",
+      "notes": "Default scikit-learn Signal demand classifier.",
+      "performance": {
+        "accuracy": 1.0
+      },
+      "training_date": "2026-05-07T21:11:14.187253+00:00",
+      "version": 11
+    },
+    {
+      "dataset_used": "in-memory",
+      "file_path": "tests\\_scratch\\ml_prediction\\signal_demand_classifier_ml_prediction.joblib",
+      "model_name": "signal_demand_classifier_ml_prediction",
+      "model_type": "classification:random_forest",
+      "notes": "Default scikit-learn Signal demand classifier.",
+      "performance": {
+        "accuracy": 1.0
+      },
+      "training_date": "2026-05-08T06:40:02.141330+00:00",
+      "version": 12
+    },
+    {
+      "dataset_used": "in-memory",
+      "file_path": "tests\\_scratch\\ml_prediction\\signal_demand_classifier_ml_prediction.joblib",
+      "model_name": "signal_demand_classifier_ml_prediction",
+      "model_type": "classification:random_forest",
+      "notes": "Default scikit-learn Signal demand classifier.",
+      "performance": {
+        "accuracy": 1.0
+      },
+      "training_date": "2026-05-09T06:30:59.554475+00:00",
+      "version": 13
+    },
+    {
+      "dataset_used": "in-memory",
+      "file_path": "tests\\_scratch\\ml_prediction\\signal_demand_classifier_ml_prediction.joblib",
+      "model_name": "signal_demand_classifier_ml_prediction",
+      "model_type": "classification:random_forest",
+      "notes": "Default scikit-learn Signal demand classifier.",
+      "performance": {
+        "accuracy": 1.0
+      },
+      "training_date": "2026-05-09T06:47:43.925272+00:00",
+      "version": 14
+    },
+    {
+      "dataset_used": "in-memory",
+      "file_path": "tests\\_scratch\\ml_prediction\\signal_demand_classifier_ml_prediction.joblib",
+      "model_name": "signal_demand_classifier_ml_prediction",
+      "model_type": "classification:random_forest",
+      "notes": "Default scikit-learn Signal demand classifier.",
+      "performance": {
+        "accuracy": 1.0
+      },
+      "training_date": "2026-05-09T07:24:36.490965+00:00",
+      "version": 15
+    },
+    {
+      "dataset_used": "in-memory",
+      "file_path": "tests\\_scratch\\ml_prediction\\signal_demand_classifier_ml_prediction.joblib",
+      "model_name": "signal_demand_classifier_ml_prediction",
+      "model_type": "classification:random_forest",
+      "notes": "Default scikit-learn Signal demand classifier.",
+      "performance": {
+        "accuracy": 1.0
+      },
+      "training_date": "2026-05-09T07:38:21.579103+00:00",
+      "version": 16
+    },
+    {
+      "dataset_used": "in-memory",
+      "file_path": "tests\\_scratch\\ml_prediction\\signal_demand_classifier_ml_prediction.joblib",
+      "model_name": "signal_demand_classifier_ml_prediction",
+      "model_type": "classification:random_forest",
+      "notes": "Default scikit-learn Signal demand classifier.",
+      "performance": {
+        "accuracy": 1.0
+      },
+      "training_date": "2026-05-09T08:12:41.262186+00:00",
+      "version": 17
+    },
+    {
+      "dataset_used": "in-memory",
+      "file_path": "tests\\_scratch\\ml_prediction\\signal_demand_classifier_ml_prediction.joblib",
+      "model_name": "signal_demand_classifier_ml_prediction",
+      "model_type": "classification:random_forest",
+      "notes": "Default scikit-learn Signal demand classifier.",
+      "performance": {
+        "accuracy": 1.0
+      },
+      "training_date": "2026-05-09T08:21:12.356979+00:00",
+      "version": 18
+    },
+    {
+      "dataset_used": "in-memory",
+      "file_path": "tests\\_scratch\\ml_prediction\\signal_demand_classifier_ml_prediction.joblib",
+      "model_name": "signal_demand_classifier_ml_prediction",
+      "model_type": "classification:random_forest",
+      "notes": "Default scikit-learn Signal demand classifier.",
+      "performance": {
+        "accuracy": 1.0
+      },
+      "training_date": "2026-05-09T08:35:01.869456+00:00",
+      "version": 19
+    },
+    {
+      "dataset_used": "in-memory",
+      "file_path": "tests\\_scratch\\ml_prediction\\signal_demand_classifier_ml_prediction.joblib",
+      "model_name": "signal_demand_classifier_ml_prediction",
+      "model_type": "classification:random_forest",
+      "notes": "Default scikit-learn Signal demand classifier.",
+      "performance": {
+        "accuracy": 1.0
+      },
+      "training_date": "2026-05-09T08:56:30.406389+00:00",
+      "version": 20
+    },
+    {
+      "dataset_used": "in-memory",
+      "file_path": "tests\\_scratch\\ml_prediction\\signal_demand_classifier_ml_prediction.joblib",
+      "model_name": "signal_demand_classifier_ml_prediction",
+      "model_type": "classification:random_forest",
+      "notes": "Default scikit-learn Signal demand classifier.",
+      "performance": {
+        "accuracy": 1.0
+      },
+      "training_date": "2026-05-09T09:16:46.748781+00:00",
+      "version": 21
+    },
+    {
+      "dataset_used": "in-memory",
+      "file_path": "tests\\_scratch\\ml_prediction\\signal_demand_classifier_ml_prediction.joblib",
+      "model_name": "signal_demand_classifier_ml_prediction",
+      "model_type": "classification:random_forest",
+      "notes": "Default scikit-learn Signal demand classifier.",
+      "performance": {
+        "accuracy": 1.0
+      },
+      "training_date": "2026-05-09T09:20:05.668348+00:00",
+      "version": 22
+    },
+    {
+      "dataset_used": "in-memory",
+      "file_path": "tests\\_scratch\\ml_prediction\\signal_demand_classifier_ml_prediction.joblib",
+      "model_name": "signal_demand_classifier_ml_prediction",
+      "model_type": "classification:random_forest",
+      "notes": "Default scikit-learn Signal demand classifier.",
+      "performance": {
+        "accuracy": 1.0
+      },
+      "training_date": "2026-05-09T09:54:29.683947+00:00",
+      "version": 23
+    },
+    {
+      "dataset_used": "in-memory",
+      "file_path": "tests\\_scratch\\ml_prediction\\signal_demand_classifier_ml_prediction.joblib",
+      "model_name": "signal_demand_classifier_ml_prediction",
+      "model_type": "classification:random_forest",
+      "notes": "Default scikit-learn Signal demand classifier.",
+      "performance": {
+        "accuracy": 1.0
+      },
+      "training_date": "2026-05-09T12:12:39.690850+00:00",
+      "version": 24
+    },
+    {
+      "dataset_used": "in-memory",
+      "file_path": "tests\\_scratch\\ml_prediction\\signal_demand_classifier_ml_prediction.joblib",
+      "model_name": "signal_demand_classifier_ml_prediction",
+      "model_type": "classification:random_forest",
+      "notes": "Default scikit-learn Signal demand classifier.",
+      "performance": {
+        "accuracy": 1.0
+      },
+      "training_date": "2026-05-09T12:19:52.197589+00:00",
+      "version": 25
+    },
+    {
+      "dataset_used": "in-memory",
+      "file_path": "tests\\_scratch\\ml_prediction\\signal_demand_classifier_ml_prediction.joblib",
+      "model_name": "signal_demand_classifier_ml_prediction",
+      "model_type": "classification:random_forest",
+      "notes": "Default scikit-learn Signal demand classifier.",
+      "performance": {
+        "accuracy": 1.0
+      },
+      "training_date": "2026-05-09T12:28:55.935369+00:00",
+      "version": 26
+    },
+    {
+      "dataset_used": "in-memory",
+      "file_path": "tests\\_scratch\\ml_prediction\\signal_demand_classifier_ml_prediction.joblib",
+      "model_name": "signal_demand_classifier_ml_prediction",
+      "model_type": "classification:random_forest",
+      "notes": "Default scikit-learn Signal demand classifier.",
+      "performance": {
+        "accuracy": 1.0
+      },
+      "training_date": "2026-05-09T12:51:46.650420+00:00",
+      "version": 27
+    },
+    {
+      "dataset_used": "in-memory",
+      "file_path": "tests\\_scratch\\ml_prediction\\signal_demand_classifier_ml_prediction.joblib",
+      "model_name": "signal_demand_classifier_ml_prediction",
+      "model_type": "classification:random_forest",
+      "notes": "Default scikit-learn Signal demand classifier.",
+      "performance": {
+        "accuracy": 1.0
+      },
+      "training_date": "2026-05-09T13:08:57.859757+00:00",
+      "version": 28
+    },
+    {
+      "dataset_used": "in-memory",
+      "file_path": "tests\\_scratch\\ml_prediction\\signal_demand_classifier_ml_prediction.joblib",
+      "model_name": "signal_demand_classifier_ml_prediction",
+      "model_type": "classification:random_forest",
+      "notes": "Default scikit-learn Signal demand classifier.",
+      "performance": {
+        "accuracy": 1.0
+      },
+      "training_date": "2026-05-09T13:23:18.313949+00:00",
+      "version": 29
+    },
+    {
+      "dataset_used": "in-memory",
+      "file_path": "tests\\_scratch\\ml_prediction\\signal_demand_classifier_ml_prediction.joblib",
+      "model_name": "signal_demand_classifier_ml_prediction",
+      "model_type": "classification:random_forest",
+      "notes": "Default scikit-learn Signal demand classifier.",
+      "performance": {
+        "accuracy": 1.0
+      },
+      "training_date": "2026-05-09T13:52:47.815290+00:00",
+      "version": 30
+    },
+    {
+      "dataset_used": "in-memory",
+      "file_path": "tests\\_scratch\\ml_prediction\\signal_demand_classifier_ml_prediction.joblib",
+      "model_name": "signal_demand_classifier_ml_prediction",
+      "model_type": "classification:random_forest",
+      "notes": "Default scikit-learn Signal demand classifier.",
+      "performance": {
+        "accuracy": 1.0
+      },
+      "training_date": "2026-05-09T14:15:57.563312+00:00",
+      "version": 31
+    },
+    {
+      "dataset_used": "in-memory",
+      "file_path": "tests\\_scratch\\ml_prediction\\signal_demand_classifier_ml_prediction.joblib",
+      "model_name": "signal_demand_classifier_ml_prediction",
+      "model_type": "classification:random_forest",
+      "notes": "Default scikit-learn Signal demand classifier.",
+      "performance": {
+        "accuracy": 1.0
+      },
+      "training_date": "2026-05-09T14:18:23.734843+00:00",
+      "version": 32
+    },
+    {
+      "dataset_used": "in-memory",
+      "file_path": "tests\\_scratch\\ml_prediction\\signal_demand_classifier_ml_prediction.joblib",
+      "model_name": "signal_demand_classifier_ml_prediction",
+      "model_type": "classification:random_forest",
+      "notes": "Default scikit-learn Signal demand classifier.",
+      "performance": {
+        "accuracy": 1.0
+      },
+      "training_date": "2026-05-09T16:18:01.377020+00:00",
+      "version": 33
+    },
+    {
+      "dataset_used": "in-memory",
+      "file_path": "tests\\_scratch\\ml_prediction\\signal_demand_classifier_ml_prediction.joblib",
+      "model_name": "signal_demand_classifier_ml_prediction",
+      "model_type": "classification:random_forest",
+      "notes": "Default scikit-learn Signal demand classifier.",
+      "performance": {
+        "accuracy": 1.0
+      },
+      "training_date": "2026-05-09T16:22:47.508847+00:00",
+      "version": 34
+    },
+    {
+      "dataset_used": "in-memory",
+      "file_path": "tests\\_scratch\\ml_prediction\\signal_demand_classifier_ml_prediction.joblib",
+      "model_name": "signal_demand_classifier_ml_prediction",
+      "model_type": "classification:random_forest",
+      "notes": "Default scikit-learn Signal demand classifier.",
+      "performance": {
+        "accuracy": 1.0
+      },
+      "training_date": "2026-05-09T16:33:56.537575+00:00",
+      "version": 35
+    },
+    {
+      "dataset_used": "in-memory",
+      "file_path": "tests\\_scratch\\ml_prediction\\signal_demand_classifier_ml_prediction.joblib",
+      "model_name": "signal_demand_classifier_ml_prediction",
+      "model_type": "classification:random_forest",
+      "notes": "Default scikit-learn Signal demand classifier.",
+      "performance": {
+        "accuracy": 1.0
+      },
+      "training_date": "2026-05-09T17:07:01.661510+00:00",
+      "version": 36
+    },
+    {
+      "dataset_used": "in-memory",
+      "file_path": "tests\\_scratch\\ml_prediction\\signal_demand_classifier_ml_prediction.joblib",
+      "model_name": "signal_demand_classifier_ml_prediction",
+      "model_type": "classification:random_forest",
+      "notes": "Default scikit-learn Signal demand classifier.",
+      "performance": {
+        "accuracy": 1.0
+      },
+      "training_date": "2026-05-09T17:16:25.526658+00:00",
+      "version": 37
+    },
+    {
+      "dataset_used": "in-memory",
+      "file_path": "tests\\_scratch\\ml_prediction\\signal_demand_classifier_ml_prediction.joblib",
+      "model_name": "signal_demand_classifier_ml_prediction",
+      "model_type": "classification:random_forest",
+      "notes": "Default scikit-learn Signal demand classifier.",
+      "performance": {
+        "accuracy": 1.0
+      },
+      "training_date": "2026-05-09T17:19:47.641405+00:00",
+      "version": 38
+    },
+    {
+      "dataset_used": "in-memory",
+      "file_path": "tests\\_scratch\\ml_prediction\\signal_demand_classifier_ml_prediction.joblib",
+      "model_name": "signal_demand_classifier_ml_prediction",
+      "model_type": "classification:random_forest",
+      "notes": "Default scikit-learn Signal demand classifier.",
+      "performance": {
+        "accuracy": 1.0
+      },
+      "training_date": "2026-05-09T17:31:06.021618+00:00",
+      "version": 39
+    },
+    {
+      "dataset_used": "in-memory",
+      "file_path": "tests\\_scratch\\ml_prediction\\signal_demand_classifier_ml_prediction.joblib",
+      "model_name": "signal_demand_classifier_ml_prediction",
+      "model_type": "classification:random_forest",
+      "notes": "Default scikit-learn Signal demand classifier.",
+      "performance": {
+        "accuracy": 1.0
+      },
+      "training_date": "2026-05-09T17:56:00.088084+00:00",
+      "version": 40
+    },
+    {
+      "dataset_used": "in-memory",
+      "file_path": "tests\\_scratch\\ml_prediction\\signal_demand_classifier_ml_prediction.joblib",
+      "model_name": "signal_demand_classifier_ml_prediction",
+      "model_type": "classification:random_forest",
+      "notes": "Default scikit-learn Signal demand classifier.",
+      "performance": {
+        "accuracy": 1.0
+      },
+      "training_date": "2026-05-10T04:56:26.936192+00:00",
+      "version": 41
+    },
+    {
+      "dataset_used": "in-memory",
+      "file_path": "tests\\_scratch\\ml_prediction\\signal_demand_classifier_ml_prediction.joblib",
+      "model_name": "signal_demand_classifier_ml_prediction",
+      "model_type": "classification:random_forest",
+      "notes": "Default scikit-learn Signal demand classifier.",
+      "performance": {
+        "accuracy": 1.0
+      },
+      "training_date": "2026-05-10T05:10:12.282667+00:00",
+      "version": 42
+    },
+    {
+      "dataset_used": "in-memory",
+      "file_path": "tests\\_scratch\\ml_prediction\\signal_demand_classifier_ml_prediction.joblib",
+      "model_name": "signal_demand_classifier_ml_prediction",
+      "model_type": "classification:random_forest",
+      "notes": "Default scikit-learn Signal demand classifier.",
+      "performance": {
+        "accuracy": 1.0
+      },
+      "training_date": "2026-05-10T05:14:05.325443+00:00",
+      "version": 43
+    },
+    {
+      "dataset_used": "in-memory",
+      "file_path": "tests\\_scratch\\ml_prediction\\signal_demand_classifier_ml_prediction.joblib",
+      "model_name": "signal_demand_classifier_ml_prediction",
+      "model_type": "classification:random_forest",
+      "notes": "Default scikit-learn Signal demand classifier.",
+      "performance": {
+        "accuracy": 1.0
+      },
+      "training_date": "2026-05-10T05:22:52.297619+00:00",
+      "version": 44
+    },
+    {
+      "dataset_used": "in-memory",
+      "file_path": "tests\\_scratch\\ml_prediction\\signal_demand_classifier_ml_prediction.joblib",
+      "model_name": "signal_demand_classifier_ml_prediction",
+      "model_type": "classification:random_forest",
+      "notes": "Default scikit-learn Signal demand classifier.",
+      "performance": {
+        "accuracy": 1.0
+      },
+      "training_date": "2026-05-10T05:25:34.532283+00:00",
+      "version": 45
+    },
+    {
+      "dataset_used": "in-memory",
+      "file_path": "tests\\_scratch\\ml_prediction\\signal_demand_classifier_ml_prediction.joblib",
+      "model_name": "signal_demand_classifier_ml_prediction",
+      "model_type": "classification:random_forest",
+      "notes": "Default scikit-learn Signal demand classifier.",
+      "performance": {
+        "accuracy": 1.0
+      },
+      "training_date": "2026-05-10T05:47:55.694043+00:00",
+      "version": 46
+    },
+    {
+      "dataset_used": "in-memory",
+      "file_path": "tests\\_scratch\\ml_prediction\\signal_demand_classifier_ml_prediction.joblib",
+      "model_name": "signal_demand_classifier_ml_prediction",
+      "model_type": "classification:random_forest",
+      "notes": "Default scikit-learn Signal demand classifier.",
+      "performance": {
+        "accuracy": 1.0
+      },
+      "training_date": "2026-05-10T05:51:07.080801+00:00",
+      "version": 47
+    },
+    {
+      "dataset_used": "in-memory",
+      "file_path": "tests\\_scratch\\ml_prediction\\signal_demand_classifier_ml_prediction.joblib",
+      "model_name": "signal_demand_classifier_ml_prediction",
+      "model_type": "classification:random_forest",
+      "notes": "Default scikit-learn Signal demand classifier.",
+      "performance": {
+        "accuracy": 1.0
+      },
+      "training_date": "2026-05-10T05:53:27.107947+00:00",
+      "version": 48
+    }
+  ]
+}

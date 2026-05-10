@@ -1,0 +1,28 @@
+{
+  "models": [
+    {
+      "dataset_used": "synthetic",
+      "file_path": "model-v1.joblib",
+      "model_name": "demo",
+      "model_type": "classification",
+      "notes": "",
+      "performance": {
+        "accuracy": 0.9
+      },
+      "training_date": "2026-05-07T20:29:38.422630+00:00",
+      "version": 1
+    },
+    {
+      "dataset_used": "synthetic",
+      "file_path": "model-v2.joblib",
+      "model_name": "demo",
+      "model_type": "classification",
+      "notes": "",
+      "performance": {
+        "accuracy": 0.95
+      },
+      "training_date": "2026-05-07T20:29:38.424551+00:00",
+      "version": 2
+    }
+  ]
+}

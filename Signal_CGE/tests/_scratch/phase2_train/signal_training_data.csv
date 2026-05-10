@@ -1,0 +1,241 @@
+topic,county,time_period,likes,comments,shares,searches,engagement_intensity,purchase_intent_score,trend_growth,sentiment_score,urgency_score,repetition_score,location_relevance,price_sensitivity,noise_score,demand_class,opportunity_label,unmet_demand_flag,emerging_trend_flag
+food,Mombasa,2026-Q1,141,64,32,233,0.9048,0.8311,0.682,0.7146,0.6404,0.6195,0.6615,0.4214,0.1193,High Demand,Strong Investment Opportunity,0,1
+finance,Nakuru,2026-Q1,119,33,15,134,0.7285,0.4935,0.3608,0.3918,0.3761,0.5892,0.8054,0.4143,0.419,Moderate Demand,Emerging Opportunity,0,0
+agriculture,Machakos,2026-Q2,68,49,26,141,0.622,0.6261,0.1208,0.3815,0.3831,0.354,0.5666,0.4685,0.3259,Moderate Demand,Emerging Opportunity,0,0
+food,Machakos,2026-Q2,94,18,8,182,0.4604,0.7587,0.3936,0.1663,0.755,0.6651,0.618,0.6277,0.3141,Unmet Demand,Investigate Anomaly / Possible Unmet Demand,1,0
+food,Mombasa,2026-Q2,57,32,8,222,0.381,0.5978,0.225,0.25,0.8522,0.6712,0.6245,0.6582,0.2852,Unmet Demand,Investigate Anomaly / Possible Unmet Demand,1,0
+food,Kisumu,2026-Q3,103,25,15,132,0.6642,0.5691,0.3457,0.3485,0.3396,0.198,0.838,0.5748,0.2755,Moderate Demand,Emerging Opportunity,0,0
+education,Turkana,2026-Q2,60,14,5,79,0.4097,0.3581,-0.0842,-0.1195,0.2534,0.3772,0.644,0.5804,0.3786,Declining Demand,Monitor Further,0,0
+finance,Nakuru,2026-Q1,90,35,18,175,0.5897,0.66,0.7574,0.3981,0.6413,0.5165,0.5255,0.5298,0.2015,Emerging Demand,Emerging Opportunity,0,1
+education,Nairobi,2026-Q2,169,31,20,144,0.6672,0.6123,0.3492,0.489,0.3705,0.4617,0.52,0.522,0.1864,Moderate Demand,Emerging Opportunity,0,0
+retail,Kisumu,2026-Q1,26,8,5,37,0.2249,0.3204,0.0457,0.0547,0.2255,0.1572,0.7349,0.5153,0.3351,Low Demand,Weak Signal,0,0
+education,Nakuru,2026-Q1,179,41,30,190,0.7733,0.9074,0.5948,0.6771,0.769,0.5639,0.6673,0.2895,0.2348,High Demand,Strong Investment Opportunity,0,1
+retail,Machakos,2026-Q2,55,25,12,191,0.3935,0.6593,0.1237,-0.0654,0.7315,0.6877,0.4733,0.7614,0.2811,Unmet Demand,Investigate Anomaly / Possible Unmet Demand,1,0
+finance,Kisumu,2026-Q2,157,50,38,267,0.8836,0.6731,0.5686,0.575,0.7798,0.6261,0.8946,0.4345,0.2623,High Demand,Strong Investment Opportunity,0,1
+food,Machakos,2026-Q3,98,28,24,169,0.6178,0.7032,0.6282,0.3631,0.6006,0.435,0.5591,0.4384,0.3084,Emerging Demand,Emerging Opportunity,0,1
+food,Kiambu,2026-Q3,169,79,44,210,0.7826,0.8472,0.6005,0.7537,0.6286,0.5924,0.7324,0.4881,0.0348,High Demand,Strong Investment Opportunity,0,1
+health,Mombasa,2026-Q4,61,30,26,115,0.5209,0.6172,0.5355,0.3492,0.6101,0.4301,0.6041,0.4986,0.1544,Emerging Demand,Emerging Opportunity,0,1
+finance,Mombasa,2026-Q3,95,32,8,215,0.3539,0.7143,0.2383,0.0482,0.8599,0.7092,0.7161,0.6443,0.2602,Unmet Demand,Investigate Anomaly / Possible Unmet Demand,1,0
+health,Turkana,2026-Q2,113,34,16,168,0.4733,0.6955,0.9157,0.5337,0.6584,0.553,0.6734,0.4423,0.3223,Emerging Demand,Emerging Opportunity,0,1
+agriculture,Turkana,2026-Q4,109,51,17,114,0.6392,0.4851,0.3537,0.3256,0.5176,0.4899,0.536,0.6197,0.1999,Moderate Demand,Emerging Opportunity,0,0
+education,Nakuru,2026-Q2,89,21,19,171,0.5835,0.741,0.7377,0.5561,0.7216,0.4875,0.5283,0.5116,0.3019,Emerging Demand,Emerging Opportunity,0,1
+food,Kiambu,2026-Q1,91,25,26,163,0.5609,0.4768,0.22,0.5094,0.4651,0.3953,0.6274,0.6084,0.1688,Moderate Demand,Emerging Opportunity,0,0
+agriculture,Mombasa,2026-Q4,31,22,4,49,0.3011,0.1938,-0.1224,0.0485,0.2413,0.1191,0.4498,0.4983,0.3761,Low Demand,Weak Signal,0,0
+finance,Nakuru,2026-Q4,127,39,37,214,0.7831,0.9231,0.6458,0.7553,0.7621,0.7165,0.6334,0.4091,0.2422,High Demand,Strong Investment Opportunity,0,1
+food,Mombasa,2026-Q2,42,22,8,81,0.4561,0.4264,-0.3287,-0.0066,0.2166,0.3462,0.4527,0.514,0.4399,Declining Demand,Monitor Further,0,0
+finance,Machakos,2026-Q1,49,16,6,88,0.4801,0.2458,-0.1929,0.0204,0.2239,0.3954,0.5539,0.6279,0.3444,Declining Demand,Monitor Further,0,0
+finance,Kisumu,2026-Q4,99,43,20,128,0.715,0.5147,0.1229,0.2784,0.4688,0.5598,0.8237,0.3815,0.4793,Moderate Demand,Emerging Opportunity,0,0
+finance,Kisumu,2026-Q1,64,35,13,123,0.5918,0.4282,0.211,0.3526,0.5411,0.3437,0.4401,0.4229,0.2643,Moderate Demand,Emerging Opportunity,0,0
+education,Machakos,2026-Q1,46,6,11,126,0.3782,0.7646,0.1585,0.1157,0.7599,0.76,0.4381,0.7201,0.2972,Unmet Demand,Investigate Anomaly / Possible Unmet Demand,1,0
+health,Nakuru,2026-Q2,102,40,14,123,0.6042,0.754,0.6808,0.6137,0.5907,0.6188,0.5244,0.5297,0.2975,Emerging Demand,Emerging Opportunity,0,1
+mobility,Nakuru,2026-Q2,74,18,5,106,0.4636,0.3537,-0.2164,-0.0967,0.3807,0.2802,0.5386,0.5263,0.4772,Declining Demand,Monitor Further,0,0
+retail,Machakos,2026-Q1,178,52,40,215,0.8861,0.8887,0.6614,0.6666,0.6741,0.5815,0.701,0.2696,0.1617,High Demand,Strong Investment Opportunity,0,1
+finance,Nakuru,2026-Q2,40,12,6,57,0.3312,0.1712,0.0923,0.2467,0.3575,0.2364,0.4452,0.7634,0.5084,Low Demand,Weak Signal,0,0
+agriculture,Nairobi,2026-Q3,38,11,3,63,0.3974,0.4148,-0.0721,-0.2173,0.2144,0.4552,0.61,0.5987,0.1367,Declining Demand,Monitor Further,0,0
+retail,Nakuru,2026-Q1,133,62,24,234,0.7944,0.7451,0.5621,0.6355,0.7422,0.5484,0.7718,0.6499,0.1105,High Demand,Strong Investment Opportunity,0,1
+food,Nakuru,2026-Q1,36,12,7,47,0.4364,0.3731,0.0196,-0.12,0.2798,0.2888,0.6855,0.7632,0.4506,Low Demand,Weak Signal,0,0
+retail,Mombasa,2026-Q4,188,74,45,232,0.8287,0.7499,0.5668,0.5903,0.7401,0.6026,0.7895,0.4255,0.2216,High Demand,Strong Investment Opportunity,0,1
+health,Machakos,2026-Q2,158,45,26,204,0.8161,0.7403,0.6399,0.9396,0.6115,0.7856,0.685,0.3205,0.1875,High Demand,Strong Investment Opportunity,0,1
+education,Kiambu,2026-Q2,69,10,6,206,0.3735,0.6315,0.2113,0.0805,0.7884,0.6852,0.4626,0.7432,0.1812,Unmet Demand,Investigate Anomaly / Possible Unmet Demand,1,0
+health,Nairobi,2026-Q3,96,22,9,168,0.3324,0.607,0.4039,0.1648,0.7702,0.7281,0.5976,0.7437,0.1936,Unmet Demand,Investigate Anomaly / Possible Unmet Demand,1,0
+health,Nakuru,2026-Q4,78,14,6,86,0.5181,0.2459,-0.1889,-0.0705,0.4118,0.5342,0.5232,0.6167,0.4358,Declining Demand,Monitor Further,0,0
+health,Turkana,2026-Q1,105,18,25,107,0.5959,0.6737,0.33,0.3463,0.4433,0.3351,0.6466,0.6076,0.208,Moderate Demand,Emerging Opportunity,0,0
+finance,Nakuru,2026-Q4,92,29,11,202,0.5821,0.6361,0.5048,0.5438,0.6493,0.5183,0.6145,0.5811,0.2424,Emerging Demand,Emerging Opportunity,0,1
+food,Nairobi,2026-Q3,129,79,37,168,0.8147,0.7817,0.6055,0.5393,0.814,0.5809,0.7685,0.3125,0.1774,High Demand,Strong Investment Opportunity,0,1
+mobility,Machakos,2026-Q1,58,12,12,70,0.427,0.271,-0.2646,-0.1747,0.2092,0.3108,0.5574,0.5989,0.4407,Declining Demand,Monitor Further,0,0
+health,Kiambu,2026-Q2,82,15,7,80,0.4759,0.3026,-0.2462,-0.1598,0.2771,0.3573,0.4869,0.6479,0.2623,Declining Demand,Monitor Further,0,0
+education,Kiambu,2026-Q3,68,21,9,169,0.3534,0.707,0.3296,-0.0442,0.8327,0.6609,0.6076,0.7489,0.1681,Unmet Demand,Investigate Anomaly / Possible Unmet Demand,1,0
+retail,Turkana,2026-Q4,146,50,39,219,0.805,0.8727,0.6634,0.6552,0.6649,0.6678,0.7598,0.4479,0.1101,High Demand,Strong Investment Opportunity,0,1
+mobility,Kiambu,2026-Q1,181,79,42,236,0.8137,0.8779,0.5047,0.775,0.6896,0.5527,0.7692,0.4954,0.2673,High Demand,Strong Investment Opportunity,0,1
+mobility,Turkana,2026-Q2,20,19,2,58,0.4594,0.2372,-0.0361,0.2049,0.2246,0.1418,0.3419,0.581,0.4668,Low Demand,Weak Signal,0,0
+health,Kiambu,2026-Q4,163,42,42,239,0.7986,0.8581,0.6258,0.5764,0.6119,0.6223,0.7231,0.3318,0.2691,High Demand,Strong Investment Opportunity,0,1
+agriculture,Kisumu,2026-Q3,96,27,28,171,0.5643,0.6698,0.779,0.4927,0.4694,0.5469,0.5841,0.64,0.1125,Emerging Demand,Emerging Opportunity,0,1
+retail,Kisumu,2026-Q1,100,34,15,168,0.5502,0.636,0.6965,0.2229,0.7304,0.4747,0.5738,0.4337,0.2998,Emerging Demand,Emerging Opportunity,0,1
+retail,Nairobi,2026-Q4,215,60,38,211,0.8485,0.8366,0.6398,0.4583,0.8553,0.6323,0.7944,0.3491,0.1735,High Demand,Strong Investment Opportunity,0,1
+education,Mombasa,2026-Q3,53,19,8,76,0.4262,0.1513,0.1356,0.1194,0.2113,0.1532,0.2911,0.5089,0.3781,Low Demand,Weak Signal,0,0
+agriculture,Nakuru,2026-Q2,74,27,19,122,0.6715,0.5281,0.2171,0.0599,0.3937,0.3739,0.5016,0.5278,0.2269,Moderate Demand,Emerging Opportunity,0,0
+mobility,Kisumu,2026-Q1,149,62,24,212,0.7978,0.861,0.6168,0.6659,0.7553,0.6389,0.8007,0.4001,0.1617,High Demand,Strong Investment Opportunity,0,1
+agriculture,Kiambu,2026-Q4,162,69,25,194,0.843,0.8377,0.7108,0.5954,0.744,0.873,0.6788,0.2877,0.1975,High Demand,Strong Investment Opportunity,0,1
+education,Machakos,2026-Q4,32,6,5,63,0.3103,0.242,0.0148,0.0967,0.1824,0.2747,0.4808,0.655,0.4492,Low Demand,Weak Signal,0,0
+mobility,Kisumu,2026-Q2,28,11,4,71,0.3799,0.0356,0.1463,-0.028,0.2749,0.2024,0.4754,0.6846,0.3985,Low Demand,Weak Signal,0,0
+education,Nakuru,2026-Q4,101,17,4,49,0.5573,0.4994,-0.1763,0.0382,0.373,0.3437,0.4839,0.583,0.4338,Declining Demand,Monitor Further,0,0
+food,Mombasa,2026-Q4,54,15,3,58,0.3155,0.2085,-0.0559,0.0662,0.1577,0.411,0.4385,0.5959,0.3427,Low Demand,Weak Signal,0,0
+agriculture,Machakos,2026-Q4,84,29,20,139,0.6263,0.6438,0.5669,0.512,0.6759,0.6012,0.5117,0.5037,0.3669,Emerging Demand,Emerging Opportunity,0,1
+food,Turkana,2026-Q4,59,23,6,73,0.3603,0.3939,-0.1482,-0.1694,0.2242,0.3271,0.5782,0.4868,0.4301,Declining Demand,Monitor Further,0,0
+retail,Nakuru,2026-Q4,39,21,6,56,0.4233,0.2946,-0.1357,-0.0671,0.2426,0.3962,0.4068,0.6709,0.1821,Declining Demand,Monitor Further,0,0
+retail,Machakos,2026-Q3,32,8,4,54,0.3254,0.414,0.0597,0.0912,0.1693,0.3167,0.3408,0.4513,0.286,Low Demand,Weak Signal,0,0
+health,Kiambu,2026-Q4,135,35,12,169,0.6479,0.6084,0.3375,0.1844,0.4645,0.4806,0.7229,0.5054,0.0304,Moderate Demand,Emerging Opportunity,0,0
+retail,Nairobi,2026-Q2,95,25,6,67,0.5588,0.4107,-0.1344,-0.1403,0.2493,0.3949,0.582,0.5128,0.4629,Declining Demand,Monitor Further,0,0
+finance,Mombasa,2026-Q1,82,43,19,128,0.5763,0.5966,0.1397,0.2986,0.4583,0.5143,0.5172,0.6542,0.2551,Moderate Demand,Emerging Opportunity,0,0
+finance,Turkana,2026-Q4,99,10,12,210,0.448,0.8362,0.3137,0.2449,0.836,0.6779,0.6483,0.5117,0.3875,Unmet Demand,Investigate Anomaly / Possible Unmet Demand,1,0
+food,Nakuru,2026-Q3,115,21,13,114,0.6173,0.5974,0.6663,0.488,0.6475,0.5873,0.5978,0.3457,0.3805,Emerging Demand,Emerging Opportunity,0,1
+health,Kiambu,2026-Q4,189,57,38,184,0.8026,0.8962,0.4428,0.6277,0.7417,0.7239,0.8479,0.3234,0.1482,High Demand,Strong Investment Opportunity,0,1
+health,Nairobi,2026-Q4,74,20,7,187,0.2751,0.7254,0.2473,0.1794,0.6897,0.6066,0.5268,0.7323,0.2641,Unmet Demand,Investigate Anomaly / Possible Unmet Demand,1,0
+finance,Mombasa,2026-Q1,117,33,23,157,0.5624,0.7017,0.4936,0.5141,0.8725,0.4013,0.7413,0.3381,0.2972,Emerging Demand,Emerging Opportunity,0,1
+mobility,Nakuru,2026-Q4,79,37,16,145,0.575,0.3866,0.2671,0.6627,0.5275,0.4445,0.7095,0.5453,0.3169,Moderate Demand,Emerging Opportunity,0,0
+finance,Turkana,2026-Q3,45,10,10,65,0.3525,0.369,-0.2563,0.0154,0.3352,0.4196,0.4189,0.5738,0.5262,Declining Demand,Monitor Further,0,0
+food,Nakuru,2026-Q1,82,29,17,160,0.5696,0.6645,0.5499,0.4313,0.7231,0.4607,0.5175,0.5831,0.2958,Emerging Demand,Emerging Opportunity,0,1
+retail,Machakos,2026-Q1,129,42,16,154,0.6478,0.5392,0.6099,0.648,0.5568,0.5078,0.4478,0.4112,0.3173,Emerging Demand,Emerging Opportunity,0,1
+finance,Nakuru,2026-Q1,125,21,18,133,0.718,0.6451,0.3317,0.3533,0.486,0.5518,0.5717,0.5477,0.2733,Moderate Demand,Emerging Opportunity,0,0
+mobility,Nairobi,2026-Q3,91,13,7,79,0.4552,0.4938,-0.1689,-0.028,0.364,0.2418,0.4577,0.556,0.3633,Declining Demand,Monitor Further,0,0
+food,Kisumu,2026-Q4,135,34,18,152,0.7073,0.6425,0.184,0.1041,0.5801,0.3859,0.6434,0.4033,0.2653,Moderate Demand,Emerging Opportunity,0,0
+food,Kisumu,2026-Q2,102,34,14,101,0.6383,0.6478,0.3683,0.4141,0.5303,0.6667,0.6534,0.5938,0.4366,Moderate Demand,Emerging Opportunity,0,0
+finance,Nairobi,2026-Q1,22,9,14,209,0.3903,0.6802,0.3014,-0.0876,0.6198,0.5689,0.5965,0.7531,0.2778,Unmet Demand,Investigate Anomaly / Possible Unmet Demand,1,0
+mobility,Mombasa,2026-Q4,45,18,9,173,0.2274,0.8437,0.3195,0.1585,0.9075,0.7887,0.6347,0.7102,0.3022,Unmet Demand,Investigate Anomaly / Possible Unmet Demand,1,0
+education,Turkana,2026-Q1,48,21,7,187,0.3746,0.6769,0.2118,0.1248,0.6763,0.7195,0.5722,0.7812,0.0947,Unmet Demand,Investigate Anomaly / Possible Unmet Demand,1,0
+education,Kisumu,2026-Q2,92,18,8,179,0.4264,0.6901,0.3232,0.2372,0.8714,0.6368,0.5981,0.7221,0.2737,Unmet Demand,Investigate Anomaly / Possible Unmet Demand,1,0
+education,Machakos,2026-Q2,105,32,15,88,0.7406,0.4695,0.2793,0.438,0.5204,0.5054,0.6992,0.6137,0.3038,Moderate Demand,Emerging Opportunity,0,0
+health,Kisumu,2026-Q4,99,22,19,129,0.6007,0.6245,0.6176,0.2134,0.7342,0.6211,0.6585,0.4092,0.2243,Emerging Demand,Emerging Opportunity,0,1
+mobility,Nakuru,2026-Q1,48,20,8,200,0.554,0.8034,0.3588,0.155,0.6854,0.8003,0.5599,0.6942,0.21,Unmet Demand,Investigate Anomaly / Possible Unmet Demand,1,0
+food,Nairobi,2026-Q3,115,15,8,188,0.3442,0.7147,0.3346,0.0554,0.807,0.6485,0.7164,0.5808,0.2513,Unmet Demand,Investigate Anomaly / Possible Unmet Demand,1,0
+education,Turkana,2026-Q3,54,22,7,67,0.4246,0.4453,-0.1546,-0.0563,0.1547,0.3793,0.5364,0.7383,0.3611,Declining Demand,Monitor Further,0,0
+finance,Mombasa,2026-Q1,75,22,0,214,0.3515,0.7087,0.2552,0.2738,0.7883,0.7054,0.5767,0.7308,0.1994,Unmet Demand,Investigate Anomaly / Possible Unmet Demand,1,0
+health,Kisumu,2026-Q2,175,78,30,218,0.8561,0.7471,0.6549,0.8426,0.7483,0.6349,0.803,0.2367,0.2065,High Demand,Strong Investment Opportunity,0,1
+retail,Kisumu,2026-Q1,175,54,35,203,0.7041,0.8515,0.4976,0.5963,0.612,0.5187,0.6645,0.426,0.3166,High Demand,Strong Investment Opportunity,0,1
+mobility,Nairobi,2026-Q4,31,14,7,71,0.3647,0.1838,0.1326,-0.0055,0.2615,0.1157,0.5284,0.5434,0.4791,Low Demand,Weak Signal,0,0
+agriculture,Kiambu,2026-Q3,43,25,12,58,0.3617,0.3137,-0.1821,-0.0541,0.0605,0.3777,0.494,0.4975,0.436,Declining Demand,Monitor Further,0,0
+retail,Machakos,2026-Q2,38,10,10,190,0.2529,0.6589,0.187,0.1441,0.9025,0.6551,0.791,0.6683,0.1827,Unmet Demand,Investigate Anomaly / Possible Unmet Demand,1,0
+retail,Kisumu,2026-Q3,27,7,3,59,0.3654,0.2941,0.0729,0.1516,0.2668,0.3765,0.446,0.6419,0.2143,Low Demand,Weak Signal,0,0
+retail,Turkana,2026-Q2,81,19,9,193,0.3899,0.5979,0.2313,0.4272,0.7023,0.6196,0.8136,0.8077,0.3736,Unmet Demand,Investigate Anomaly / Possible Unmet Demand,1,0
+agriculture,Machakos,2026-Q4,152,43,19,108,0.7068,0.5631,0.3646,0.1132,0.4894,0.3853,0.5435,0.3291,0.4524,Moderate Demand,Emerging Opportunity,0,0
+agriculture,Nairobi,2026-Q1,95,28,12,231,0.3904,0.7747,0.1913,0.562,0.802,0.812,0.5105,0.7819,0.2716,Unmet Demand,Investigate Anomaly / Possible Unmet Demand,1,0
+health,Kiambu,2026-Q4,178,80,38,223,0.8436,0.838,0.6435,0.5297,0.8441,0.5775,0.7268,0.2498,0.242,High Demand,Strong Investment Opportunity,0,1
+food,Machakos,2026-Q1,120,25,15,111,0.5863,0.632,0.3445,0.2389,0.4144,0.4224,0.717,0.5113,0.2986,Moderate Demand,Emerging Opportunity,0,0
+finance,Kisumu,2026-Q4,34,14,6,37,0.3839,0.2416,0.0821,0.0222,0.117,0.3213,0.4952,0.4974,0.2098,Low Demand,Weak Signal,0,0
+mobility,Nairobi,2026-Q2,74,19,0,98,0.3139,0.3474,-0.0792,-0.3057,0.1136,0.2428,0.4144,0.5724,0.3058,Declining Demand,Monitor Further,0,0
+agriculture,Kisumu,2026-Q2,114,18,22,103,0.5862,0.6053,0.6873,0.3233,0.4478,0.4102,0.7034,0.4807,0.1845,Emerging Demand,Emerging Opportunity,0,1
+food,Nairobi,2026-Q4,82,7,9,59,0.362,0.3044,-0.17,-0.0656,0.284,0.3464,0.6607,0.7159,0.4138,Declining Demand,Monitor Further,0,0
+mobility,Nairobi,2026-Q4,25,15,4,61,0.3031,0.113,-0.0439,0.2398,0.1605,0.2042,0.2968,0.5608,0.3406,Low Demand,Weak Signal,0,0
+food,Nakuru,2026-Q3,152,53,47,226,0.8835,0.8765,0.5712,0.6297,0.7077,0.7158,0.749,0.2414,0.1973,High Demand,Strong Investment Opportunity,0,1
+health,Nakuru,2026-Q1,74,18,22,189,0.507,0.6342,0.7402,0.7442,0.4111,0.5442,0.6355,0.3444,0.2853,Emerging Demand,Emerging Opportunity,0,1
+mobility,Mombasa,2026-Q3,45,11,3,61,0.2111,0.2748,-0.0576,0.0327,0.267,0.2157,0.3975,0.6667,0.3515,Low Demand,Weak Signal,0,0
+mobility,Machakos,2026-Q1,57,2,2,67,0.3653,0.2233,0.0719,0.2026,0.1764,0.2963,0.4313,0.6022,0.368,Low Demand,Weak Signal,0,0
+finance,Kisumu,2026-Q3,113,29,18,202,0.5883,0.6181,0.6972,0.4018,0.6389,0.5636,0.5289,0.4607,0.2961,Emerging Demand,Emerging Opportunity,0,1
+retail,Kisumu,2026-Q4,145,68,33,201,0.8371,0.7874,0.6279,0.6674,0.7694,0.5983,0.8269,0.4084,0.1875,High Demand,Strong Investment Opportunity,0,1
+education,Machakos,2026-Q3,139,57,32,211,0.8207,0.8749,0.4737,0.7865,0.669,0.5813,0.7242,0.3149,0.2204,High Demand,Strong Investment Opportunity,0,1
+education,Mombasa,2026-Q2,60,13,0,48,0.4543,0.3238,-0.1903,-0.2894,0.2121,0.3927,0.5292,0.5377,0.4883,Declining Demand,Monitor Further,0,0
+agriculture,Kisumu,2026-Q1,96,28,16,172,0.4873,0.66,0.6325,0.2708,0.5901,0.5063,0.6547,0.3447,0.2387,Emerging Demand,Emerging Opportunity,0,1
+finance,Kisumu,2026-Q4,51,13,8,208,0.3291,0.6679,0.4463,0.2332,0.7377,0.7026,0.4648,0.7382,0.3175,Unmet Demand,Investigate Anomaly / Possible Unmet Demand,1,0
+mobility,Nakuru,2026-Q3,87,41,13,111,0.7523,0.5412,0.444,0.5374,0.4778,0.3464,0.6708,0.5605,0.3574,Moderate Demand,Emerging Opportunity,0,0
+education,Nakuru,2026-Q1,120,40,20,105,0.6355,0.5675,0.1829,0.4747,0.4983,0.4224,0.759,0.5701,0.3497,Moderate Demand,Emerging Opportunity,0,0
+agriculture,Kiambu,2026-Q3,161,42,40,233,0.8742,0.8747,0.5285,0.5931,0.8908,0.7005,0.8865,0.5304,0.1427,High Demand,Strong Investment Opportunity,0,1
+agriculture,Nakuru,2026-Q1,35,11,6,42,0.38,0.2128,0.0389,0.0636,0.1862,0.0699,0.366,0.6519,0.3733,Low Demand,Weak Signal,0,0
+mobility,Kisumu,2026-Q3,14,13,8,72,0.2996,0.2854,0.085,0.1861,0.2218,0.1517,0.5245,0.6805,0.2593,Low Demand,Weak Signal,0,0
+finance,Mombasa,2026-Q3,121,25,19,177,0.5585,0.6113,0.6942,0.3094,0.7467,0.4762,0.5961,0.4536,0.2133,Emerging Demand,Emerging Opportunity,0,1
+education,Kiambu,2026-Q1,37,12,4,105,0.4284,0.3902,-0.1658,-0.1527,0.2002,0.3986,0.4827,0.7075,0.3681,Declining Demand,Monitor Further,0,0
+education,Kiambu,2026-Q4,80,21,6,91,0.4759,0.2802,-0.1111,0.4424,0.2485,0.3938,0.4013,0.6294,0.3107,Declining Demand,Monitor Further,0,0
+health,Turkana,2026-Q4,30,0,5,66,0.4206,0.2364,0.0429,0.1133,0.0929,0.186,0.3857,0.7777,0.3209,Low Demand,Weak Signal,0,0
+mobility,Mombasa,2026-Q3,88,17,5,209,0.3723,0.7093,0.3207,0.1802,0.7559,0.8348,0.6932,0.679,0.1634,Unmet Demand,Investigate Anomaly / Possible Unmet Demand,1,0
+food,Nakuru,2026-Q3,94,26,11,221,0.2625,0.6545,0.3069,0.2565,0.8392,0.6647,0.703,0.8726,0.2892,Unmet Demand,Investigate Anomaly / Possible Unmet Demand,1,0
+finance,Mombasa,2026-Q2,216,90,27,251,0.8433,0.8344,0.4995,0.8309,0.6291,0.6854,0.8441,0.232,0.1788,High Demand,Strong Investment Opportunity,0,1
+retail,Machakos,2026-Q3,61,38,20,167,0.5123,0.6184,0.642,0.2277,0.6541,0.4826,0.5602,0.349,0.3398,Emerging Demand,Emerging Opportunity,0,1
+education,Kisumu,2026-Q4,33,15,1,80,0.3869,0.2189,-0.2765,-0.291,0.245,0.4074,0.4892,0.4916,0.2815,Declining Demand,Monitor Further,0,0
+food,Machakos,2026-Q3,124,45,18,129,0.6355,0.4956,0.4106,0.3021,0.3525,0.4485,0.4746,0.4096,0.2817,Moderate Demand,Emerging Opportunity,0,0
+retail,Kisumu,2026-Q4,60,10,6,52,0.308,0.2435,-0.0074,0.0814,0.1777,0.2061,0.5718,0.6065,0.4825,Low Demand,Weak Signal,0,0
+retail,Machakos,2026-Q3,91,18,13,156,0.6435,0.5181,0.5639,0.3583,0.603,0.4366,0.8102,0.5202,0.2342,Emerging Demand,Emerging Opportunity,0,1
+retail,Nairobi,2026-Q3,225,93,25,210,0.8552,0.9348,0.6137,0.5905,0.7538,0.6387,0.7237,0.3012,0.2271,High Demand,Strong Investment Opportunity,0,1
+finance,Kisumu,2026-Q4,80,21,9,175,0.3969,0.7208,0.153,0.2646,0.7859,0.7203,0.5406,0.7372,0.2932,Unmet Demand,Investigate Anomaly / Possible Unmet Demand,1,0
+health,Mombasa,2026-Q3,126,28,14,194,0.5156,0.6072,0.7406,0.3416,0.5749,0.58,0.5608,0.4938,0.1851,Emerging Demand,Emerging Opportunity,0,1
+finance,Kisumu,2026-Q1,56,6,4,56,0.4552,0.2471,0.0655,0.2285,0.2591,0.325,0.5473,0.6395,0.4309,Low Demand,Weak Signal,0,0
+health,Nairobi,2026-Q3,42,6,2,57,0.2177,0.2008,0.003,-0.0479,0.2357,0.2031,0.4403,0.5173,0.3116,Low Demand,Weak Signal,0,0
+mobility,Mombasa,2026-Q1,77,23,7,167,0.329,0.7344,0.3598,0.1332,0.7511,0.6826,0.5726,0.6013,0.2015,Unmet Demand,Investigate Anomaly / Possible Unmet Demand,1,0
+finance,Mombasa,2026-Q2,64,18,6,98,0.4938,0.3592,-0.198,-0.119,0.2233,0.4352,0.5438,0.5531,0.3293,Declining Demand,Monitor Further,0,0
+mobility,Kiambu,2026-Q2,132,25,17,160,0.5848,0.5836,0.3471,0.5584,0.5951,0.533,0.6145,0.5836,0.3234,Moderate Demand,Emerging Opportunity,0,0
+agriculture,Kisumu,2026-Q3,119,29,17,121,0.5978,0.5885,0.623,0.4767,0.6303,0.4771,0.7087,0.3924,0.1731,Emerging Demand,Emerging Opportunity,0,1
+education,Kisumu,2026-Q4,81,22,7,198,0.4567,0.7429,0.294,0.2289,0.7038,0.626,0.4446,0.7227,0.2156,Unmet Demand,Investigate Anomaly / Possible Unmet Demand,1,0
+agriculture,Nakuru,2026-Q1,45,10,6,45,0.4731,0.2993,0.0768,0.1237,0.1573,0.1475,0.4735,0.6571,0.5028,Low Demand,Weak Signal,0,0
+food,Mombasa,2026-Q2,121,31,21,157,0.5486,0.5891,0.7423,0.3711,0.5826,0.5539,0.5303,0.453,0.0869,Emerging Demand,Emerging Opportunity,0,1
+finance,Machakos,2026-Q1,142,55,44,243,0.8333,0.8285,0.6257,0.4535,0.7285,0.5552,0.9312,0.4176,0.2099,High Demand,Strong Investment Opportunity,0,1
+retail,Machakos,2026-Q3,64,9,7,47,0.3762,0.1996,-0.0085,0.1212,0.1522,0.3052,0.3878,0.6206,0.366,Low Demand,Weak Signal,0,0
+mobility,Kiambu,2026-Q4,46,16,11,42,0.356,0.2602,-0.0189,0.1058,0.1535,0.228,0.5668,0.4107,0.3958,Low Demand,Weak Signal,0,0
+retail,Kisumu,2026-Q1,75,16,8,200,0.4064,0.7175,0.2783,0.01,0.7699,0.5224,0.363,0.6571,0.2177,Unmet Demand,Investigate Anomaly / Possible Unmet Demand,1,0
+health,Machakos,2026-Q1,194,55,31,201,0.8499,0.8689,0.5925,0.7468,0.602,0.5713,0.7531,0.2857,0.1061,High Demand,Strong Investment Opportunity,0,1
+education,Mombasa,2026-Q2,73,36,22,149,0.5661,0.6054,0.6064,0.6443,0.8617,0.6092,0.69,0.4862,0.2354,Emerging Demand,Emerging Opportunity,0,1
+health,Turkana,2026-Q1,41,18,9,153,0.3499,0.8026,0.2594,0.0788,0.5415,0.7272,0.6002,0.7449,0.4039,Unmet Demand,Investigate Anomaly / Possible Unmet Demand,1,0
+mobility,Nakuru,2026-Q3,132,24,24,126,0.5961,0.5577,0.479,0.4876,0.3469,0.4667,0.6174,0.4842,0.2389,Moderate Demand,Emerging Opportunity,0,0
+mobility,Nairobi,2026-Q3,50,8,7,52,0.3639,0.3357,0.0281,-0.0751,0.2624,0.1499,0.36,0.5089,0.455,Low Demand,Weak Signal,0,0
+agriculture,Turkana,2026-Q1,52,15,6,91,0.5512,0.2676,-0.159,0.0205,0.1878,0.2796,0.4746,0.387,0.4094,Declining Demand,Monitor Further,0,0
+finance,Turkana,2026-Q2,27,16,4,85,0.475,0.2927,-0.2072,-0.068,0.3234,0.1985,0.5162,0.7322,0.3451,Declining Demand,Monitor Further,0,0
+mobility,Turkana,2026-Q1,96,22,17,119,0.616,0.5499,0.4621,0.4444,0.5649,0.4114,0.538,0.4745,0.2995,Moderate Demand,Emerging Opportunity,0,0
+finance,Nakuru,2026-Q1,71,26,18,139,0.5078,0.7013,0.7047,0.3967,0.4769,0.4861,0.5706,0.5323,0.2234,Emerging Demand,Emerging Opportunity,0,1
+health,Kisumu,2026-Q2,50,8,5,82,0.3977,0.36,0.0661,0.1825,0.1384,0.1716,0.4924,0.7015,0.3426,Low Demand,Weak Signal,0,0
+finance,Nakuru,2026-Q2,85,21,6,162,0.3845,0.6401,0.4705,0.0966,0.7192,0.7529,0.5454,0.4827,0.2293,Unmet Demand,Investigate Anomaly / Possible Unmet Demand,1,0
+retail,Nakuru,2026-Q1,128,52,41,180,0.8065,0.819,0.5954,0.8114,0.7318,0.7135,0.7064,0.3862,0.0503,High Demand,Strong Investment Opportunity,0,1
+food,Kiambu,2026-Q1,60,43,27,121,0.6891,0.4541,0.3327,0.0908,0.5286,0.317,0.393,0.5356,0.463,Moderate Demand,Emerging Opportunity,0,0
+mobility,Turkana,2026-Q4,45,16,0,82,0.4085,0.3829,-0.0854,-0.1372,0.3382,0.296,0.5763,0.5487,0.3791,Declining Demand,Monitor Further,0,0
+food,Machakos,2026-Q3,56,14,1,45,0.2536,0.1931,0.0007,0.2935,0.2249,0.2169,0.4102,0.6803,0.4365,Low Demand,Weak Signal,0,0
+finance,Nairobi,2026-Q4,149,51,18,118,0.631,0.5317,0.2819,0.5738,0.5214,0.4716,0.6611,0.4948,0.3473,Moderate Demand,Emerging Opportunity,0,0
+food,Nakuru,2026-Q3,37,19,1,59,0.4906,0.3856,-0.1547,-0.054,0.3506,0.332,0.3283,0.6062,0.0748,Declining Demand,Monitor Further,0,0
+food,Kisumu,2026-Q4,103,51,19,119,0.753,0.5807,0.2112,0.4412,0.418,0.4202,0.6594,0.4886,0.2189,Moderate Demand,Emerging Opportunity,0,0
+finance,Nakuru,2026-Q1,115,65,36,171,0.881,0.8609,0.4867,0.7522,0.6955,0.4878,0.6849,0.3811,0.2445,High Demand,Strong Investment Opportunity,0,1
+mobility,Machakos,2026-Q3,138,24,16,119,0.7024,0.4806,0.307,0.3086,0.5324,0.4978,0.5883,0.5216,0.25,Moderate Demand,Emerging Opportunity,0,0
+mobility,Nairobi,2026-Q2,158,76,49,246,0.8724,0.8166,0.6392,0.9229,0.7943,0.5904,0.7886,0.461,0.2258,High Demand,Strong Investment Opportunity,0,1
+mobility,Turkana,2026-Q2,71,14,8,61,0.4318,0.2286,-0.15,-0.2953,0.273,0.1249,0.5133,0.6382,0.3939,Declining Demand,Monitor Further,0,0
+mobility,Nakuru,2026-Q4,34,3,5,52,0.4088,0.3515,0.0299,0.126,0.0929,0.3277,0.4669,0.7268,0.4741,Low Demand,Weak Signal,0,0
+education,Turkana,2026-Q1,26,15,4,33,0.319,0.417,-0.0152,-0.0857,0.2509,0.3388,0.5445,0.58,0.3905,Low Demand,Weak Signal,0,0
+agriculture,Nakuru,2026-Q1,76,25,8,242,0.4103,0.8032,0.2277,0.4078,0.6852,0.7194,0.5565,0.5103,0.1308,Unmet Demand,Investigate Anomaly / Possible Unmet Demand,1,0
+health,Kiambu,2026-Q2,174,73,39,259,0.8274,0.8576,0.6233,0.5531,0.6733,0.7623,0.7668,0.3374,0.2239,High Demand,Strong Investment Opportunity,0,1
+mobility,Nakuru,2026-Q3,130,38,29,150,0.7109,0.646,0.1856,0.4671,0.538,0.4179,0.6828,0.5376,0.2428,Moderate Demand,Emerging Opportunity,0,0
+agriculture,Turkana,2026-Q1,60,14,0,159,0.4215,0.8694,0.2131,0.113,0.8179,0.7218,0.5305,0.674,0.2087,Unmet Demand,Investigate Anomaly / Possible Unmet Demand,1,0
+food,Mombasa,2026-Q1,87,24,16,237,0.306,0.61,0.3242,0.1602,0.8037,0.6864,0.7216,0.7987,0.1498,Unmet Demand,Investigate Anomaly / Possible Unmet Demand,1,0
+mobility,Machakos,2026-Q3,100,31,20,125,0.6435,0.5316,0.3456,0.3218,0.3208,0.4987,0.6062,0.5834,0.267,Moderate Demand,Emerging Opportunity,0,0
+finance,Mombasa,2026-Q4,61,13,16,131,0.5942,0.6053,0.2951,0.163,0.42,0.4718,0.637,0.4937,0.4617,Moderate Demand,Emerging Opportunity,0,0
+health,Machakos,2026-Q2,92,27,12,196,0.5857,0.5099,0.7681,0.4543,0.6363,0.6065,0.503,0.2445,0.262,Emerging Demand,Emerging Opportunity,0,1
+education,Kiambu,2026-Q1,96,37,19,168,0.638,0.6261,0.7552,0.4286,0.5777,0.523,0.5304,0.461,0.3697,Emerging Demand,Emerging Opportunity,0,1
+finance,Nakuru,2026-Q4,178,57,35,218,0.7765,0.7491,0.6116,0.5995,0.5764,0.5749,0.7026,0.2645,0.0955,High Demand,Strong Investment Opportunity,0,1
+mobility,Nairobi,2026-Q2,70,13,5,72,0.4294,0.5824,-0.2245,-0.3633,0.2095,0.205,0.4665,0.5835,0.2659,Declining Demand,Monitor Further,0,0
+food,Kiambu,2026-Q1,72,15,9,210,0.4328,0.7488,0.2089,0.1439,0.8903,0.6232,0.6647,0.8362,0.2923,Unmet Demand,Investigate Anomaly / Possible Unmet Demand,1,0
+retail,Kisumu,2026-Q3,52,14,7,69,0.2707,0.2942,-0.1947,0.0323,0.3736,0.2597,0.72,0.5924,0.3998,Declining Demand,Monitor Further,0,0
+retail,Nairobi,2026-Q4,122,49,26,125,0.4326,0.6328,0.7584,0.2027,0.5712,0.5072,0.5877,0.4592,0.3051,Emerging Demand,Emerging Opportunity,0,1
+health,Machakos,2026-Q2,48,14,4,74,0.4122,0.2801,-0.0279,-0.2561,0.3233,0.2724,0.561,0.6261,0.4332,Declining Demand,Monitor Further,0,0
+agriculture,Kiambu,2026-Q3,71,15,11,90,0.3792,0.2295,-0.2245,0.0065,0.2404,0.472,0.5458,0.5953,0.3862,Declining Demand,Monitor Further,0,0
+food,Turkana,2026-Q3,73,18,6,183,0.4526,0.7296,0.2387,0.1908,0.8185,0.8051,0.6732,0.759,0.3688,Unmet Demand,Investigate Anomaly / Possible Unmet Demand,1,0
+health,Nakuru,2026-Q3,68,13,6,147,0.4426,0.6947,0.327,0.3517,0.7397,0.6806,0.5551,0.7821,0.2502,Unmet Demand,Investigate Anomaly / Possible Unmet Demand,1,0
+mobility,Kisumu,2026-Q4,150,56,26,189,0.8803,0.8286,0.4648,0.8401,0.7724,0.8086,0.745,0.3231,0.0987,High Demand,Strong Investment Opportunity,0,1
+retail,Nairobi,2026-Q3,101,27,20,150,0.4725,0.6731,0.5708,0.4089,0.6702,0.5436,0.8562,0.3596,0.2017,Emerging Demand,Emerging Opportunity,0,1
+education,Mombasa,2026-Q2,96,36,21,187,0.6005,0.6015,0.4417,0.0283,0.3506,0.3649,0.6197,0.7196,0.3113,Moderate Demand,Emerging Opportunity,0,0
+finance,Mombasa,2026-Q2,154,72,36,237,0.8982,0.8613,0.6147,0.7247,0.67,0.6834,0.7233,0.2951,0.1973,High Demand,Strong Investment Opportunity,0,1
+food,Kisumu,2026-Q2,48,19,6,60,0.5149,0.5142,-0.2049,-0.2037,0.3621,0.2746,0.8178,0.5808,0.4502,Declining Demand,Monitor Further,0,0
+finance,Machakos,2026-Q3,115,31,16,168,0.4906,0.6319,0.7179,0.5426,0.5273,0.4295,0.7577,0.4382,0.1372,Emerging Demand,Emerging Opportunity,0,1
+mobility,Nakuru,2026-Q1,46,11,3,55,0.3515,0.2908,0.1599,0.0288,0.2475,0.2715,0.4237,0.5006,0.4395,Low Demand,Weak Signal,0,0
+mobility,Machakos,2026-Q2,29,9,3,50,0.3363,0.3666,-0.0503,0.0755,0.332,0.1979,0.4306,0.5296,0.1428,Low Demand,Weak Signal,0,0
+education,Mombasa,2026-Q2,126,17,8,217,0.4,0.6259,0.1277,0.1264,0.7627,0.6366,0.489,0.6045,0.2075,Unmet Demand,Investigate Anomaly / Possible Unmet Demand,1,0
+food,Nairobi,2026-Q2,100,41,21,154,0.3996,0.6031,0.6375,0.3155,0.5444,0.5907,0.6886,0.6249,0.3547,Emerging Demand,Emerging Opportunity,0,1
+agriculture,Kisumu,2026-Q4,152,63,46,214,0.8024,0.9165,0.5954,0.6707,0.6667,0.5947,0.6891,0.1366,0.2712,High Demand,Strong Investment Opportunity,0,1
+education,Mombasa,2026-Q1,37,14,4,56,0.4328,0.2543,0.0919,-0.0469,0.243,0.2496,0.4675,0.5734,0.2872,Low Demand,Weak Signal,0,0
+food,Kiambu,2026-Q1,106,38,17,150,0.5149,0.5603,0.1584,0.2676,0.5314,0.4617,0.62,0.5062,0.4056,Moderate Demand,Emerging Opportunity,0,0
+education,Machakos,2026-Q3,60,22,13,199,0.3304,0.6047,0.4269,0.2872,0.6852,0.7829,0.423,0.6487,0.2194,Unmet Demand,Investigate Anomaly / Possible Unmet Demand,1,0
+food,Kiambu,2026-Q4,45,24,6,84,0.3622,0.3547,-0.1916,-0.1823,0.3405,0.2059,0.5969,0.8065,0.2868,Declining Demand,Monitor Further,0,0
+finance,Kisumu,2026-Q1,57,10,5,45,0.4625,0.288,-0.0418,0.1648,0.1897,0.2835,0.4576,0.64,0.3866,Low Demand,Weak Signal,0,0
+education,Nairobi,2026-Q2,56,11,9,78,0.4616,0.2125,0.0356,-0.26,0.2625,0.4096,0.3802,0.5351,0.1665,Declining Demand,Monitor Further,0,0
+food,Mombasa,2026-Q3,148,12,17,157,0.6386,0.6328,0.2982,0.699,0.4078,0.351,0.6547,0.6287,0.2755,Moderate Demand,Emerging Opportunity,0,0
+agriculture,Kisumu,2026-Q1,106,41,16,132,0.5491,0.5944,0.2736,0.4165,0.5052,0.3499,0.4641,0.4095,0.3397,Moderate Demand,Emerging Opportunity,0,0
+mobility,Machakos,2026-Q4,95,20,16,174,0.5536,0.639,0.673,0.2728,0.7323,0.3816,0.6028,0.4633,0.1309,Emerging Demand,Emerging Opportunity,0,1
+education,Nakuru,2026-Q1,110,23,17,134,0.5504,0.6214,0.6385,0.2814,0.6811,0.4968,0.7182,0.4608,0.2066,Emerging Demand,Emerging Opportunity,0,1
+agriculture,Mombasa,2026-Q3,77,7,5,177,0.4511,0.6612,0.1454,0.3987,0.8,0.7274,0.5101,0.8185,0.2302,Unmet Demand,Investigate Anomaly / Possible Unmet Demand,1,0
+retail,Nakuru,2026-Q1,83,16,14,163,0.4676,0.8082,0.1785,0.3578,0.8023,0.7696,0.4698,0.7119,0.1616,Unmet Demand,Investigate Anomaly / Possible Unmet Demand,1,0
+health,Kisumu,2026-Q3,70,12,6,167,0.4502,0.8083,0.2938,0.4671,0.7532,0.6736,0.4567,0.7069,0.2005,Unmet Demand,Investigate Anomaly / Possible Unmet Demand,1,0
+mobility,Machakos,2026-Q2,171,71,26,187,0.8274,0.7591,0.5374,0.8017,0.8182,0.7261,0.7434,0.343,0.2756,High Demand,Strong Investment Opportunity,0,1
+food,Machakos,2026-Q4,106,29,14,128,0.7175,0.5303,0.246,0.4487,0.5335,0.6166,0.7225,0.5207,0.2537,Moderate Demand,Emerging Opportunity,0,0
+retail,Nakuru,2026-Q3,108,35,17,160,0.5507,0.6927,0.6492,0.3533,0.6057,0.532,0.6156,0.5052,0.1648,Emerging Demand,Emerging Opportunity,0,1
+education,Kisumu,2026-Q4,88,23,22,149,0.5793,0.7407,0.406,0.2829,0.3959,0.5443,0.6297,0.526,0.2858,Emerging Demand,Emerging Opportunity,0,1
+mobility,Kiambu,2026-Q3,159,50,51,247,0.8037,0.8546,0.4976,0.5582,0.6639,0.6683,0.7637,0.3004,0.2516,High Demand,Strong Investment Opportunity,0,1
+education,Nairobi,2026-Q4,99,43,25,198,0.6459,0.57,0.6721,0.0434,0.5627,0.5901,0.4262,0.3067,0.1578,Emerging Demand,Emerging Opportunity,0,1
+retail,Kiambu,2026-Q2,100,23,8,131,0.4756,0.6037,0.6826,0.6365,0.6027,0.4411,0.8075,0.4888,0.2328,Emerging Demand,Emerging Opportunity,0,1
+food,Mombasa,2026-Q4,107,15,6,160,0.6411,0.4891,0.4106,0.1092,0.5807,0.5761,0.5612,0.4003,0.3475,Moderate Demand,Emerging Opportunity,0,0
+education,Nairobi,2026-Q3,52,27,8,68,0.4204,0.3971,-0.1688,-0.3319,0.2853,0.314,0.6062,0.4723,0.446,Declining Demand,Monitor Further,0,0
+retail,Kisumu,2026-Q1,57,16,13,71,0.4608,0.3189,-0.1509,-0.1229,0.2488,0.2582,0.4391,0.6175,0.4184,Declining Demand,Monitor Further,0,0
+finance,Nakuru,2026-Q1,36,9,3,28,0.3937,0.1591,0.0255,0.0412,0.2371,0.1096,0.5691,0.684,0.4479,Low Demand,Weak Signal,0,0
+finance,Machakos,2026-Q3,35,16,5,56,0.253,0.3253,-0.0443,0.1309,0.138,0.3916,0.2759,0.7364,0.4468,Low Demand,Weak Signal,0,0
+finance,Machakos,2026-Q1,185,64,39,139,0.8083,0.8719,0.7088,0.9008,0.8441,0.5471,0.5642,0.4056,0.2019,High Demand,Strong Investment Opportunity,0,1
+mobility,Nakuru,2026-Q3,41,9,3,48,0.3672,0.1388,0.101,-0.095,0.2089,0.1892,0.413,0.5152,0.276,Low Demand,Weak Signal,0,0
+health,Turkana,2026-Q4,88,23,23,152,0.722,0.5493,0.206,0.1646,0.472,0.5066,0.6758,0.3709,0.2956,Moderate Demand,Emerging Opportunity,0,0
+retail,Machakos,2026-Q3,29,21,5,74,0.4007,0.4485,-0.0906,0.0778,0.3179,0.2002,0.3509,0.5963,0.2637,Declining Demand,Monitor Further,0,0
+food,Machakos,2026-Q1,122,34,12,114,0.5905,0.5927,0.2049,0.3132,0.5454,0.4623,0.5478,0.4445,0.2899,Moderate Demand,Emerging Opportunity,0,0
+agriculture,Kiambu,2026-Q4,135,55,52,228,0.7616,0.8405,0.4555,0.8947,0.608,0.6783,0.7835,0.244,0.221,High Demand,Strong Investment Opportunity,0,1
+mobility,Kiambu,2026-Q2,58,22,5,35,0.3327,0.3849,-0.1094,-0.3831,0.1233,0.3357,0.1918,0.6333,0.453,Declining Demand,Monitor Further,0,0
+finance,Nakuru,2026-Q4,59,8,8,58,0.3718,0.3445,0.1132,0.2484,0.3413,0.2123,0.325,0.3528,0.3451,Low Demand,Weak Signal,0,0
+agriculture,Nakuru,2026-Q2,38,7,0,50,0.3496,0.1918,0.0986,0.0898,0.2506,0.1771,0.2718,0.6961,0.4335,Low Demand,Weak Signal,0,0
+retail,Nakuru,2026-Q1,22,8,5,42,0.3544,0.3383,-0.0336,0.0707,0.1936,0.0848,0.4313,0.5402,0.5005,Low Demand,Weak Signal,0,0
+mobility,Nairobi,2026-Q4,56,27,5,76,0.4852,0.4348,-0.1689,-0.0054,0.3384,0.3411,0.6008,0.5177,0.3698,Declining Demand,Monitor Further,0,0
+food,Mombasa,2026-Q4,117,23,19,202,0.5123,0.5631,0.6783,0.2634,0.4158,0.4095,0.6211,0.5253,0.3103,Emerging Demand,Emerging Opportunity,0,1

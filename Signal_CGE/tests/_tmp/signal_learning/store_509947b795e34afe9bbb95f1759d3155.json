@@ -1,0 +1,68 @@
+{
+  "adaptations": [],
+  "feedback": [
+    {
+      "confidence_score": 0.8,
+      "corrected_value": "review agriculture column",
+      "evidence": {
+        "correction_made": "review agriculture column",
+        "observed_error_or_result": "agriculture imbalance",
+        "source_run": "run001",
+        "validation_status": "user_reviewed"
+      },
+      "issue_type": "sam_imbalance",
+      "lesson_learned": "Check agriculture account mapping.",
+      "original_value": "agriculture imbalance",
+      "run_id": "run001",
+      "source": "user_correction",
+      "timestamp": "2026-05-07T19:53:38Z"
+    }
+  ],
+  "implementations": [],
+  "patterns": [],
+  "reports": [
+    {
+      "report_path": "tests/_tmp/report.md",
+      "run_id": "run001",
+      "summary": {
+        "feedback_entries": 1
+      }
+    }
+  ],
+  "run_snapshots": [
+    {
+      "account_classifications": {
+        "sectors": [
+          "agriculture"
+        ]
+      },
+      "calibration_patterns": {
+        "has_output_shares": true
+      },
+      "closure_rules": {
+        "numeraire": "consumer_price_index"
+      },
+      "final_report": "outputs/report.md",
+      "gams_errors": [],
+      "model_equations": [
+        "market_clearing"
+      ],
+      "model_name": "kenya_cge",
+      "run_id": "run001",
+      "sam_structure": {
+        "accounts": [
+          "agriculture",
+          "households"
+        ]
+      },
+      "shock_definitions": [
+        {
+          "name": "vat"
+        }
+      ],
+      "solver_failures": [],
+      "successful_model_run": false,
+      "validation_status": "valid"
+    }
+  ]
+}

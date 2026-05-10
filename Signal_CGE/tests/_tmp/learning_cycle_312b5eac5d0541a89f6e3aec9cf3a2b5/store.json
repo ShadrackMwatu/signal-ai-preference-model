@@ -1,0 +1,187 @@
+{
+  "adaptations": [
+    {
+      "affected_templates_or_rules": [
+        "docs/solver_layer.md",
+        "knowledge_base/solver_diagnostics.md"
+      ],
+      "change_summary": "Flag experimental solver outputs before policy use.",
+      "confidence_score": 0.55,
+      "evidence_run_ids": [
+        "cycle001"
+      ],
+      "reason_for_change": "Observed 1 occurrence(s) of experimental_solver.",
+      "recommended_mode": "safe_apply",
+      "risk_level": "low",
+      "rollback_instructions": "Restore files from the rollback copy in this learning version folder.",
+      "version_id": "v001"
+    },
+    {
+      "affected_templates_or_rules": [
+        "solvers/solver_registry.py",
+        "knowledge_base/solver_diagnostics.md"
+      ],
+      "change_summary": "Recommend explicit fallback mode when GAMS is unavailable.",
+      "confidence_score": 0.55,
+      "evidence_run_ids": [
+        "cycle001"
+      ],
+      "reason_for_change": "Observed 1 occurrence(s) of gams_unavailable.",
+      "recommended_mode": "safe_apply",
+      "risk_level": "low",
+      "rollback_instructions": "Restore files from the rollback copy in this learning version folder.",
+      "version_id": "v002"
+    },
+    {
+      "affected_templates_or_rules": [
+        "signal_modeling_language/examples/basic_cge.sml"
+      ],
+      "change_summary": "Preserve successful model structure as scenario-template evidence.",
+      "confidence_score": 0.55,
+      "evidence_run_ids": [
+        "cycle001"
+      ],
+      "reason_for_change": "Observed 1 occurrence(s) of successful_model_run.",
+      "recommended_mode": "safe_apply",
+      "risk_level": "low",
+      "rollback_instructions": "Restore files from the rollback copy in this learning version folder.",
+      "version_id": "v003"
+    }
+  ],
+  "feedback": [
+    {
+      "confidence_score": 0.95,
+      "corrected_value": "Use python_nlp fallback for validation only.",
+      "evidence": {
+        "correction_made": "Use python_nlp fallback for validation only.",
+        "observed_error_or_result": "GAMS backend unavailable; using experimental Python backend or validation-only mode. Experimental Python NLP backend; not production-grade.",
+        "source_run": "cycle001",
+        "validation_status": "captured"
+      },
+      "issue_type": "gams_unavailable",
+      "lesson_learned": "Install GAMS or explicitly select experimental backend.",
+      "original_value": "GAMS backend unavailable; using experimental Python backend or validation-only mode. Experimental Python NLP backend; not production-grade.",
+      "run_id": "cycle001",
+      "source": "solver_message",
+      "timestamp": "2026-05-09T17:07:01Z"
+    },
+    {
+      "confidence_score": 0.9,
+      "corrected_value": "Require GAMS solver confirmation.",
+      "evidence": {
+        "correction_made": "Require GAMS solver confirmation.",
+        "observed_error_or_result": "GAMS backend unavailable; using experimental Python backend or validation-only mode. Experimental Python NLP backend; not production-grade.",
+        "source_run": "cycle001",
+        "validation_status": "captured"
+      },
+      "issue_type": "experimental_solver",
+      "lesson_learned": "Do not treat experimental backend as production evidence.",
+      "original_value": "GAMS backend unavailable; using experimental Python backend or validation-only mode. Experimental Python NLP backend; not production-grade.",
+      "run_id": "cycle001",
+      "source": "solver_message",
+      "timestamp": "2026-05-09T17:07:01Z"
+    },
+    {
+      "confidence_score": 0.7,
+      "corrected_value": "retain template pattern",
+      "evidence": {
+        "correction_made": "retain template pattern",
+        "observed_error_or_result": "run completed",
+        "source_run": "cycle001",
+        "validation_status": "captured"
+      },
+      "issue_type": "successful_model_run",
+      "lesson_learned": "This model structure produced a successful prototype run.",
+      "original_value": "run completed",
+      "run_id": "cycle001",
+      "source": "scenario_result",
+      "timestamp": "2026-05-09T17:07:01Z"
+    }
+  ],
+  "implementations": [
+    {
+      "applied_files": [
+        "tests\\_tmp\\learning_cycle_312b5eac5d0541a89f6e3aec9cf3a2b5\\versions\\v001\\change_summary.md"
+      ],
+      "message": "Recommendation saved for user review; core templates were not overwritten.",
+      "mode": "recommend",
+      "rollback_files": [],
+      "status": "suggested",
+      "validation_status": "requires_user_review",
+      "version_id": "v001"
+    },
+    {
+      "applied_files": [
+        "tests\\_tmp\\learning_cycle_312b5eac5d0541a89f6e3aec9cf3a2b5\\versions\\v002\\change_summary.md"
+      ],
+      "message": "Recommendation saved for user review; core templates were not overwritten.",
+      "mode": "recommend",
+      "rollback_files": [],
+      "status": "suggested",
+      "validation_status": "requires_user_review",
+      "version_id": "v002"
+    },
+    {
+      "applied_files": [
+        "tests\\_tmp\\learning_cycle_312b5eac5d0541a89f6e3aec9cf3a2b5\\versions\\v003\\change_summary.md"
+      ],
+      "message": "Recommendation saved for user review; core templates were not overwritten.",
+      "mode": "recommend",
+      "rollback_files": [],
+      "status": "suggested",
+      "validation_status": "requires_user_review",
+      "version_id": "v003"
+    }
+  ],
+  "patterns": [],
+  "reports": [
+    {
+      "report_path": "tests\\_tmp\\learning_cycle_312b5eac5d0541a89f6e3aec9cf3a2b5\\outputs\\learning_report.md",
+      "run_id": "cycle001",
+      "summary": {
+        "adaptation_proposals": 3,
+        "feedback_entries": 3,
+        "mode": "recommend"
+      }
+    }
+  ],
+  "run_snapshots": [
+    {
+      "account_classifications": {
+        "sectors": [
+          "agriculture"
+        ]
+      },
+      "calibration_patterns": {
+        "has_output_shares": true,
+        "total_activity_positive": true
+      },
+      "closure_rules": {
+        "numeraire": "consumer_price_index"
+      },
+      "final_report": "tests\\_tmp\\learning_cycle_312b5eac5d0541a89f6e3aec9cf3a2b5\\policy_report.md",
+      "gams_errors": [],
+      "model_equations": [
+        {
+          "equation": "market_clearing"
+        }
+      ],
+      "model_name": "kenya_cge",
+      "run_id": "cycle001",
+      "sam_structure": {
+        "accounts": [
+          "agriculture"
+        ],
+        "balance_status": true
+      },
+      "shock_definitions": [
+        {
+          "name": "productivity_growth"
+        }
+      ],
+      "solver_failures": [],
+      "successful_model_run": true,
+      "validation_status": "valid"
+    }
+  ]
+}
