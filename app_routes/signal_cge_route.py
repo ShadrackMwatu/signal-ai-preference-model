@@ -17,16 +17,15 @@ import csv
 # =========================================================
 # SAFE IMPORTS WITH FALLBACKS
 # =========================================================
-
 try:
     from Signal_CGE.cge_core.chat_orchestrator import run_chat_simulation
 except Exception:
-    def run_chat_simulation(prompt: str, sam_file: str | None = None) -> dict[str, Any]:
+    def run_chat_simulation(prompt, sam_file=None):
         return {
             "success": True,
             "prompt": prompt,
             "sam_file": sam_file,
-            "message": "Signal CGE fallback chat orchestrator active.",
+            "message": "Signal CGE fallback chat orchestrator active."
         }
 
 
