@@ -31,3 +31,5 @@ pytest.ini
 ```
 
 The root keeps only deployment and repository-control files required by Hugging Face, GitHub Actions, Git LFS, and local testing. Product code should live inside either `Signal_CGE/` or `Behavioral_Signals_AI/`.
+
+<!-- normalize-domains trigger -->
