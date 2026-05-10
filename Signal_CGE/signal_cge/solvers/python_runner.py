@@ -3,30 +3,15 @@
 from __future__ import annotations
 
 from datetime import datetime
-from pathlib import Path
 from typing import Any
 
 import numpy as np
 import pandas as pd
 
+from signal_cge.data.sam_loader import load_best_available_sam, load_sam
 from signal_cge.diagnostics.result_validation import validate_results
 from signal_cge.diagnostics.sam_balance_checks import validate_sam
 from .runner_interface import ModelRunResult, RunnerConfig
-
-
-DEFAULT_SAM = pd.DataFrame(
-    [
-        [0, 25, 12, 8, 10, 5],
-        [20, 0, 15, 5, 8, 4],
-        [14, 18, 0, 6, 10, 7],
-        [8, 6, 4, 0, 5, 3],
-        [9, 7, 8, 4, 0, 6],
-        [6, 5, 7, 3, 6, 0],
-    ],
-    index=["paid_care_services", "manufacturing", "transport", "health", "households", "government"],
-    columns=["paid_care_services", "manufacturing", "transport", "health", "households", "government"],
-    dtype=float,
-)
 
 
 class PythonSAMRunner:
@@ -42,7 +27,7 @@ class PythonSAMRunner:
         timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
         log_path = logs_dir / f"python_sam_{timestamp}.log"
 
-        sam = load_sam(self.config.sam_path) if self.config.sam_path else DEFAULT_SAM.copy()
+        sam, sam_source = load_best_available_sam(self.config.sam_path, allow_demo=True)
         pre = validate_sam(sam)
         endogenous = self.config.endogenous_accounts or list(sam.columns)
         exogenous = self.config.exogenous_accounts or []
@@ -72,9 +57,19 @@ class PythonSAMRunner:
             "leontief_inverse_shape": list(inverse.shape),
             "exogenous_accounts": exogenous,
             "zero_columns": zero_columns,
+            "sam_source": {
+                "source_type": sam_source.source_type,
+                "path": str(sam_source.path) if sam_source.path else "",
+                "message": sam_source.message,
+            },
         }
         post = validate_results(results)
-        diagnostics = {"pre_run": pre, "post_run": post}
+        diagnostics = {
+            "pre_run": pre,
+            "post_run": post,
+            "sam_source": results["sam_source"],
+            "demo_sam_used": sam_source.source_type == "demo",
+        }
         log_path.write_text(_log_text(scenario, diagnostics, results), encoding="utf-8")
         return ModelRunResult(
             success=True,
@@ -86,17 +81,6 @@ class PythonSAMRunner:
             artifacts={"log": str(log_path)},
             message="Python-based SAM multiplier simulation completed.",
         )
-
-
-def load_sam(path: str | Path) -> pd.DataFrame:
-    source = Path(path)
-    if source.suffix.lower() in {".xlsx", ".xls"}:
-        frame = pd.read_excel(source, index_col=0)
-    else:
-        frame = pd.read_csv(source, index_col=0)
-    frame.index = [str(item).strip() for item in frame.index]
-    frame.columns = [str(item).strip() for item in frame.columns]
-    return frame.apply(pd.to_numeric, errors="raise").astype(float)
 
 
 def build_shock_vector(accounts: list[str], scenario: dict[str, Any], column_totals: pd.Series) -> np.ndarray:
