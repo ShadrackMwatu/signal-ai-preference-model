@@ -363,12 +363,14 @@ def _write_downloads(
         "scenario": scenario,
         "readiness": readiness,
         "diagnostics": diagnostics,
+        "validation_status": _validation_status(diagnostics),
         "results": results,
         "results_table": results_table,
         "interpretation": interpretation,
         "model_profile": model_profile,
         "knowledge_context": knowledge_context,
         "model_references_used": knowledge_context.get("reference_labels", []),
+        "solver_backend_used": diagnostics.get("solver_used", results.get("backend", "not available")),
         "learning_event_id": learning_event_id,
         "learning_trace": learning_trace,
         "result_type": "prototype_directional_indicator",
@@ -396,10 +398,15 @@ def _policy_brief_markdown(payload: dict[str, Any]) -> str:
     return "\n\n".join(
         [
             "# Signal CGE Policy Simulation Brief",
+            "## Prompt Entered\n" + str(payload["prompt"]),
             "## Interpreted Scenario\n```json\n" + json.dumps(payload["scenario"], indent=2) + "\n```",
+            "## Model References Used\n```json\n" + json.dumps(payload["model_references_used"], indent=2) + "\n```",
+            "## Solver/Backend Used\n" + str(payload["solver_backend_used"]),
+            "## Validation Status\n```json\n" + json.dumps(payload["validation_status"], indent=2) + "\n```",
             "## Prototype Directional Results\n```json\n" + json.dumps(payload["results_table"], indent=2) + "\n```",
             "## Policy Interpretation\n```json\n" + json.dumps(payload["interpretation"], indent=2) + "\n```",
-            "## Model Reference Used\n```json\n" + json.dumps(payload["model_references_used"], indent=2) + "\n```",
+            "## Caveats\n```json\n" + json.dumps(payload["interpretation"].get("caveats", []), indent=2) + "\n```",
+            "## Next Recommended Simulations\n```json\n" + json.dumps(payload["interpretation"].get("recommended_next_simulations", []), indent=2) + "\n```",
             "## Adaptive Learning Trace\n```json\n" + json.dumps(payload["learning_trace"], indent=2) + "\n```",
             "## Full CGE Development Status\n```json\n" + json.dumps(payload["full_cge_development_status"], indent=2) + "\n```",
             "## Diagnostics\n```json\n" + json.dumps(payload["diagnostics"], indent=2) + "\n```",
@@ -410,6 +417,18 @@ def _policy_brief_markdown(payload: dict[str, Any]) -> str:
             "## Limitations\n" + FULL_CGE_FALLBACK_MESSAGE,
         ]
     )
+
+
+def _validation_status(diagnostics: dict[str, Any]) -> dict[str, Any]:
+    validation = diagnostics.get("validation", {})
+    equilibrium = diagnostics.get("equilibrium_solver", {})
+    return {
+        "policy_shock_valid": validation.get("valid", "not available") if isinstance(validation, dict) else "not available",
+        "validation_warnings": validation.get("warnings", []) if isinstance(validation, dict) else [],
+        "solver_converged": equilibrium.get("converged", "not available") if isinstance(equilibrium, dict) else "not available",
+        "residual_norm": equilibrium.get("residual_norm", "not available") if isinstance(equilibrium, dict) else "not available",
+        "closure_used": equilibrium.get("closure_used", "not available") if isinstance(equilibrium, dict) else "not available",
+    }
 
 
 def _is_care_relevant(scenario: dict[str, Any]) -> bool:

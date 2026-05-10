@@ -52,6 +52,10 @@ Signal now includes an AI-native CGE/SAM architecture organized around the canon
 
 The current operational backend is the Python SAM multiplier fallback. Signal also includes a calibration prototype and formal model-core blocks that prepare the project for a future open-source equilibrium solver and recursive dynamics. Optional GAMS and future Pyomo/SciPy pathways remain guarded so Hugging Face deployment can start without them.
 
+## Using Signal CGE
+
+Use the Signal CGE tab by typing a policy simulation prompt such as `reduce import tariffs on cmach by 10%`. Signal reads repo-stored canonical model files by default, while SAM or experiment workbook upload remains optional. Each run returns the interpreted scenario, solver/backend used, validation diagnostics, result tables, charts, policy interpretation, model references, and downloadable Markdown, JSON, and CSV outputs. Lightweight adaptive learning memory stores metadata about prompts, scenarios, diagnostics, and recommendations so future interpretation can improve without storing uploaded data.
+
 ## Signal CGE Canonical Architecture
 
 The canonical Signal CGE knowledge system is stored in `Documentation/signal_cge_reference/` and connected to the model through `Signal_CGE/signal_cge/model_registry.py` plus `Signal_CGE/signal_cge/knowledge/`.

@@ -2168,6 +2168,14 @@ with gr.Blocks(title="Signal AI Dashboard", css=SIGNAL_DASHBOARD_CSS) as demo:
             "## Signal CGE\n"
             "AI-native CGE simulation engine for policy prompts, SAM calibration, scenario execution, diagnostics, and policy interpretation."
         )
+        with gr.Accordion("How to use Signal CGE", open=False):
+            gr.Markdown(
+                "1. Type a policy simulation prompt.\n"
+                "2. Signal CGE reads repo-stored canonical model files.\n"
+                "3. Upload is optional.\n"
+                "4. Click **Run Signal CGE Simulation**.\n"
+                "5. Review scenario, results, diagnostics, model references, and downloads."
+            )
         signal_cge_prompt = gr.Textbox(
             label="Enter simulation prompt",
             placeholder=(
@@ -2187,7 +2195,7 @@ with gr.Blocks(title="Signal AI Dashboard", css=SIGNAL_DASHBOARD_CSS) as demo:
             signal_cge_upload = gr.File(
                 label="Upload SAM or experiment workbook",
                 file_types=[".xlsx", ".csv"],
-        )
+            )
         run_signal_cge_button = gr.Button("Run Signal CGE Simulation")
         signal_cge_scenario_output = gr.Markdown(label="Interpreted Scenario")
         gr.Markdown("## Prototype Directional Results")
