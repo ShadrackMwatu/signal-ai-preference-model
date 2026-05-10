@@ -1,2 +1,0 @@
-scenario_id,user_id,item_id,category,sam_account,preference_score,preferred,shock_value,shock_direction,top_driver
-policy_scenario_1,user_001,dashboard_plus,analytics,DIGITAL_SERVICES,0.9106,True,0.4106,positive,rating

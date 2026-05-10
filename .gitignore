@@ -79,3 +79,6 @@ Signal_CGE/outputs/signal_cge_learning/*.md
 Signal_CGE/outputs/model_improvement_reports/*.json
 Signal_CGE/outputs/learning_summaries/*.json
 Signal_CGE/outputs/runtime/
+Signal_CGE/tests/_tmp/
+*_runner_outputs/
+*.xlsx.tmp
