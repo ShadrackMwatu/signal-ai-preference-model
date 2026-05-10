@@ -22,88 +22,79 @@ jobs:
           git config user.name "Signal Repository Organizer"
           git config user.email "actions@github.com"
 
-      - name: Reorganize into two product domains
+      - name: Reorganize into exact two product domains
         shell: bash
         run: |
           set -euo pipefail
 
           BEHAVIORAL="Behavioral_Signals_AI"
           CGE="Signal_CGE"
-
           mkdir -p "$BEHAVIORAL" "$CGE"
+          mkdir -p "$BEHAVIORAL/_migrated_root" "$CGE/_migrated_root"
 
-          move_if_exists() {
+          is_preserved_root_item() {
+            case "$1" in
+              .git|.github|.gitattributes|.gitignore|README.md|requirements.txt|app.py|pytest.ini|$BEHAVIORAL|$CGE)
+                return 0
+                ;;
+              *)
+                return 1
+                ;;
+            esac
+          }
+
+          is_cge_item() {
+            case "$1" in
+              Signal_CGE|signal_cge|signal_ai|policy_ai|policy_intelligence|backends|cge_core|cge_engine|cge_workbench|signal_execution|signal_modeling_language|signal_sml|sml_workbench|solvers|models|documents|tests)
+                return 0
+                ;;
+              *)
+                return 1
+                ;;
+            esac
+          }
+
+          safe_git_mv() {
             local source="$1"
             local target_root="$2"
-            if [ -e "$source" ]; then
-              if [ "$source" = "$target_root" ]; then
-                return 0
-              fi
-              mkdir -p "$target_root"
-              git mv "$source" "$target_root/"
+            local name
+            name="$(basename "$source")"
+
+            if [ ! -e "$source" ]; then
+              return 0
+            fi
+            if [ "$source" = "$target_root" ]; then
+              return 0
+            fi
+
+            if [ ! -e "$target_root/$name" ]; then
+              git mv "$source" "$target_root/$name"
+            else
+              mkdir -p "$target_root/_migrated_root"
+              local destination="$target_root/_migrated_root/$name"
+              local counter=1
+              while [ -e "$destination" ]; do
+                destination="$target_root/_migrated_root/${name}_$counter"
+                counter=$((counter + 1))
+              done
+              git mv "$source" "$destination"
             fi
           }
 
-          # Signal_CGE domain: economic modeling, SAM/CGE/SML, solvers, GAMS, policy simulation.
-          # Existing top-level Signal_CGE remains the canonical CGE folder.
-          for item in \
-            signal_cge \
-            signal_ai \
-            policy_ai \
-            policy_intelligence \
-            backends \
-            cge_core \
-            cge_engine \
-            cge_workbench \
-            signal_execution \
-            signal_modeling_language \
-            signal_sml \
-            sml_workbench \
-            solvers \
-            models \
-            documents
-          do
-            move_if_exists "$item" "$CGE"
-          done
+          # Move every non-preserved root item into exactly one of the two domains.
+          while IFS= read -r item; do
+            item="${item#./}"
+            if is_preserved_root_item "$item"; then
+              continue
+            fi
+            if is_cge_item "$item"; then
+              safe_git_mv "$item" "$CGE"
+            else
+              safe_git_mv "$item" "$BEHAVIORAL"
+            fi
+          done < <(find . -maxdepth 1 -mindepth 1 -print | sort)
 
-          # Behavioral_Signals_AI domain: behavioral prediction, live trends, ML, privacy, API/app support, learning memory.
-          for item in \
-            Documentation \
-            adaptive_learning \
-            api \
-            app_routes \
-            behavioral_ai \
-            config \
-            data \
-            docs \
-            explainability \
-            knowledge_base \
-            learning \
-            learning_memory \
-            learning_versions \
-            live_trends \
-            ml \
-            models_ml \
-            outputs \
-            signal_learning \
-            src
-          do
-            move_if_exists "$item" "$BEHAVIORAL"
-          done
-
-          for item in \
-            adaptive_learning.py \
-            explainability.py \
-            privacy.py \
-            train_model.py \
-            trend_intelligence.py \
-            x_trends.py
-          do
-            move_if_exists "$item" "$BEHAVIORAL"
-          done
-
-          move_if_exists "tests" "$CGE"
-
+          # Keep app.py at root, but let it find packages inside both domains.
           python - <<'PY'
           from pathlib import Path
 
@@ -112,7 +103,7 @@ jobs:
               text = app.read_text(encoding='utf-8')
               marker = '# Signal domain path bootstrap'
               if marker not in text:
-                  bootstrap = '''# Signal domain path bootstrap\nfrom pathlib import Path as _SignalPath\nimport sys as _signal_sys\n_signal_root = _SignalPath(__file__).resolve().parent\nfor _signal_path in (\n    _signal_root / "Behavioral_Signals_AI",\n    _signal_root / "Signal_CGE",\n):\n    if _signal_path.exists() and str(_signal_path) not in _signal_sys.path:\n        _signal_sys.path.insert(0, str(_signal_path))\n\n'''
+                  bootstrap = '''# Signal domain path bootstrap\nfrom pathlib import Path as _SignalPath\nimport sys as _signal_sys\n_signal_root = _SignalPath(__file__).resolve().parent\nfor _signal_path in (\n    _signal_root / "Behavioral_Signals_AI",\n    _signal_root / "Signal_CGE",\n    _signal_root / "Signal_CGE" / "_migrated_root",\n    _signal_root / "Behavioral_Signals_AI" / "_migrated_root",\n):\n    if _signal_path.exists() and str(_signal_path) not in _signal_sys.path:\n        _signal_sys.path.insert(0, str(_signal_path))\n\n'''
                   app.write_text(bootstrap + text, encoding='utf-8')
           PY
 
@@ -120,6 +111,8 @@ jobs:
           # Behavioral_Signals_AI
 
           This folder contains Signal's behavioral intelligence domain: aggregate behavioral signals, demand prediction, opportunity scoring, live trends, privacy-preserving analytics, adaptive learning, API support, dashboard routes, and explainability.
+
+          `_migrated_root/` contains root-level behavioral or compatibility files moved during the two-domain cleanup when a same-name destination already existed.
           EOF
 
           cat > "$CGE/README.md" <<'EOF'
@@ -127,7 +120,7 @@ jobs:
 
           This folder contains Signal's economic modeling domain: SAM loading, validation, multiplier analysis, CGE/SML workbench, GAMS/Python solver backends, policy simulation, diagnostics, reporting, and model-learning services.
 
-          The canonical production package is `Signal_CGE/signal_cge`.
+          The canonical production package is `Signal_CGE/signal_cge`. `_migrated_root/` contains root-level CGE or compatibility files moved during the two-domain cleanup when a same-name destination already existed.
           EOF
 
           cat > README.md <<'EOF'
@@ -172,5 +165,5 @@ jobs:
             exit 0
           fi
 
-          git commit -m "Reorganize repository into Signal_CGE and Behavioral_Signals_AI domains"
+          git commit -m "Physically move root files into Signal_CGE and Behavioral_Signals_AI"
           git push
