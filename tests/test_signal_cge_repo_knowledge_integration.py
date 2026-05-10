@@ -55,9 +55,9 @@ def test_tariff_prompt_returns_improved_interpretation() -> None:
 def test_equilibrium_results_are_open_source_prototype() -> None:
     result = run_signal_cge_prompt("reduce import tariffs on cmach by 10%")
 
-    assert result["result_type"] == "open_source_equilibrium_cge_prototype"
-    assert result["results"]["result_type"] == "open_source_equilibrium_cge_prototype"
-    assert "open-source prototype equilibrium CGE solver" in result["fallback_message"]
+    assert result["result_type"] == "validated_static_equilibrium_cge_solver"
+    assert result["results"]["result_type"] == "validated_static_equilibrium_cge_solver"
+    assert "validated open-source static equilibrium CGE solver" in result["fallback_message"]
 
 
 def test_gender_care_impact_hidden_for_cmach_tariff() -> None:

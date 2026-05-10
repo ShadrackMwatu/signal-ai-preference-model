@@ -64,10 +64,10 @@ The Hugging Face app does not require the local Windows model workspace.
 
 ## Current Solver Limitations
 
-The full equilibrium CGE solver is not yet active. Signal clearly reports:
+If validated static equilibrium solving is unavailable or does not pass validation for a specific run, Signal clearly reports:
 
 ```text
-Prototype result: full equilibrium CGE solver is not yet active. Signal is using the available SAM multiplier/prototype backend and canonical repo model profile.
+Validated static equilibrium solving was unavailable or did not pass validation for this run. Signal is using the available SAM multiplier/prototype backend and canonical repo model profile.
 ```
 
 The current public backend is suitable for deterministic scenario parsing, SAM multiplier fallback runs, prototype calibration checks, diagnostics, and policy explanation. It should not be described as a full equilibrium CGE solver.
@@ -78,4 +78,4 @@ Each Signal CGE run shows the canonical references used for interpretation, such
 
 ## Future Solver Pathway
 
-Future work can add a full open-source equilibrium solver and recursive dynamics behind the same prompt-driven public interface. The public contract should remain stable while backend readiness moves from placeholder to active.
+Future work can expand the validated static solver into a full recursive-dynamic solver behind the same prompt-driven public interface. The public contract should remain stable while backend readiness expands.

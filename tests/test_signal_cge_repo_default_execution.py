@@ -15,7 +15,7 @@ def test_repo_default_signal_cge_execution_no_upload() -> None:
     assert result["diagnostics"]["uploaded_sam"].startswith("not provided")
     assert result["results"]["account_effects"]
     assert result["chart_data"]
-    assert result["backend_used"] == "open_source_equilibrium_solver"
+    assert result["backend_used"] == "validated_static_equilibrium_cge_solver"
 
 
 def test_repo_default_downloads_are_materialized() -> None:

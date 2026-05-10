@@ -54,7 +54,7 @@ def test_policy_brief_contains_operating_trace() -> None:
         "Model References Used",
         "Solver/Backend Used",
         "Validation Status",
-        "Prototype Directional Results",
+        "Simulation Results",
         "Caveats",
         "Next Recommended Simulations",
     ]:

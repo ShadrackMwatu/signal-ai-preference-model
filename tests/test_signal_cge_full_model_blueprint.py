@@ -89,4 +89,4 @@ def test_app_imports_with_full_model_blueprint() -> None:
 
     result = app.run_signal_cge_prompt("reduce import tariffs on cmach by 10%")
     assert "full_cge_development_status" in result
-    assert result["full_cge_development_status"]["solver_status"].startswith("open-source prototype")
+    assert result["full_cge_development_status"]["solver_status"].startswith("validated open-source")

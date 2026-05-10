@@ -2198,7 +2198,7 @@ with gr.Blocks(title="Signal AI Dashboard", css=SIGNAL_DASHBOARD_CSS) as demo:
             )
         run_signal_cge_button = gr.Button("Run Signal CGE Simulation")
         signal_cge_scenario_output = gr.Markdown(label="Interpreted Scenario")
-        gr.Markdown("## Prototype Directional Results")
+        gr.Markdown("## Static Equilibrium Results")
         signal_cge_summary_cards = gr.HTML(label="Results Summary")
         signal_cge_results_table = gr.Dataframe(label="Numeric Results Table", interactive=False)
         signal_cge_effect_chart = gr.BarPlot(

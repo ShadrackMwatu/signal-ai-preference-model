@@ -24,6 +24,8 @@ Documentation/signal_cge_reference/historical/source_package/**/*.pdf
 *.log
 *.tmp
 *.bak
+*.lnk
+*.url
 runtime/
 outputs/
 !Signal_CGE/outputs/

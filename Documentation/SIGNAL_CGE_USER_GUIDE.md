@@ -54,7 +54,7 @@ Signal identifies the policy instrument, target account, shock direction, magnit
 
 ## How Simulations Are Executed
 
-Signal runs the open-source prototype equilibrium CGE solver when the payload is sufficient. If the solver fails, Signal falls back to the SAM multiplier/prototype pathway and reports the reason.
+Signal runs the validated open-source static equilibrium CGE solver when the payload satisfies validation checks. If validation or solving fails, Signal falls back to the prototype equilibrium pathway or SAM multiplier pathway and reports the reason.
 
 ## How Results Are Reported
 
