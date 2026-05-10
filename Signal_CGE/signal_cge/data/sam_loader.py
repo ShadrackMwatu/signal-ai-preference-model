@@ -1,129 +1,106 @@
-"""Canonical SAM discovery and loading utilities for Signal CGE.
-
-Production priority:
-1. user-uploaded SAM path,
-2. repository canonical SAM path,
-3. bundled demo SAM for tests and safe fallback only.
-"""
+"""SAM loading and validation helpers for Signal CGE."""
 
 from __future__ import annotations
 
-from dataclasses import dataclass
+import json
 from pathlib import Path
 from typing import Any
 
 import pandas as pd
 
-CANONICAL_SAM_CANDIDATES = (
-    Path("Signal_CGE/models/Model/20_Data/KEN_SAM_2020.xlsx"),
-    Path("Signal_CGE/models/Model/20_Data/KEN_SAM_2020.xls"),
-    Path("Signal_CGE/models/Model/20_Data/KEN_SAM_2020.csv"),
-    Path("Signal_CGE/models/canonical/KEN_SAM_2020.xlsx"),
-    Path("Signal_CGE/data/sams/raw/KEN_SAM_2020.xlsx"),
-    Path("data/sams/raw/KEN_SAM_2020.xlsx"),
-)
-
-DEMO_SAM = pd.DataFrame(
-    [
-        [0, 25, 12, 8, 10, 5],
-        [20, 0, 15, 5, 8, 4],
-        [14, 18, 0, 6, 10, 7],
-        [8, 6, 4, 0, 5, 3],
-        [9, 7, 8, 4, 0, 6],
-        [6, 5, 7, 3, 6, 0],
-    ],
-    index=["paid_care_services", "manufacturing", "transport", "health", "households", "government"],
-    columns=["paid_care_services", "manufacturing", "transport", "health", "households", "government"],
-    dtype=float,
-)
+from ..local_model.local_model_detector import detect_local_signal_cge_model
 
 
-@dataclass(frozen=True)
-class SAMSource:
-    """Resolved SAM source metadata."""
-
-    path: Path | None
-    source_type: str
-    message: str
-
-
-def discover_sam_path(uploaded_path: str | Path | None = None, repo_root: str | Path | None = None) -> SAMSource:
-    """Resolve uploaded/canonical SAM path without throwing when none exists."""
-
-    root = Path(repo_root or ".").resolve()
-    if uploaded_path:
-        candidate = Path(uploaded_path)
-        if candidate.exists():
-            return SAMSource(candidate, "uploaded", f"Using uploaded SAM: {candidate}")
-        return SAMSource(None, "missing_uploaded", f"Uploaded SAM path was provided but not found: {candidate}")
-
-    for relative in CANONICAL_SAM_CANDIDATES:
-        candidate = relative if relative.is_absolute() else root / relative
-        if candidate.exists():
-            return SAMSource(candidate, "repo_canonical", f"Using repository canonical SAM: {candidate}")
-
-    return SAMSource(None, "demo", "No uploaded or repository SAM found; demo SAM is available for tests/fallback only.")
+SHEET_PRIORITY = ["SAM", "Disaggregated_SAM", "Balanced_SAM"]
+RUNTIME_DIAGNOSTICS = Path("Signal_CGE/outputs/runtime/sam_diagnostics.json")
 
 
 def load_sam(path: str | Path) -> pd.DataFrame:
     """Load a SAM matrix from CSV or Excel using the first column as accounts."""
 
     source = Path(path)
-    if not source.exists():
-        raise FileNotFoundError(f"SAM file not found: {source}")
-    suffix = source.suffix.lower()
-    if suffix in {".xlsx", ".xls", ".xlsm"}:
-        frame = pd.read_excel(source, index_col=0)
-    elif suffix in {".csv", ".txt"}:
-        frame = pd.read_csv(source, index_col=0)
+    if source.suffix.lower() in {".xlsx", ".xls"}:
+        sheet = detect_sam_sheet(source)
+        frame = pd.read_excel(source, sheet_name=sheet, index_col=0)
     else:
-        raise ValueError(f"Unsupported SAM file type: {suffix}")
+        frame = pd.read_csv(source, index_col=0)
     frame.index = [str(account).strip() for account in frame.index]
     frame.columns = [str(account).strip() for account in frame.columns]
-    return frame.apply(pd.to_numeric, errors="raise").astype(float)
+    return frame.apply(pd.to_numeric, errors="coerce").fillna(0.0).astype(float)
 
 
-def load_best_available_sam(uploaded_path: str | Path | None = None, allow_demo: bool = True) -> tuple[pd.DataFrame, SAMSource]:
-    """Load uploaded/canonical SAM first; use demo SAM only when allowed."""
+def default_sam_path() -> Path:
+    """Return the detected active Signal CGE SAM path."""
 
-    source = discover_sam_path(uploaded_path)
-    if source.path is not None:
-        return load_sam(source.path), source
-    if allow_demo:
-        return DEMO_SAM.copy(), source
-    raise FileNotFoundError(source.message)
+    return Path(detect_local_signal_cge_model()["active_sam_file"])
 
 
-def get_sam_status(uploaded_path: str | Path | None = None) -> dict[str, Any]:
-    """Return SAM availability, balance, and structural readiness metadata."""
+def load_default_signal_sam() -> pd.DataFrame:
+    """Load the active local/repo Signal CGE SAM workbook."""
 
-    source = discover_sam_path(uploaded_path)
-    status: dict[str, Any] = {
-        "source_type": source.source_type,
-        "path": str(source.path) if source.path else "",
-        "found": source.path is not None,
-        "message": source.message,
-        "square": False,
-        "balanced": False,
-        "max_row_column_gap": None,
-        "zero_column_accounts": [],
-        "account_count": 0,
-    }
+    path = default_sam_path()
+    if not path.exists():
+        raise FileNotFoundError(f"Active Signal CGE SAM was not found: {path}")
+    return load_sam(path)
+
+
+def detect_sam_sheet(path: str | Path) -> str:
+    """Detect the SAM worksheet using Signal's priority order."""
+
+    workbook = pd.ExcelFile(path)
+    for sheet in SHEET_PRIORITY:
+        if sheet in workbook.sheet_names:
+            return sheet
+    return workbook.sheet_names[0]
+
+
+def validate_signal_sam(path_or_frame: str | Path | pd.DataFrame | None = None) -> dict[str, Any]:
+    """Load and validate the active SAM without crashing hosted runtimes."""
+
     try:
-        sam = load_sam(source.path) if source.path else DEMO_SAM.copy()
-        row_totals = sam.sum(axis=1)
-        col_totals = sam.sum(axis=0)
-        common = row_totals.index.intersection(col_totals.index)
-        gaps = (row_totals.loc[common] - col_totals.loc[common]).abs() if len(common) else pd.Series(dtype=float)
-        status.update(
-            {
-                "square": sam.shape[0] == sam.shape[1] and list(sam.index) == list(sam.columns),
-                "balanced": bool((not gaps.empty) and float(gaps.max()) <= 1e-6),
-                "max_row_column_gap": float(gaps.max()) if not gaps.empty else None,
-                "zero_column_accounts": col_totals[col_totals == 0].index.astype(str).tolist(),
-                "account_count": int(sam.shape[0]),
-            }
-        )
-    except Exception as exc:  # pragma: no cover - defensive readiness path
-        status["message"] = f"{source.message} Validation failed: {exc}"
-    return status
+        source_path = default_sam_path() if path_or_frame is None else path_or_frame
+        frame = load_sam(source_path) if not isinstance(source_path, pd.DataFrame) else source_path.copy()
+        labels_match = list(map(str, frame.index)) == list(map(str, frame.columns))
+        row_totals = frame.sum(axis=1)
+        column_totals = frame.sum(axis=0)
+        imbalance = row_totals - column_totals
+        diagnostics = {
+            "sam_loaded": True,
+            "sam_file": Path(str(source_path)).name if not isinstance(source_path, pd.DataFrame) else "dataframe",
+            "sam_path": str(source_path) if not isinstance(source_path, pd.DataFrame) else "",
+            "sheet": detect_sam_sheet(source_path) if not isinstance(source_path, pd.DataFrame) and Path(str(source_path)).suffix.lower() in {".xlsx", ".xls"} else "",
+            "dimensions": [int(frame.shape[0]), int(frame.shape[1])],
+            "number_of_accounts": int(frame.shape[0]),
+            "row_column_labels_match": labels_match,
+            "balanced": bool(labels_match and float(imbalance.abs().max()) <= 1e-6),
+            "max_imbalance": float(imbalance.abs().max()),
+            "zero_row_count": int((row_totals.abs() <= 1e-12).sum()),
+            "zero_column_count": int((column_totals.abs() <= 1e-12).sum()),
+            "negative_entry_count": int((frame < 0).sum().sum()),
+            "warnings": [] if labels_match else ["SAM row and column labels do not match."],
+        }
+    except Exception as exc:
+        diagnostics = {
+            "sam_loaded": False,
+            "sam_file": "KEN_SAM_2020.xlsx",
+            "sam_path": str(default_sam_path()),
+            "sheet": "",
+            "dimensions": [0, 0],
+            "number_of_accounts": 0,
+            "row_column_labels_match": False,
+            "balanced": False,
+            "max_imbalance": None,
+            "zero_row_count": 0,
+            "zero_column_count": 0,
+            "negative_entry_count": 0,
+            "warnings": [str(exc)],
+        }
+    write_sam_diagnostics(diagnostics)
+    return diagnostics
+
+
+def write_sam_diagnostics(diagnostics: dict[str, Any], path: str | Path = RUNTIME_DIAGNOSTICS) -> str:
+    target = Path(path)
+    target.parent.mkdir(parents=True, exist_ok=True)
+    target.write_text(json.dumps(diagnostics, indent=2), encoding="utf-8")
+    return str(target)

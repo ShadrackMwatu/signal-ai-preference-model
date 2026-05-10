@@ -1,0 +1,11 @@
+model_root: models/Model
+main_model_file: model.gms
+data_folder: 20_Data
+active_sam_file: KEN_SAM_2020.xlsx
+region_code: KEN
+save_folder: 00_Save
+gdx_folder: 10_gdx
+result_folder: 70_Result
+base_save_name: KEN_Base
+base_debug_gdx: KENBaseDebug
+base_reference_file: KENBaseRef
