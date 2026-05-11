@@ -15,13 +15,11 @@ import csv
 
 from Signal_CGE.results.gdx_numeric_reader import compare_baseline_scenario
 
-from Signal_CGE.solvers.gdx_reader import summarize_gdx_results
 from Signal_CGE.solvers.result_parser import parse_signal_results
 from Signal_CGE.dashboard.dashboard_tables import (
     build_macro_dashboard,
     build_welfare_dashboard,
     build_trade_dashboard,
-    build_care_dashboard,
 )
 
 
@@ -33,7 +31,7 @@ except Exception:
             "success": True,
             "prompt": prompt,
             "sam_file": sam_file,
-            "message": "Signal CGE fallback chat orchestrator active."
+            "message": "Signal CGE fallback chat orchestrator active.",
         }
 
 
@@ -62,7 +60,7 @@ try:
 except Exception:
     def build_reference_index() -> dict[str, Any]:
         return {
-            "sections": ["SAM", "CGE core", "Solvers", "Diagnostics"]
+            "sections": ["SAM", "CGE core", "Solvers", "Diagnostics"],
         }
 
 
@@ -261,7 +259,6 @@ def run_signal_cge_prompt(
     macro_df = build_macro_dashboard()
     welfare_df = build_welfare_dashboard()
     trade_df = build_trade_dashboard()
-    care_df = build_care_dashboard()
 
     dashboard_summary = f"""
 Signal CGE Dashboard Results
@@ -269,7 +266,6 @@ Signal CGE Dashboard Results
 Macro indicators detected: {len(macro_df)}
 Welfare indicators detected: {len(welfare_df)}
 Trade indicators detected: {len(trade_df)}
-Care indicators detected: {len(care_df)}
 """
 
     return {
@@ -292,7 +288,6 @@ Care indicators detected: {len(care_df)}
         "macro_dashboard_df": macro_df,
         "welfare_dashboard_df": welfare_df,
         "trade_dashboard_df": trade_df,
-        "care_dashboard_df": care_df,
     }
 
 
