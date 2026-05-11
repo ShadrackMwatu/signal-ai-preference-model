@@ -45,10 +45,49 @@ jobs:
 
           api = HfApi(token=os.environ["HF_TOKEN"])
 
+          delete_patterns = [
+              "adaptive_learning/**",
+              "api/**",
+              "backends/**",
+              "behavioral_ai/**",
+              "cge_core/**",
+              "cge_engine/**",
+              "cge_workbench/**",
+              "config/**",
+              "data/**",
+              "docs/**",
+              "documents/**",
+              "explainability/**",
+              "knowledge_base/**",
+              "learning/**",
+              "learning_memory/**",
+              "learning_versions/**",
+              "live_trends/**",
+              "ml/**",
+              "models/**",
+              "models_ml/**",
+              "outputs/**",
+              "policy_ai/**",
+              "policy_intelligence/**",
+              "signal_ai/**",
+              "signal_execution/**",
+              "signal_learning/**",
+              "signal_modeling_language/**",
+              "sml_workbench/**",
+              "solvers/**",
+              "src/**",
+              "Signal_CGE/models/gams/20_Data/*.xlsx",
+              "Signal_CGE/models/gams/20_Data/*.xlsm",
+              "Signal_CGE/models/gams/20_Data/*.gdx",
+              "Signal_CGE/models/gams/20_Data/*.lst",
+              "Signal_CGE/models/gams/20_Data/*.log",
+          ]
+
           api.upload_folder(
               folder_path="hf_deploy",
               repo_id="Signal-ai/signal-ai-dashboard",
               repo_type="space",
-              commit_message="Sync Signal app from GitHub without local GAMS data",
+              delete_patterns=delete_patterns,
+              commit_message="Clean Signal Hugging Face deployment",
           )
           PY
