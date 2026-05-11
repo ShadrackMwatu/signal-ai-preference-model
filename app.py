@@ -1084,24 +1084,59 @@ def signal_cge_prompt_ui(prompt: str, backend: str, uploaded_file: Any | None = 
     str | None,
     str | None,
 ]:
-    result = run_signal_cge_prompt(prompt, uploaded_file, backend)
-    downloads = result.get("downloads", {})
-    return (
-        _render_interpreted_scenario(result),
-        _render_results_cards(result),
-        _results_table_dataframe(result),
-        pd.DataFrame(result.get("chart_data", [])),
-        _render_policy_interpretation(result.get("interpretation", {})),
-        _render_model_reference_used(result),
-        _render_adaptive_learning_trace(result.get("learning_trace", {})),
-        _render_full_cge_status(result.get("full_cge_development_status", {})),
-        _render_diagnostics(result.get("diagnostics", {})),
-        _render_readiness(result.get("readiness", {})),
-        downloads.get("policy_brief_md"),
-        downloads.get("results_json"),
-        downloads.get("results_csv"),
-    )
+    try:
+        result = run_signal_cge_prompt(prompt, uploaded_file, backend)
+        downloads = result.get("downloads", {})
 
+        return (
+            _render_interpreted_scenario(result),
+            _render_results_cards(result),
+            _results_table_dataframe(result),
+            pd.DataFrame(result.get("chart_data", [])),
+            _render_policy_interpretation(result.get("interpretation", {})),
+            _render_model_reference_used(result),
+            _render_adaptive_learning_trace(result.get("learning_trace", {})),
+            _render_full_cge_status(result.get("full_cge_development_status", {})),
+            _render_diagnostics(result.get("diagnostics", {})),
+            _render_readiness(result.get("readiness", {})),
+            downloads.get("policy_brief_md"),
+            downloads.get("results_json"),
+            downloads.get("results_csv"),
+        )
+
+    except Exception as exc:
+        error_message = f"## Signal CGE Runtime Error\n\n`{type(exc).__name__}: {exc}`"
+
+        empty_table = pd.DataFrame(
+            [
+                {"metric": "Status", "effect": "Simulation failed"},
+                {"metric": "Reason", "effect": str(exc)},
+            ]
+        )
+
+        empty_chart = pd.DataFrame(
+            [
+                {"metric": "GDP/output", "effect": 0.0},
+                {"metric": "Household income", "effect": 0.0},
+                {"metric": "Trade", "effect": 0.0},
+            ]
+        )
+
+        return (
+            error_message,
+            "<div style='color:#b91c1c;font-weight:700;'>Signal CGE simulation failed. Check diagnostics below.</div>",
+            empty_table,
+            empty_chart,
+            error_message,
+            "## Model Reference Used\n- Error occurred before model reference could be loaded.",
+            "## Adaptive Learning Trace\n- Not available because simulation failed.",
+            "## Full CGE Development Status\n- Error occurred during simulation execution.",
+            error_message,
+            "## Model Readiness\n- Simulation route needs debugging.",
+            None,
+            None,
+            None,
+        )
 
 with gr.Blocks(title="Signal AI Dashboard", css=SIGNAL_DASHBOARD_CSS) as demo:
     gr.HTML(value=_dashboard_status_banner())
