@@ -1,0 +1,25 @@
+{
+  "project": "Signal CGE",
+  "baseline_name": "Kenya CGE baseline equilibrium",
+  "source_gdx": "Signal_CGE\\models\\gams\\baseline.gdx",
+  "created_at": "2026-05-11T10:31:18",
+  "status": "available",
+  "solver_status": "Normal completion",
+  "model_status": "Optimal",
+  "description": "This file summarizes the locally reproduced calibrated CGE baseline. The baseline was solved in GAMS and exported to baseline.gdx. Lightweight JSON outputs are safe for Hugging Face deployment.",
+  "indicators": {
+    "baseline_gdx_available": true,
+    "baseline_dump_available": true,
+    "note": "Detailed numerical indicators will be added as named GAMS symbols are mapped from baseline.gdx into Signal CGE."
+  },
+  "recommended_next_symbols": [
+    "GDP",
+    "household_income",
+    "sector_output",
+    "commodity_prices",
+    "factor_returns",
+    "exports",
+    "imports",
+    "government_balance",
+  ]
+}
