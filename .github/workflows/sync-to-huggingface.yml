@@ -10,17 +10,32 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout repo
+      - name: Checkout repo without LFS files
         uses: actions/checkout@v4
         with:
           lfs: false
 
+      - name: Prepare clean Hugging Face deploy folder
+        run: |
+          mkdir hf_deploy
+          rsync -av ./ hf_deploy/ \
+            --exclude ".git/" \
+            --exclude ".github/" \
+            --exclude "hf_deploy/" \
+            --exclude "Signal_CGE/models/gams/20_Data/*.xlsx" \
+            --exclude "Signal_CGE/models/gams/20_Data/*.xlsm" \
+            --exclude "Signal_CGE/models/gams/20_Data/*.gdx" \
+            --exclude "Signal_CGE/models/gams/20_Data/*.lst" \
+            --exclude "Signal_CGE/models/gams/20_Data/*.log" \
+            --exclude "**/__pycache__/" \
+            --exclude "**/.pytest_cache/"
+
       - name: Install Hugging Face Hub
         run: |
           python -m pip install --upgrade pip
-          pip install huggingface_hub
+          pip install --upgrade huggingface_hub
 
-      - name: Upload to Hugging Face Space
+      - name: Upload clean folder to Hugging Face Space
         env:
           HF_TOKEN: ${{ secrets.HF_TOKEN }}
         run: |
@@ -30,30 +45,10 @@ jobs:
 
           api = HfApi(token=os.environ["HF_TOKEN"])
 
-          ignore_patterns = [
-              ".git/**",
-              ".github/**",
-              "Signal_CGE/models/gams/20_Data/*.xlsx",
-              "Signal_CGE/models/gams/20_Data/*.xlsm",
-              "Signal_CGE/models/gams/20_Data/*.gdx",
-              "Signal_CGE/models/gams/20_Data/*.lst",
-              "Signal_CGE/models/gams/20_Data/*.log",
-              "**/__pycache__/**",
-              "**/.pytest_cache/**",
-          ]
-
           api.upload_folder(
-              folder_path=".",
+              folder_path="hf_deploy",
               repo_id="Signal-ai/signal-ai-dashboard",
               repo_type="space",
-              ignore_patterns=ignore_patterns,
-              delete_patterns=[
-                  "Signal_CGE/models/gams/20_Data/*.xlsx",
-                  "Signal_CGE/models/gams/20_Data/*.xlsm",
-                  "Signal_CGE/models/gams/20_Data/*.gdx",
-                  "Signal_CGE/models/gams/20_Data/*.lst",
-                  "Signal_CGE/models/gams/20_Data/*.log",
-              ],
-              commit_message="Sync Signal app from GitHub",
+              commit_message="Sync Signal app from GitHub without local GAMS data",
           )
-          PYs
+          PY
