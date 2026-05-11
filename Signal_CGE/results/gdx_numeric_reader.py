@@ -97,3 +97,59 @@ def compare_baseline_scenario() -> dict:
 if __name__ == "__main__":
     print(json.dumps(build_symbol_inventory(), indent=2))
     print(json.dumps(compare_baseline_scenario(), indent=2))
+
+# =========================================================
+# BACKWARD COMPATIBILITY WRAPPER
+# =========================================================
+
+def read_all_numeric_results():
+    """
+    Compatibility wrapper for dashboard modules.
+
+    Returns lightweight dashboard-ready numeric structures
+    until full symbol mapping is connected.
+    """
+
+    try:
+        comparison = compare_baseline_scenario()
+
+        results = comparison.get("results", {})
+
+        return {
+            "macro": [
+                {
+                    "metric": "GDP/output",
+                    "value": results.get("GDP/output effect", 0.0),
+                },
+                {
+                    "metric": "Household income",
+                    "value": results.get("household income effect", 0.0),
+                },
+                {
+                    "metric": "Trade",
+                    "value": results.get("trade effect", 0.0),
+                },
+            ],
+
+            "welfare": [
+                {
+                    "metric": "Household income",
+                    "value": results.get("household income effect", 0.0),
+                }
+            ],
+
+            "trade": [
+                {
+                    "metric": "Trade",
+                    "value": results.get("trade effect", 0.0),
+                }
+            ],
+        }
+
+    except Exception:
+
+        return {
+            "macro": [],
+            "welfare": [],
+            "trade": [],
+        }
