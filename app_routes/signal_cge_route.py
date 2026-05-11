@@ -13,6 +13,8 @@ from datetime import UTC, datetime
 import json
 import csv
 
+from Signal_CGE.results.gdx_numeric_reader import compare_baseline_scenario
+
 from Signal_CGE.solvers.gdx_reader import summarize_gdx_results
 from Signal_CGE.solvers.result_parser import parse_signal_results
 from Signal_CGE.dashboard.dashboard_tables import (
@@ -23,9 +25,6 @@ from Signal_CGE.dashboard.dashboard_tables import (
 )
 
 
-# =========================================================
-# SAFE IMPORTS WITH FALLBACKS
-# =========================================================
 try:
     from Signal_CGE.cge_core.chat_orchestrator import run_chat_simulation
 except Exception:
@@ -140,6 +139,10 @@ FULL_CGE_FALLBACK_MESSAGE = (
 
 VALIDATED_STATIC_SOLVER_MESSAGE = "Signal used the validated static equilibrium CGE solver."
 PROTOTYPE_SOLVER_MESSAGE = "Signal used the prototype equilibrium solver backend."
+GDX_READY_MESSAGE = (
+    "Signal CGE is connected to the baseline GDX pipeline. "
+    "Scenario comparison will activate when scenario.gdx is generated and mapped."
+)
 
 
 def run_signal_cge_prompt(
@@ -167,45 +170,69 @@ def run_signal_cge_prompt(
     )
 
     try:
-        calibration = calibration_from_sam_path(sam_path)
+        gdx_results = compare_baseline_scenario()
 
-        equilibrium_result = solve_static_equilibrium(
-            calibration,
-            scenario,
-            {"closure": "base_closure"},
-        )
+        structured_results = {
+            **gdx_results.get("results", {}),
+            "result_type": "gdx_ready_pending_symbol_mapping",
+        }
 
-        if not equilibrium_result.get("success"):
-            raise RuntimeError("Validated solver failed.")
+        results_table = gdx_results.get("results_table", _results_table(structured_results))
+        chart_data = gdx_results.get("chart_data", _chart_data(structured_results))
 
-        structured_results = _equilibrium_structured_results(equilibrium_result)
-        solver_used = "validated_static_equilibrium"
-        fallback_message = VALIDATED_STATIC_SOLVER_MESSAGE
+        solver_used = "gdx_baseline_comparison_ready"
+        fallback_message = GDX_READY_MESSAGE
 
     except Exception:
         try:
             calibration = calibration_from_sam_path(sam_path)
 
-            prototype_result = solve_prototype_equilibrium(
+            equilibrium_result = solve_static_equilibrium(
                 calibration,
                 scenario,
                 {"closure": "base_closure"},
             )
 
-            structured_results = _equilibrium_structured_results(prototype_result)
-            solver_used = "prototype_equilibrium_solver"
-            fallback_message = PROTOTYPE_SOLVER_MESSAGE
+            if not equilibrium_result.get("success"):
+                raise RuntimeError("Validated solver failed.")
+
+            structured_results = _equilibrium_structured_results(equilibrium_result)
+            results_table = _results_table(structured_results)
+            chart_data = _chart_data(structured_results)
+
+            solver_used = "validated_static_equilibrium"
+            fallback_message = VALIDATED_STATIC_SOLVER_MESSAGE
 
         except Exception:
-            structured_results = {
-                "GDP/output effect": 0.0,
-                "household income effect": 0.0,
-                "trade effect": 0.0,
-                "result_type": "fallback",
-            }
+            try:
+                calibration = calibration_from_sam_path(sam_path)
 
-            solver_used = "fallback"
-            fallback_message = FULL_CGE_FALLBACK_MESSAGE
+                prototype_result = solve_prototype_equilibrium(
+                    calibration,
+                    scenario,
+                    {"closure": "base_closure"},
+                )
+
+                structured_results = _equilibrium_structured_results(prototype_result)
+                results_table = _results_table(structured_results)
+                chart_data = _chart_data(structured_results)
+
+                solver_used = "prototype_equilibrium_solver"
+                fallback_message = PROTOTYPE_SOLVER_MESSAGE
+
+            except Exception:
+                structured_results = {
+                    "GDP/output effect": 0.0,
+                    "household income effect": 0.0,
+                    "trade effect": 0.0,
+                    "result_type": "fallback",
+                }
+
+                results_table = _results_table(structured_results)
+                chart_data = _chart_data(structured_results)
+
+                solver_used = "fallback"
+                fallback_message = FULL_CGE_FALLBACK_MESSAGE
 
     diagnostics = {
         "solver_used": solver_used,
@@ -214,9 +241,6 @@ def run_signal_cge_prompt(
         "model_profile_loaded": True,
         "reference_sections": reference_index.get("sections", []),
     }
-
-    results_table = _results_table(structured_results)
-    chart_data = _chart_data(structured_results)
 
     interpretation = {
         "summary": fallback_message,
@@ -340,6 +364,7 @@ def _write_downloads(
 
     json_path = output_dir / "results.json"
     csv_path = output_dir / "results.csv"
+    brief_path = output_dir / "policy_brief.md"
 
     json_path.write_text(json.dumps(payload, indent=2), encoding="utf-8")
 
@@ -350,7 +375,17 @@ def _write_downloads(
         for row in results_table:
             writer.writerow(row)
 
+    brief_path.write_text(
+        "# Signal CGE Policy Brief\n\n"
+        f"## Prompt\n{prompt}\n\n"
+        f"## Interpretation\n{interpretation.get('summary', '')}\n\n"
+        "## Results\n"
+        + "\n".join([f"- {row['metric']}: {row['effect']}" for row in results_table]),
+        encoding="utf-8",
+    )
+
     return {
         "results_json": str(json_path),
         "results_csv": str(csv_path),
+        "policy_brief_md": str(brief_path),
     }
