@@ -21,3 +21,9 @@ jobs:
           hf_token: ${{ secrets.HF_TOKEN }}
           repo_type: space
           space_sdk: gradio
+          exclude: |
+            Signal_CGE/models/gams/20_Data/*.xlsx
+            Signal_CGE/models/gams/20_Data/*.xlsm
+            Signal_CGE/models/gams/20_Data/*.gdx
+            Signal_CGE/models/gams/20_Data/*.lst
+            Signal_CGE/models/gams/20_Data/*.log
