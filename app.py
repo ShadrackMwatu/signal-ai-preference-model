@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from Signal_CGE.dashboard.baseline_dashboard import baseline_dashboard_markdown
 import json
 import os
 from datetime import UTC, datetime
@@ -1246,6 +1247,7 @@ with gr.Blocks(title="Signal AI Dashboard", css=SIGNAL_DASHBOARD_CSS) as demo:
             "## Signal CGE\n"
             "AI-native CGE simulation engine for policy prompts, SAM calibration, scenario execution, diagnostics, and policy interpretation."
         )
+        gr.Markdown(baseline_dashboard_markdown())
         with gr.Accordion("How to use Signal CGE", open=False):
             gr.Markdown(
                 "1. Type a policy simulation prompt.\n"
