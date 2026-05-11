@@ -102,7 +102,7 @@ if __name__ == "__main__":
 # BACKWARD COMPATIBILITY WRAPPER
 # =========================================================
 
-def read_all_numeric_results():
+def read_all_numeric_results(max_lines_per_file=None):
     """
     Compatibility wrapper for dashboard modules.
 
