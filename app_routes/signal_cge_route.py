@@ -15,6 +15,12 @@ import csv
 
 from Signal_CGE.solvers.gdx_reader import summarize_gdx_results
 from Signal_CGE.solvers.result_parser import parse_signal_results
+from Signal_CGE.dashboard.dashboard_tables import (
+    build_macro_dashboard,
+    build_welfare_dashboard,
+    build_trade_dashboard,
+    build_care_dashboard,
+)
 
 
 # =========================================================
@@ -57,12 +63,7 @@ try:
 except Exception:
     def build_reference_index() -> dict[str, Any]:
         return {
-            "sections": [
-                "SAM",
-                "CGE core",
-                "Solvers",
-                "Diagnostics",
-            ]
+            "sections": ["SAM", "CGE core", "Solvers", "Diagnostics"]
         }
 
 
@@ -72,9 +73,7 @@ except Exception:
     def get_scenario_context(scenario: dict[str, Any]) -> dict[str, Any]:
         return {
             "scenario": scenario,
-            "reference_labels": [
-                "Signal CGE normalized architecture",
-            ],
+            "reference_labels": ["Signal CGE normalized architecture"],
         }
 
 
@@ -85,10 +84,7 @@ try:
     )
 except Exception:
     def calibration_from_sam_path(sam_path: str | None = None) -> dict[str, Any]:
-        return {
-            "sam_path": sam_path,
-            "calibration_status": "fallback_calibration",
-        }
+        return {"sam_path": sam_path, "calibration_status": "fallback_calibration"}
 
     def solve_static_equilibrium(
         calibration: dict[str, Any],
@@ -132,35 +128,19 @@ try:
 except Exception:
     def get_solver_registry() -> dict[str, Any]:
         return {
-            "available": [
-                "fallback_static_equilibrium",
-                "fallback_prototype_equilibrium",
-            ],
+            "available": ["fallback_static_equilibrium", "fallback_prototype_equilibrium"],
             "status": "fallback_registry",
         }
 
-
-# =========================================================
-# CONSTANTS
-# =========================================================
 
 FULL_CGE_FALLBACK_MESSAGE = (
     "Full recursive-dynamic CGE solver is still under development. "
     "Signal is using the available static equilibrium / SAM fallback backend."
 )
 
-VALIDATED_STATIC_SOLVER_MESSAGE = (
-    "Signal used the validated static equilibrium CGE solver."
-)
+VALIDATED_STATIC_SOLVER_MESSAGE = "Signal used the validated static equilibrium CGE solver."
+PROTOTYPE_SOLVER_MESSAGE = "Signal used the prototype equilibrium solver backend."
 
-PROTOTYPE_SOLVER_MESSAGE = (
-    "Signal used the prototype equilibrium solver backend."
-)
-
-
-# =========================================================
-# MAIN ENTRY POINT
-# =========================================================
 
 def run_signal_cge_prompt(
     prompt: str,
@@ -240,10 +220,7 @@ def run_signal_cge_prompt(
 
     interpretation = {
         "summary": fallback_message,
-        "knowledge_references_used": knowledge_context.get(
-            "reference_labels",
-            [],
-        ),
+        "knowledge_references_used": knowledge_context.get("reference_labels", []),
     }
 
     downloads = _write_downloads(
@@ -255,11 +232,21 @@ def run_signal_cge_prompt(
         interpretation=interpretation,
     )
 
-    # ==========================================
-    # READ REAL GAMS RESULT FILES
-    # ==========================================
-
     summary_text, results_df, diagnostics_df, interpretation_text = parse_signal_results()
+
+    macro_df = build_macro_dashboard()
+    welfare_df = build_welfare_dashboard()
+    trade_df = build_trade_dashboard()
+    care_df = build_care_dashboard()
+
+    dashboard_summary = f"""
+Signal CGE Dashboard Results
+
+Macro indicators detected: {len(macro_df)}
+Welfare indicators detected: {len(welfare_df)}
+Trade indicators detected: {len(trade_df)}
+Care indicators detected: {len(care_df)}
+"""
 
     return {
         "scenario": scenario,
@@ -272,17 +259,18 @@ def run_signal_cge_prompt(
         "downloads": downloads,
         "backend_used": solver_used,
 
-        # Real GAMS outputs
         "gams_summary": summary_text,
         "gams_results_df": results_df,
         "gams_diagnostics_df": diagnostics_df,
         "gams_interpretation": interpretation_text,
+
+        "dashboard_summary": dashboard_summary,
+        "macro_dashboard_df": macro_df,
+        "welfare_dashboard_df": welfare_df,
+        "trade_dashboard_df": trade_df,
+        "care_dashboard_df": care_df,
     }
 
-
-# =========================================================
-# HELPERS
-# =========================================================
 
 def _uploaded_path(file_obj: Any | None) -> str | None:
     if file_obj is None:
@@ -353,10 +341,7 @@ def _write_downloads(
     json_path = output_dir / "results.json"
     csv_path = output_dir / "results.csv"
 
-    json_path.write_text(
-        json.dumps(payload, indent=2),
-        encoding="utf-8",
-    )
+    json_path.write_text(json.dumps(payload, indent=2), encoding="utf-8")
 
     with csv_path.open("w", newline="", encoding="utf-8") as handle:
         writer = csv.DictWriter(handle, fieldnames=["metric", "effect"])
