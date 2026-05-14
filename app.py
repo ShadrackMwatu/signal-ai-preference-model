@@ -951,13 +951,9 @@ def refresh_live_trend_intelligence(location: str, trend_limit: float) -> tuple[
 
 
 def _dashboard_status_banner() -> str:
-    mode = "Live API available" if os.getenv("X_BEARER_TOKEN", "").strip() else "Demo fallback"
     return (
         "<div style='border:1px solid #cbd5e1;border-radius:10px;padding:14px 16px;margin:0 0 12px 0;background:#f8fafc;color:#0f172a;'>"
-        "<div style='font-size:22px;font-weight:800;margin-bottom:8px;'>Signal AI Dashboard</div>"
-        "<span style='border:1px solid #bbf7d0;background:#ecfdf5;border-radius:999px;padding:5px 10px;font-weight:700;'>Status: Running</span> "
-        f"<span style='border:1px solid #bfdbfe;background:#eff6ff;border-radius:999px;padding:5px 10px;font-weight:700;'>Mode: {escape(mode)}</span> "
-        "<span style='border:1px solid #e2e8f0;background:#ffffff;border-radius:999px;padding:5px 10px;font-weight:700;'>Privacy: Aggregate signals only</span>"
+        "<div style='font-size:22px;font-weight:800;'>Signal AI Dashboard</div>"
         "</div>"
     )
 
