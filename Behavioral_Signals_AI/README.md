@@ -17,3 +17,7 @@ models/
 training/
 utils/
 ```
+
+## Live Trend Intelligence
+
+`live_trends/` contains the provider router for public aggregate trend feeds. It supports X aggregate trends, Google Trends compatible providers, optional third-party providers through environment variables, and a demo fallback when credentials are unavailable. See `Documentation/live_trend_intelligence.md`.

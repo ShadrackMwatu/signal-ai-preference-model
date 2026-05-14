@@ -69,7 +69,7 @@ except Exception:
         return f"Showing {len(analyses)} aggregate trend signals for {location}."
 
 try:
-    from Behavioral_Signals_AI.live_trends.x_trends import fetch_x_trends, get_demo_trends
+    from Behavioral_Signals_AI.live_trends.trend_router import fetch_live_trends as fetch_trends_from_router, get_demo_trends
 except Exception:
     def get_demo_trends(location: str = "Kenya", limit: int = 5) -> list[dict[str, Any]]:
         topics = [
@@ -94,8 +94,14 @@ except Exception:
             for index, topic in enumerate(topics[: int(limit)])
         ]
 
-    def fetch_x_trends(location: str = "Kenya", limit: int = 5) -> list[dict[str, Any]]:
-        return get_demo_trends(location, limit)
+    def fetch_trends_from_router(location: str = "Kenya", limit: int = 5):
+        class _FallbackResult:
+            records = get_demo_trends(location, limit)
+            source_label = "Demo fallback"
+            is_live = False
+            warnings = []
+            status = type("Status", (), {"message": "Demo fallback active."})()
+        return _FallbackResult()
 
 
 ROOT_DIR = Path(__file__).resolve().parent
@@ -885,6 +891,8 @@ def _render_public_trend_issue(record: dict[str, Any]) -> str:
     trend_name = escape(str(record.get("trend_name", "Monitoring trend")))
     source = escape(str(record.get("source", "Aggregate trend feed")))
     location = escape(str(record.get("location", "Kenya")))
+    category = escape(str(record.get("category", "general_public_interest")).replace("_", " ").title())
+    implication = escape(str(record.get("possible_policy_or_business_implication", "Monitor for demand, price, shortage, public concern, or market opportunity implications.")))
     confidence = _safe_float(record.get("confidence_score"), 0.0)
     confidence_label = f"Confidence {confidence:.1f}%" if confidence > 0 else "Confidence pending"
     return (
@@ -893,8 +901,11 @@ def _render_public_trend_issue(record: dict[str, Any]) -> str:
         "<div>"
         f"<span class='signal-trend-pill'>{location}</span> "
         f"<span class='signal-trend-pill'>{escape(confidence_label)}</span> "
-        f"<span class='signal-trend-pill'>{source}</span>"
-        "</div></div>"
+        f"<span class='signal-trend-pill'>{source}</span> "
+        f"<span class='signal-trend-pill'>{category}</span>"
+        "</div>"
+        f"<div style='font-size:12px;color:#475569;margin-top:6px;line-height:1.35;'>{implication}</div>"
+        "</div>"
     )
 
 
@@ -929,8 +940,13 @@ def build_live_trend_html(trends_df: pd.DataFrame) -> str:
 
 def refresh_live_trends(location: str, trend_limit: float) -> tuple[pd.DataFrame, pd.DataFrame, str]:
     try:
-        records = fetch_x_trends(location=location, limit=int(trend_limit))
-        fallback_note = ""
+        provider_result = fetch_trends_from_router(location=location, limit=int(trend_limit))
+        records = provider_result.records
+        provider_label = getattr(provider_result, "source_label", "Aggregate trend feed")
+        warnings = getattr(provider_result, "warnings", []) or []
+        fallback_note = f"Source: {provider_label}. {getattr(getattr(provider_result, 'status', None), 'message', '')}"
+        if warnings:
+            fallback_note += "\n" + "\n".join(f"- {warning}" for warning in warnings[:3])
     except Exception as exc:
         records = get_demo_trends(location=location if location in {"Kenya", "Nairobi", "Global"} else "Kenya", limit=int(trend_limit))
         fallback_note = f"Live API unavailable — displaying demo aggregate trends. Details: {exc}"

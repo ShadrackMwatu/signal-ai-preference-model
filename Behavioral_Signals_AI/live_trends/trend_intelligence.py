@@ -6,7 +6,7 @@ import json
 from pathlib import Path
 from typing import Any
 
-from privacy import sanitize_trend_record
+from Behavioral_Signals_AI.explainability.privacy import sanitize_trend_record
 
 
 DOMAIN_ROOT = Path(__file__).resolve().parent
@@ -16,7 +16,7 @@ LOCATIONS_PATH = DOMAIN_ROOT / "config" / "locations.json"
 def predict_demand_details(*args: Any, **kwargs: Any) -> dict[str, Any]:
     return {
         "demand_classification": "Emerging Demand Signal",
-        "confidence_score": 52.0,
+        "confidence_score": 0.52,
         "aggregate_demand_score": 61.0,
         "opportunity_score": 58.0,
     }
@@ -48,6 +48,12 @@ def analyze_trend_signal(trend_record: dict[str, Any]) -> dict[str, Any]:
         "rank": safe_record["rank"],
         "tweet_volume": safe_record.get("tweet_volume"),
         "source": safe_record["source"],
+        "platform": safe_record.get("platform", safe_record.get("source", "Aggregate trend feed")),
+        "category": safe_record.get("category", "general_public_interest"),
+        "volume": safe_record.get("volume") or safe_record.get("tweet_volume"),
+        "growth_indicator": safe_record.get("growth_indicator", "not available"),
+        "relevance_to_demand": safe_record.get("relevance_to_demand", 0.0),
+        "possible_policy_or_business_implication": safe_record.get("possible_policy_or_business_implication", "Monitor for demand, price, shortage, or opportunity implications."),
         "fetched_at": safe_record.get("fetched_at", ""),
         "demand_classification": prediction["demand_classification"],
         "confidence_score": round(float(prediction["confidence_score"]) * 100, 2),
@@ -90,7 +96,7 @@ def summarize_trend_batch(location: str, analyses: list[dict[str, Any]]) -> str:
 def build_trend_proxy_inputs(trend_record: dict[str, Any]) -> dict[str, float]:
     location_relevance = _location_relevance(str(trend_record.get("location", "Kenya")))
     rank = max(1, int(trend_record.get("rank", 1) or 1))
-    tweet_volume = trend_record.get("tweet_volume")
+    tweet_volume = trend_record.get("tweet_volume") or trend_record.get("volume")
     volume = float(tweet_volume) if isinstance(tweet_volume, (int, float)) else 45000.0
 
     rank_strength = max(0.12, 1 - ((rank - 1) / 20))
@@ -117,5 +123,7 @@ def build_trend_proxy_inputs(trend_record: dict[str, Any]) -> dict[str, float]:
 
 
 def _location_relevance(location: str) -> float:
+    if not Path(LOCATIONS_PATH).exists():
+        return 0.65 if location in {"Kenya", "Nairobi"} else 0.55
     payload = json.loads(Path(LOCATIONS_PATH).read_text(encoding="utf-8"))
     return float(payload.get(location, payload.get("Kenya", {})).get("location_relevance", 0.65))
