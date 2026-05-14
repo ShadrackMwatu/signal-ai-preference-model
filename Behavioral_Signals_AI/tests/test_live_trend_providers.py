@@ -56,7 +56,7 @@ def test_dashboard_live_trend_output_shape():
 
     with patch.dict(os.environ, {"SIGNAL_TRENDS_MODE": "demo"}, clear=False):
         trends_frame, intelligence_frame, summary = refresh_live_trends("Kenya", 4)
-        display_table, html, active_count, panel, _ = refresh_live_trend_intelligence("Kenya", 4)
+        display_table, html, active_count, panel, _, demand_signals = refresh_live_trend_intelligence("Kenya", 4)
 
     assert isinstance(trends_frame, pd.DataFrame)
     assert not trends_frame.empty
@@ -64,6 +64,9 @@ def test_dashboard_live_trend_output_shape():
     assert "Source:" in summary
     assert "What these Kenya trends may imply" in panel
     assert active_count == 4
+    assert not demand_signals.empty
+    for column in ["trend_name", "inferred_demand_category", "demand_signal_strength", "possible_unmet_demand", "urgency", "recommendation", "confidence_score"]:
+        assert column in demand_signals.columns
     for column in ["trend_name", "source", "category", "signal_strength", "demand_relevance", "policy_business_implication", "timestamp"]:
         assert column in display_table.columns
     html = build_live_trend_html(trends_frame)

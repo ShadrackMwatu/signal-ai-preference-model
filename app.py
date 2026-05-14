@@ -69,6 +69,24 @@ except Exception:
         return f"Showing {len(analyses)} aggregate trend signals for {location}."
 
 try:
+    from Behavioral_Signals_AI.demand_intelligence import map_trends_to_demand_signals
+except Exception:
+    def map_trends_to_demand_signals(trends: list[dict[str, Any]]) -> list[dict[str, Any]]:
+        return [
+            {
+                "trend_name": trend.get("trend_name", "Trend"),
+                "inferred_demand_category": trend.get("category", "general demand"),
+                "demand_signal_strength": 50.0,
+                "possible_unmet_demand": 45.0,
+                "urgency": "Medium",
+                "affected_county_or_scope": trend.get("location", "National scope"),
+                "recommendation": "Monitor with aggregate indicators.",
+                "confidence_score": 50.0,
+            }
+            for trend in trends
+        ]
+
+try:
     from Behavioral_Signals_AI.live_trends.trend_router import fetch_live_trends as fetch_trends_from_router, get_demo_trends
 except Exception:
     def get_demo_trends(location: str = "Kenya", limit: int = 5) -> list[dict[str, Any]]:
@@ -1028,6 +1046,35 @@ def _build_trends_display_frame(trends_df: pd.DataFrame) -> pd.DataFrame:
     return display
 
 
+def _build_demand_signals_frame(trends_df: pd.DataFrame) -> pd.DataFrame:
+    if trends_df.empty:
+        return pd.DataFrame(
+            columns=[
+                "trend_name",
+                "inferred_demand_category",
+                "demand_signal_strength",
+                "possible_unmet_demand",
+                "urgency",
+                "affected_county_or_scope",
+                "recommendation",
+                "confidence_score",
+            ]
+        )
+    signals = map_trends_to_demand_signals(trends_df.to_dict(orient="records"))
+    frame = pd.DataFrame(signals)
+    columns = [
+        "trend_name",
+        "inferred_demand_category",
+        "demand_signal_strength",
+        "possible_unmet_demand",
+        "urgency",
+        "affected_county_or_scope",
+        "recommendation",
+        "confidence_score",
+    ]
+    available = [column for column in columns if column in frame.columns]
+    return frame[available].copy()
+
 def _build_trends_interpretation_panel(location: str, analyses: list[dict[str, Any]], provider_note: str) -> str:
     if not analyses:
         return f"### What these {location} trends may imply\n\nNo aggregate trends are available right now."
@@ -1100,9 +1147,9 @@ def refresh_live_trends(location: str, trend_limit: float) -> tuple[pd.DataFrame
     return trends_frame, intelligence_frame, summary
 
 
-def refresh_live_trend_intelligence(location: str, trend_limit: float) -> tuple[pd.DataFrame, str, int, str, pd.DataFrame]:
+def refresh_live_trend_intelligence(location: str, trend_limit: float) -> tuple[pd.DataFrame, str, int, str, pd.DataFrame, pd.DataFrame]:
     trends_frame, intelligence_frame, summary = refresh_live_trends(location, trend_limit)
-    return _build_trends_display_frame(trends_frame), build_live_trend_html(trends_frame), _active_trend_count(trends_frame), summary, intelligence_frame
+    return _build_trends_display_frame(trends_frame), build_live_trend_html(trends_frame), _active_trend_count(trends_frame), summary, intelligence_frame, _build_demand_signals_frame(trends_frame)
 
 
 def _dashboard_status_banner() -> str:
@@ -1353,6 +1400,7 @@ with gr.Blocks(title="Signal AI Dashboard", css=SIGNAL_DASHBOARD_CSS) as demo:
         active_trends_output = gr.Number(label="Active Trends", precision=0, interactive=False, visible=False)
         trends_table = gr.Dataframe(label="Trend Intelligence Table", interactive=False, visible=True, wrap=True)
         trend_intelligence_table = gr.Dataframe(label="Hidden Signal Intelligence Table", interactive=False, visible=False)
+        demand_signals_table = gr.Dataframe(label="Demand Signals from Live Trends", interactive=False, visible=True, wrap=True)
         trends_summary = gr.Markdown(label="What these Kenya trends may imply", visible=True)
 
         trend_outputs = [
@@ -1361,6 +1409,7 @@ with gr.Blocks(title="Signal AI Dashboard", css=SIGNAL_DASHBOARD_CSS) as demo:
             active_trends_output,
             trends_summary,
             trend_intelligence_table,
+            demand_signals_table,
         ]
 
         refresh_trends_button.click(

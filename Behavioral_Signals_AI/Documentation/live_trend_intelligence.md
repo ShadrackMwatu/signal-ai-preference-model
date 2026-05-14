@@ -61,3 +61,8 @@ No API tokens should be committed to GitHub. Configure live keys through Hugging
 ## Live/Demo Mode Badge
 
 The dashboard shows a clear mode badge above the trend cards. `Live mode` appears when records come from a configured live provider. `Demo fallback mode` appears when credentials are missing or a provider fails and Signal uses built-in aggregate demo records.
+## Demand Signals from Live Trends
+
+Signal maps every aggregate trend into an interpretable behavioral demand signal. The table includes trend name, inferred demand category, demand strength, possible unmet demand, urgency, affected county or national scope, recommendation, and confidence score.
+
+This layer uses topic-level and location-level information only. It does not infer individual behavior or collect personal profiles.
