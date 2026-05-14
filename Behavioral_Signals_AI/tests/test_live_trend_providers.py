@@ -52,19 +52,26 @@ def test_privacy_compliance_rejects_personal_fields():
 
 
 def test_dashboard_live_trend_output_shape():
-    from app import build_live_trend_html, refresh_live_trends
+    from app import build_live_trend_html, refresh_live_trend_intelligence, refresh_live_trends
 
     with patch.dict(os.environ, {"SIGNAL_TRENDS_MODE": "demo"}, clear=False):
         trends_frame, intelligence_frame, summary = refresh_live_trends("Kenya", 4)
+        display_table, html, active_count, panel, _ = refresh_live_trend_intelligence("Kenya", 4)
 
     assert isinstance(trends_frame, pd.DataFrame)
     assert not trends_frame.empty
     assert not intelligence_frame.empty
     assert "Source:" in summary
+    assert "What these Kenya trends may imply" in panel
+    assert active_count == 4
+    for column in ["trend_name", "source", "category", "signal_strength", "demand_relevance", "policy_business_implication", "timestamp"]:
+        assert column in display_table.columns
     html = build_live_trend_html(trends_frame)
     assert "Live Trend Intelligence" in html
     assert "active trends" in html
-    assert "Demo fallback" in html
+    assert "Demo fallback mode" in html
+    assert "Signal Strength" in html
+    assert "Demand Relevance" in html
 
 
 def test_provider_status_does_not_expose_secrets():

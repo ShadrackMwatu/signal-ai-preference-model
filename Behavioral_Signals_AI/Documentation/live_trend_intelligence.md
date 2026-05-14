@@ -49,12 +49,15 @@ The Live Trend Intelligence panel shows:
 - source label: X, Google Trends, Apify, or Demo fallback;
 - last updated timestamp;
 - active trend count;
-- trend cards and table records;
+- professional trend cards and visible table records with trend name, source/platform, category, signal strength, demand relevance, policy/business implication, and timestamp;
 - category and policy/business implication for each trend;
-- a summary of what trends may imply for demand, prices, shortages, public concern, or market opportunity.
+- a visible **What these Kenya trends may imply** interpretation panel summarizing demand, price, shortage, public-concern, and market-opportunity implications.
 
 If live credentials are absent or a provider call fails, Signal displays demo aggregate trends and a source note explaining the fallback.
 
 ## Deployment Notes
 
 No API tokens should be committed to GitHub. Configure live keys through Hugging Face Secrets or local environment variables. The app remains compatible with Hugging Face because all live providers are optional and use only the Python standard library.
+## Live/Demo Mode Badge
+
+The dashboard shows a clear mode badge above the trend cards. `Live mode` appears when records come from a configured live provider. `Demo fallback mode` appears when credentials are missing or a provider fails and Signal uses built-in aggregate demo records.

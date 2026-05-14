@@ -116,7 +116,7 @@ SIGNAL_DASHBOARD_CSS = """
     border: 1px solid #dbe3ef;
     border-radius: 10px;
     background: #ffffff;
-    padding: 14px;
+    padding: 16px;
 }
 .signal-trend-header {
     display: flex;
@@ -131,6 +131,11 @@ SIGNAL_DASHBOARD_CSS = """
     font-size: 20px;
     font-weight: 800;
 }
+.signal-trend-subtitle {
+    color: #64748b;
+    font-size: 13px;
+    margin-top: 4px;
+}
 .signal-trend-count {
     min-width: 132px;
     border: 1px solid #dbe3ef;
@@ -144,34 +149,50 @@ SIGNAL_DASHBOARD_CSS = """
     color: #16a34a;
     font-size: 30px;
 }
+.signal-trend-mode-live,
+.signal-trend-mode-demo {
+    display: inline-block;
+    border-radius: 999px;
+    font-size: 12px;
+    font-weight: 800;
+    padding: 5px 10px;
+    margin-right: 6px;
+}
+.signal-trend-mode-live {
+    border: 1px solid #86efac;
+    background: #ecfdf5;
+    color: #166534;
+}
+.signal-trend-mode-demo {
+    border: 1px solid #fed7aa;
+    background: #fff7ed;
+    color: #9a3412;
+}
 .signal-trend-viewport {
-    height: 260px;
-    overflow: hidden;
+    max-height: 520px;
+    overflow-y: auto;
     border: 1px solid #dbe3ef;
     border-radius: 8px;
     background: #f8fafc;
 }
 .signal-trend-rail {
-    display: flex;
-    flex-direction: column;
-    gap: 10px;
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    gap: 12px;
     padding: 12px;
-    animation: signalTrendScroll 24s linear infinite;
 }
 .signal-trend-issue {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 12px;
     border: 1px solid #dbe3ef;
     border-radius: 8px;
     background: #ffffff;
     padding: 14px 16px;
+    min-height: 190px;
 }
 .signal-trend-issue-name {
     color: #0f172a;
     font-size: 16px;
     font-weight: 800;
+    margin-bottom: 8px;
 }
 .signal-trend-pill {
     border: 1px solid #dbe3ef;
@@ -181,10 +202,43 @@ SIGNAL_DASHBOARD_CSS = """
     font-size: 12px;
     font-weight: 650;
     padding: 4px 8px;
+    display: inline-block;
+    margin: 0 4px 5px 0;
 }
-@keyframes signalTrendScroll {
-    0% { transform: translateY(35%); }
-    100% { transform: translateY(-55%); }
+.signal-trend-metrics {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 8px;
+    margin: 10px 0;
+}
+.signal-trend-metric {
+    border: 1px solid #e2e8f0;
+    border-radius: 8px;
+    padding: 8px;
+    background: #f8fafc;
+}
+.signal-trend-metric-label {
+    color: #64748b;
+    font-size: 11px;
+    font-weight: 750;
+    text-transform: uppercase;
+}
+.signal-trend-metric-value {
+    color: #0f172a;
+    font-size: 16px;
+    font-weight: 850;
+    margin-top: 2px;
+}
+.signal-trend-implication {
+    color: #334155;
+    font-size: 13px;
+    line-height: 1.4;
+    margin-top: 8px;
+}
+.signal-trend-timestamp {
+    color: #64748b;
+    font-size: 12px;
+    margin-top: 10px;
 }
 """
 
@@ -887,25 +941,109 @@ def _active_trend_count(trends_df: pd.DataFrame) -> int:
     return int(((names != "") & (names.str.lower() != "unavailable")).sum())
 
 
+def _trend_percent(value: Any) -> float:
+    number = _safe_float(value, 0.0)
+    if 0 <= number <= 1:
+        return number * 100
+    return number
+
+
+def _trend_timestamp(record: dict[str, Any]) -> str:
+    return str(record.get("timestamp") or record.get("fetched_at") or _utc_timestamp())
+
+
+def _trend_mode_label(records: list[dict[str, Any]]) -> tuple[str, str]:
+    sources = " ".join(str(record.get("source", "")) for record in records).lower()
+    platforms = " ".join(str(record.get("platform", "")) for record in records).lower()
+    if "demo" in sources or "demo" in platforms:
+        return "Demo fallback mode", "signal-trend-mode-demo"
+    return "Live mode", "signal-trend-mode-live"
+
+
 def _render_public_trend_issue(record: dict[str, Any]) -> str:
     trend_name = escape(str(record.get("trend_name", "Monitoring trend")))
-    source = escape(str(record.get("source", "Aggregate trend feed")))
-    location = escape(str(record.get("location", "Kenya")))
+    source = escape(str(record.get("source") or record.get("platform") or "Aggregate trend feed"))
     category = escape(str(record.get("category", "general_public_interest")).replace("_", " ").title())
-    implication = escape(str(record.get("possible_policy_or_business_implication", "Monitor for demand, price, shortage, public concern, or market opportunity implications.")))
-    confidence = _safe_float(record.get("confidence_score"), 0.0)
-    confidence_label = f"Confidence {confidence:.1f}%" if confidence > 0 else "Confidence pending"
+    timestamp = escape(_trend_timestamp(record))
+    signal_strength = _trend_percent(record.get("aggregate_demand_score") or record.get("signal_strength") or record.get("confidence"))
+    demand_relevance = _trend_percent(record.get("relevance_to_demand") or record.get("confidence_score"))
+    implication = escape(str(record.get("possible_policy_or_business_implication") or record.get("investment_policy_interpretation") or "Monitor for demand, prices, shortages, public concern, or market opportunity implications."))
     return (
         "<div class='signal-trend-issue'>"
         f"<div class='signal-trend-issue-name'>{trend_name}</div>"
         "<div>"
-        f"<span class='signal-trend-pill'>{location}</span> "
-        f"<span class='signal-trend-pill'>{escape(confidence_label)}</span> "
-        f"<span class='signal-trend-pill'>{source}</span> "
+        f"<span class='signal-trend-pill'>{source}</span>"
         f"<span class='signal-trend-pill'>{category}</span>"
         "</div>"
-        f"<div style='font-size:12px;color:#475569;margin-top:6px;line-height:1.35;'>{implication}</div>"
+        "<div class='signal-trend-metrics'>"
+        "<div class='signal-trend-metric'>"
+        "<div class='signal-trend-metric-label'>Signal Strength</div>"
+        f"<div class='signal-trend-metric-value'>{signal_strength:.1f}</div>"
         "</div>"
+        "<div class='signal-trend-metric'>"
+        "<div class='signal-trend-metric-label'>Demand Relevance</div>"
+        f"<div class='signal-trend-metric-value'>{demand_relevance:.1f}%</div>"
+        "</div>"
+        "</div>"
+        f"<div class='signal-trend-implication'>{implication}</div>"
+        f"<div class='signal-trend-timestamp'>Updated: {timestamp}</div>"
+        "</div>"
+    )
+
+
+def _build_trends_display_frame(trends_df: pd.DataFrame) -> pd.DataFrame:
+    if trends_df.empty:
+        return trends_df
+    frame = trends_df.copy()
+    if "source" not in frame.columns and "platform" in frame.columns:
+        frame["source"] = frame["platform"]
+    if "platform" not in frame.columns and "source" in frame.columns:
+        frame["platform"] = frame["source"]
+    if "signal_strength" not in frame.columns:
+        frame["signal_strength"] = frame.get("aggregate_demand_score", frame.get("confidence", 0.0)).apply(_trend_percent)
+    if "demand_relevance" not in frame.columns:
+        frame["demand_relevance"] = frame.get("relevance_to_demand", frame.get("confidence_score", 0.0)).apply(_trend_percent)
+    if "timestamp" not in frame.columns:
+        frame["timestamp"] = frame.get("fetched_at", _utc_timestamp())
+    if "policy_business_implication" not in frame.columns:
+        frame["policy_business_implication"] = frame.get(
+            "possible_policy_or_business_implication",
+            frame.get("investment_policy_interpretation", "Monitor for demand, prices, shortages, public concern, or market opportunity implications."),
+        )
+    columns = [
+        "trend_name",
+        "platform",
+        "source",
+        "category",
+        "signal_strength",
+        "demand_relevance",
+        "policy_business_implication",
+        "timestamp",
+    ]
+    available = [column for column in columns if column in frame.columns]
+    display = frame[available].copy()
+    for column in ["signal_strength", "demand_relevance"]:
+        if column in display.columns:
+            display[column] = display[column].astype(float).round(1)
+    return display
+
+
+def _build_trends_interpretation_panel(location: str, analyses: list[dict[str, Any]], provider_note: str) -> str:
+    if not analyses:
+        return f"### What these {location} trends may imply\n\nNo aggregate trends are available right now."
+    sorted_items = sorted(analyses, key=lambda item: _safe_float(item.get("opportunity_score"), 0.0), reverse=True)
+    top_items = sorted_items[:3]
+    bullets = []
+    for item in top_items:
+        trend = str(item.get("trend_name", "Trend"))
+        implication = str(item.get("possible_policy_or_business_implication") or item.get("investment_policy_interpretation") or "Monitor for demand and opportunity signals.")
+        bullets.append(f"- **{trend}:** {implication}")
+    return (
+        f"### What these {location} trends may imply\n\n"
+        + "\n".join(bullets)
+        + "\n\n"
+        + "These are aggregate public trend signals. Treat them as directional evidence for demand, prices, shortages, public concern, or market opportunity, not as individual-level behavior.\n\n"
+        + provider_note
     )
 
 
@@ -923,17 +1061,20 @@ def build_live_trend_html(trends_df: pd.DataFrame) -> str:
 
     active_count = len(records)
     location = records[0].get("location", "Kenya")
+    mode_label, mode_class = _trend_mode_label(records)
     cards = [_render_public_trend_issue(record) for record in records]
     return (
         "<div class='signal-trend-shell'>"
         "<div class='signal-trend-header'>"
         "<div><div class='signal-trend-title'>Live Trend Intelligence</div>"
-        f"<span class='signal-trend-pill'>Location: {escape(str(location))}</span> "
+        "<div class='signal-trend-subtitle'>Public aggregate trend signals for demand, price, shortage, concern, and opportunity monitoring.</div>"
+        f"<span class='{mode_class}'>{escape(mode_label)}</span>"
+        f"<span class='signal-trend-pill'>Location: {escape(str(location))}</span>"
         f"<span class='signal-trend-pill'>Updated: {escape(_utc_timestamp())}</span></div>"
         f"<div class='signal-trend-count'><strong>{active_count}</strong><span> active trends</span></div>"
         "</div>"
         "<div class='signal-trend-viewport'><div class='signal-trend-rail'>"
-        + "".join(cards + cards)
+        + "".join(cards)
         + "</div></div></div>"
     )
 
@@ -955,15 +1096,13 @@ def refresh_live_trends(location: str, trend_limit: float) -> tuple[pd.DataFrame
     raw_frame = pd.DataFrame(records)
     intelligence_frame = pd.DataFrame(analyses)
     trends_frame = _build_hidden_trends_frame(raw_frame, intelligence_frame)
-    summary = summarize_trend_batch(location, analyses)
-    if fallback_note:
-        summary = f"{summary}\n\n{fallback_note}"
+    summary = _build_trends_interpretation_panel(location, analyses, fallback_note)
     return trends_frame, intelligence_frame, summary
 
 
 def refresh_live_trend_intelligence(location: str, trend_limit: float) -> tuple[pd.DataFrame, str, int, str, pd.DataFrame]:
     trends_frame, intelligence_frame, summary = refresh_live_trends(location, trend_limit)
-    return trends_frame, build_live_trend_html(trends_frame), _active_trend_count(trends_frame), summary, intelligence_frame
+    return _build_trends_display_frame(trends_frame), build_live_trend_html(trends_frame), _active_trend_count(trends_frame), summary, intelligence_frame
 
 
 def _dashboard_status_banner() -> str:
@@ -1212,9 +1351,9 @@ with gr.Blocks(title="Signal AI Dashboard", css=SIGNAL_DASHBOARD_CSS) as demo:
             refresh_trends_button = gr.Button("Refresh Trends")
 
         active_trends_output = gr.Number(label="Active Trends", precision=0, interactive=False, visible=False)
-        trends_table = gr.Dataframe(label="Hidden Trends Table", interactive=False, visible=False)
+        trends_table = gr.Dataframe(label="Trend Intelligence Table", interactive=False, visible=True, wrap=True)
         trend_intelligence_table = gr.Dataframe(label="Hidden Signal Intelligence Table", interactive=False, visible=False)
-        trends_summary = gr.Textbox(label="Interpretation Summary", lines=6, interactive=False, visible=False)
+        trends_summary = gr.Markdown(label="What these Kenya trends may imply", visible=True)
 
         trend_outputs = [
             trends_table,
