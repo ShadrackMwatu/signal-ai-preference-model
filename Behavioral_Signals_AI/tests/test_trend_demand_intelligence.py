@@ -22,7 +22,7 @@ def test_trend_to_demand_mapping_returns_interpretable_signal():
     assert signal["demand_signal_strength"] > 50
     assert signal["possible_unmet_demand"] > 50
     assert signal["urgency"] in {"Medium", "High"}
-    assert signal["affected_county_or_scope"] == "National scope"
+    assert signal["affected_county_or_scope"] == "Kenya-wide"
     assert signal["business_implication"]
     assert signal["policy_implication"]
     assert signal["confidence_score"] > 50
@@ -40,7 +40,7 @@ def test_missing_volume_fields_are_handled_gracefully():
 
     assert signal["demand_signal_strength"] > 0
     assert signal["possible_unmet_demand"] > 0
-    assert signal["affected_county_or_scope"] == "Nairobi County"
+    assert signal["affected_county_or_scope"] == "Kenya-wide"
 
 
 def test_demo_fallback_trends_map_to_demand_signals():

@@ -21,3 +21,6 @@ utils/
 ## Live Trend Intelligence
 
 `live_trends/` contains the provider router for public aggregate trend feeds. It supports X aggregate trends, Google Trends compatible providers, optional third-party providers through environment variables, and a demo fallback when credentials are unavailable. See `Documentation/live_trend_intelligence.md`.
+## Revealed Preference and Aggregate Demand Intelligence
+
+Behavioral Signals AI is evolving into an AI-native behavioral-economic intelligence system. The backend now includes ingestion, analytics, revealed-preference inference, behavioral inference, demand intelligence, opportunity intelligence, recommendations, forecasting, and market intelligence layers. The public dashboard prioritizes decision-oriented Kenya-wide intelligence, while technical controls remain under Advanced Analytics.

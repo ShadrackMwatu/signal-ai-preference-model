@@ -104,17 +104,10 @@ def _urgency_level(strength: float, unmet: float, trend: dict[str, Any]) -> str:
 
 
 def _scope_from_trend(trend: dict[str, Any]) -> str:
-    location = str(trend.get("location") or "Kenya").strip()
-    lowered = location.lower()
-    if lowered in COUNTY_HINTS:
-        return COUNTY_HINTS[lowered]
-    trend_name = str(trend.get("trend_name", "")).lower()
-    for hint, county in COUNTY_HINTS.items():
-        if hint in trend_name:
-            return county
-    if lowered and lowered not in {"kenya", "global"}:
-        return location
-    return "National scope" if lowered != "global" else "Global benchmark"
+    location = str(trend.get("location") or "Kenya").strip().lower()
+    if location == "global":
+        return "Global benchmark"
+    return "Kenya-wide"
 
 
 def _business_implication(trend_name: str, category: str, urgency: str) -> str:
