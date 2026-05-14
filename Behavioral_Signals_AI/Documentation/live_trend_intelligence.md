@@ -66,3 +66,8 @@ The dashboard shows a clear mode badge above the trend cards. `Live mode` appear
 Signal maps every aggregate trend into an interpretable behavioral demand signal. The table includes trend name, inferred demand category, demand strength, possible unmet demand, urgency, affected county or national scope, recommendation, and confidence score.
 
 This layer uses topic-level and location-level information only. It does not infer individual behavior or collect personal profiles.
+## Multi-Source Provider Architecture
+
+Live Trend Intelligence now uses `Behavioral_Signals_AI/providers/` as the canonical provider layer. The dashboard receives normalized aggregate signals from search, social, news, and future provider classes. The existing live-trend UI remains simple, but the backend can combine multiple provider classes before passing records into revealed preference, demand intelligence, opportunity intelligence, recommendations, and forecasting.
+
+The public dashboard shows a simple mode badge: `Live Kenya signals` when at least one live provider returns records, or `Demo fallback` when Signal uses built-in aggregate demo signals.

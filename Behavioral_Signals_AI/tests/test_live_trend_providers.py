@@ -72,7 +72,7 @@ def test_dashboard_live_trend_output_shape():
     html = build_live_trend_html(trends_frame)
     assert "Live Trend Intelligence" in html
     assert "active trends" in html
-    assert "Demo fallback mode" in html
+    assert "Demo fallback" in html
     assert "Signal Strength" in html
     assert "Demand Relevance" in html
 

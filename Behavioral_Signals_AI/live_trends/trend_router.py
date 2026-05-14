@@ -1,64 +1,86 @@
-"""Route live trend requests across configured aggregate providers."""
+"""Route dashboard trend requests through the multi-source aggregate signal provider layer."""
 
 from __future__ import annotations
 
-import os
 from typing import Any
 
-from .fallback_demo_provider import FallbackDemoTrendProvider, get_demo_trends
-from .google_trends_provider import GoogleTrendsProvider
-from .trend_provider_base import TrendProviderResult, TrendProviderStatus
-from .x_trends_provider import XTrendsProvider
-
-VALID_MODES = {"auto", "demo", "x", "google", "serpapi", "apify"}
+from Behavioral_Signals_AI.live_trends.fallback_demo_provider import get_demo_trends
+from Behavioral_Signals_AI.live_trends.trend_provider_base import TrendProviderResult, TrendProviderStatus
+from Behavioral_Signals_AI.providers.provider_router import fetch_aggregate_signals
+from Behavioral_Signals_AI.providers.provider_registry import build_provider_registry
 
 
 def get_trend_provider_status() -> dict[str, Any]:
-    mode = _requested_mode()
+    registry = build_provider_registry()
+    providers = {
+        key: {
+            "provider_type": getattr(provider, "provider_type", "unknown"),
+            "available": bool(provider.is_available()),
+        }
+        for key, provider in registry.items()
+    }
     return {
-        "mode": mode,
-        "x_available": XTrendsProvider().is_available(),
-        "google_available": GoogleTrendsProvider().is_available(),
+        "providers": providers,
+        "x_available": bool(providers.get("x", {}).get("available", False)),
+        "google_available": bool(
+            providers.get("google", {}).get("available", False)
+            or providers.get("serpapi", {}).get("available", False)
+            or providers.get("pytrends", {}).get("available", False)
+        ),
         "demo_available": True,
-        "privacy": "aggregate_trends_only",
+        "privacy": "aggregate_public_signals_only",
     }
 
 
 def fetch_live_trends(location: str = "Kenya", limit: int = 10) -> TrendProviderResult:
-    """Return standardized public aggregate trends using configured provider priority."""
+    """Return dashboard-compatible trend records from the multi-source provider router."""
 
-    mode = _requested_mode()
-    providers = _providers_for_mode(mode)
-    warnings: list[str] = []
-    for provider in providers:
-        if not provider.is_available():
-            warnings.append(f"{provider.provider_name} credentials unavailable")
-            continue
-        result = provider.fetch_trends(location=location, limit=limit)
-        if result.records:
-            result.warnings = warnings + result.warnings
-            return result
-        warnings.extend(result.warnings or [result.status.message])
-
-    fallback = FallbackDemoTrendProvider().fetch_trends(location=location, limit=limit)
-    fallback.warnings = warnings + ["Live trend credentials unavailable or provider returned no records; demo fallback used."]
-    fallback.status = TrendProviderStatus("demo", True, mode, "Demo fallback used after live provider routing.")
-    return fallback
-
-
-def _requested_mode() -> str:
-    mode = os.getenv("SIGNAL_TRENDS_MODE", "auto").strip().lower() or "auto"
-    return mode if mode in VALID_MODES else "auto"
+    routed = fetch_aggregate_signals(location=location, limit=limit)
+    records = [_signal_to_trend_record(signal, routed.mode_badge) for signal in routed.signals]
+    status = TrendProviderStatus(
+        provider="multi_source_router",
+        available=bool(records),
+        mode="live" if routed.is_live else "demo",
+        message=routed.mode_badge,
+    )
+    return TrendProviderResult(
+        records=records,
+        provider="multi_source_router",
+        source_label=routed.source_label,
+        is_live=routed.is_live,
+        status=status,
+        warnings=routed.warnings,
+    )
 
 
-def _providers_for_mode(mode: str):
-    if mode == "demo":
-        return [FallbackDemoTrendProvider()]
-    if mode == "x":
-        return [XTrendsProvider()]
-    if mode in {"google", "serpapi", "apify"}:
-        return [GoogleTrendsProvider()]
-    return [XTrendsProvider(), GoogleTrendsProvider()]
+def _signal_to_trend_record(signal: dict[str, Any], mode_badge: str) -> dict[str, Any]:
+    source = str(signal.get("source") or "Aggregate signals")
+    return {
+        "trend_name": signal.get("signal_name", "Aggregate signal"),
+        "platform": source,
+        "source": source,
+        "provider_type": signal.get("provider_type"),
+        "location": signal.get("location", "Kenya"),
+        "rank": 1,
+        "volume": signal.get("volume"),
+        "tweet_volume": signal.get("volume") if signal.get("provider_type") == "social" else None,
+        "growth_indicator": signal.get("growth") or "not available",
+        "category": signal.get("category", "general_public_interest"),
+        "timestamp": signal.get("timestamp"),
+        "fetched_at": signal.get("timestamp"),
+        "confidence": signal.get("confidence"),
+        "relevance_to_demand": signal.get("demand_relevance"),
+        "privacy_level": signal.get("privacy_level", "aggregate_public"),
+        "possible_policy_or_business_implication": _implication(signal),
+        "mode_badge": mode_badge,
+    }
+
+
+def _implication(signal: dict[str, Any]) -> str:
+    name = str(signal.get("signal_name", "This signal"))
+    category = str(signal.get("category", "general_public_interest")).replace("_", " ")
+    provider_type = str(signal.get("provider_type", "aggregate"))
+    return f"{name} is a {provider_type} signal linked to {category}; monitor for revealed demand, pressure, unmet need, or market opportunity."
 
 
 __all__ = ["fetch_live_trends", "get_demo_trends", "get_trend_provider_status"]

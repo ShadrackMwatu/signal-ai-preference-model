@@ -974,11 +974,15 @@ def _trend_timestamp(record: dict[str, Any]) -> str:
 
 
 def _trend_mode_label(records: list[dict[str, Any]]) -> tuple[str, str]:
+    explicit = str(records[0].get("mode_badge", "")) if records else ""
+    if explicit:
+        css_class = "signal-trend-mode-demo" if "demo" in explicit.lower() else "signal-trend-mode-live"
+        return explicit, css_class
     sources = " ".join(str(record.get("source", "")) for record in records).lower()
     platforms = " ".join(str(record.get("platform", "")) for record in records).lower()
     if "demo" in sources or "demo" in platforms:
-        return "Demo fallback mode", "signal-trend-mode-demo"
-    return "Live mode", "signal-trend-mode-live"
+        return "Demo fallback", "signal-trend-mode-demo"
+    return "Live Kenya signals", "signal-trend-mode-live"
 
 
 def _render_public_trend_issue(record: dict[str, Any]) -> str:
@@ -1136,10 +1140,7 @@ def refresh_live_trends(location: str, trend_limit: float) -> tuple[pd.DataFrame
         provider_result = fetch_trends_from_router(location=location, limit=int(trend_limit))
         records = provider_result.records
         provider_label = getattr(provider_result, "source_label", "Aggregate trend feed")
-        warnings = getattr(provider_result, "warnings", []) or []
         fallback_note = f"Source: {provider_label}. {getattr(getattr(provider_result, 'status', None), 'message', '')}"
-        if warnings:
-            fallback_note += "\n" + "\n".join(f"- {warning}" for warning in warnings[:3])
     except Exception as exc:
         records = get_demo_trends(location=location if location in {"Kenya", "Nairobi", "Global"} else "Kenya", limit=int(trend_limit))
         fallback_note = f"Live API unavailable — displaying demo aggregate trends. Details: {exc}"

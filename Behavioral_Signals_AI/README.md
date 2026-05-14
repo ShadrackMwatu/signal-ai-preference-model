@@ -24,3 +24,6 @@ utils/
 ## Revealed Preference and Aggregate Demand Intelligence
 
 Behavioral Signals AI is evolving into an AI-native behavioral-economic intelligence system. The backend now includes ingestion, analytics, revealed-preference inference, behavioral inference, demand intelligence, opportunity intelligence, recommendations, forecasting, and market intelligence layers. The public dashboard prioritizes decision-oriented Kenya-wide intelligence, while technical controls remain under Advanced Analytics.
+## Multi-source Aggregate Signal Providers
+
+`providers/` is the canonical provider layer for aggregate/public behavioral-economic signals. Phase 1 prioritizes search trends, X aggregate trends, optional news context, and demo fallback. Future provider namespaces cover social video, e-commerce, mobility, fintech, and app-store aggregates. All providers normalize to an aggregate public schema before entering revealed preference, demand intelligence, opportunity, recommendation, and forecasting engines.
