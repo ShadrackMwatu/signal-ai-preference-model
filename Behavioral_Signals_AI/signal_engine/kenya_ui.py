@@ -32,7 +32,8 @@ def get_kenya_live_signals_for_ui(location_filter: str = "Kenya", category_filte
 
 def render_live_signal_feed(signals: list[dict[str, Any]], last_updated: str = "recently") -> str:
     safe_signals = signals or [_friendly_empty_signal()]
-    cards = "".join(_card(signal) for signal in safe_signals)
+    repeated_signals = _repeat_for_continuous_loop(safe_signals)
+    cards = "".join(_card(signal) for signal in repeated_signals)
     if not cards.strip():
         cards = _card(_friendly_empty_signal())
     loop_cards = cards + cards
@@ -70,6 +71,15 @@ def render_strategic_interpretation(signals: list[dict[str, Any]]) -> str:
         f"**Privacy note:** {PRIVACY_NOTE}"
     )
 
+
+
+def _repeat_for_continuous_loop(signals: list[dict[str, Any]], minimum: int = 5) -> list[dict[str, Any]]:
+    if not signals:
+        return [_friendly_empty_signal() for _ in range(minimum)]
+    repeated = list(signals)
+    while len(repeated) < minimum:
+        repeated.extend(signals)
+    return repeated[: max(minimum, len(repeated))]
 
 def _filter_signals(signals: list[dict[str, Any]], location: str, category: str, urgency: str) -> list[dict[str, Any]]:
     output: list[dict[str, Any]] = []

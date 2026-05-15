@@ -295,20 +295,38 @@ SIGNAL_DASHBOARD_CSS = """
     margin: 0 0 8px;
 }
 .signal-feed-container {
-    min-height: 420px;
-    max-height: 420px;
+    min-height: 700px;
+    max-height: 700px;
     overflow: hidden;
     position: relative;
-    border-radius: 14px;
+    border-radius: 16px;
     border: 1px solid rgba(148, 163, 184, 0.35);
     background: linear-gradient(180deg, rgba(15, 23, 42, 0.04), rgba(15, 23, 42, 0.015));
     padding: 12px;
+}
+.signal-feed-container::before,
+.signal-feed-container::after {
+    content: "";
+    position: absolute;
+    left: 0;
+    right: 0;
+    height: 50px;
+    z-index: 2;
+    pointer-events: none;
+}
+.signal-feed-container::before {
+    top: 0;
+    background: linear-gradient(to bottom, rgba(248, 250, 252, 0.96), rgba(248, 250, 252, 0));
+}
+.signal-feed-container::after {
+    bottom: 0;
+    background: linear-gradient(to top, rgba(248, 250, 252, 0.96), rgba(248, 250, 252, 0));
 }
 .signal-feed-inner {
     display: flex;
     flex-direction: column;
     gap: 12px;
-    animation: scrollSignalsUp 45s linear infinite;
+    animation: scrollSignalsUp 60s linear infinite;
 }
 .signal-feed-container:hover .signal-feed-inner {
     animation-play-state: paused;
@@ -316,6 +334,24 @@ SIGNAL_DASHBOARD_CSS = """
 @keyframes scrollSignalsUp {
     0% { transform: translateY(0); }
     100% { transform: translateY(-50%); }
+}
+@media (min-width: 1600px) {
+    .signal-feed-container {
+        min-height: 780px;
+        max-height: 780px;
+    }
+}
+@media (max-width: 900px) {
+    .signal-feed-container {
+        min-height: 600px;
+        max-height: 600px;
+    }
+}
+@media (max-width: 600px) {
+    .signal-feed-container {
+        min-height: 420px;
+        max-height: 420px;
+    }
 }
 .signal-card {
     border-radius: 14px;
@@ -408,6 +444,12 @@ SIGNAL_DASHBOARD_CSS = """
         color: #e2e8f0;
     }
     .signal-card-topic { color: #f8fafc; }
+    .signal-feed-container::before {
+        background: linear-gradient(to bottom, rgba(15, 23, 42, 0.96), rgba(15, 23, 42, 0));
+    }
+    .signal-feed-container::after {
+        background: linear-gradient(to top, rgba(15, 23, 42, 0.96), rgba(15, 23, 42, 0));
+    }
     .signal-card-grid span { background: rgba(30, 41, 59, 0.82); }
     .signal-card p { color: #cbd5e1; }
     .signal-privacy-note { color: #ccfbf1; }
