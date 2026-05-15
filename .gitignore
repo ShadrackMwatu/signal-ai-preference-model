@@ -143,3 +143,5 @@ Behavioral_Signals_AI/outputs/*.json
 
 # Behavioral Signals AI live signal cache
 Behavioral_Signals_AI/outputs/latest_live_signals.json
+Behavioral_Signals_AI/outputs/signal_relationship_graph.json
+Behavioral_Signals_AI/outputs/source_learning.json

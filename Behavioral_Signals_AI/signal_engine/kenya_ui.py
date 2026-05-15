@@ -46,11 +46,11 @@ def render_live_signal_feed(signals: list[dict[str, Any]], last_updated: str = "
 
 def render_emerging_signals(signals: list[dict[str, Any]]) -> str:
     safe_signals = signals or [_friendly_empty_signal()]
-    selected = [signal for signal in safe_signals if signal.get("momentum") in {"Rising", "Breakout"} or signal.get("urgency") == "High"][:4]
+    selected = [signal for signal in safe_signals if signal.get("momentum") in {"Rising", "Breakout"} or signal.get("urgency") == "High" or signal.get("early_warning_labels")][:4]
     if not selected:
         selected = safe_signals[:3]
     items = "".join(
-        f"<li><strong>{escape(str(signal.get('signal_topic')))}</strong>: {escape(str(signal.get('momentum', 'Stable')))} momentum, {escape(str(signal.get('urgency', 'Medium')))} urgency, detected from {escape(str(signal.get('source_summary', 'Aggregate public sources')))}.</li>"
+        f"<li><strong>{escape(str(signal.get('signal_topic')))}</strong>: {escape(str(signal.get('momentum', 'Stable')))} momentum, {escape(str(signal.get('urgency', 'Medium')))} urgency, forecast {escape(str(signal.get('predicted_direction', 'stable')))}, detected from {escape(str(signal.get('source_summary', 'Aggregate public sources')))}.</li>"
         for signal in selected
     )
     if not items:
@@ -62,15 +62,27 @@ def render_strategic_interpretation(signals: list[dict[str, Any]]) -> str:
     safe_signals = signals or [_friendly_empty_signal()]
     top = safe_signals[0]
     sectors = ", ".join(sorted({str(signal.get("signal_category", "other")) for signal in safe_signals[:5]})) or "Kenya aggregate demand"
+    context_lines = [
+        f"**Macro implications:** {top.get('macro_implications', 'Aggregate evidence is still developing.')}",
+        f"**Sector implications:** {top.get('sector_implications', 'Relevant sectors should monitor the signal as evidence accumulates.')}",
+        f"**County implications:** {top.get('county_implications', 'Current evidence is Kenya-wide unless county evidence strengthens.')}",
+        f"**Business opportunity:** {top.get('business_opportunity', 'Monitor demand pockets and test targeted responses using aggregate evidence.')}",
+        f"**Policy opportunity:** {top.get('policy_opportunity', 'Use this as an early signal for policy monitoring and validation.')}",
+        f"**Risk outlook:** {top.get('risk_outlook', 'Risk outlook is stable under current aggregate evidence.')}",
+        f"**Monitoring recommendation:** {top.get('monitoring_recommendation', top.get('recommended_action', 'Monitor persistence and source agreement.'))}",
+    ]
     return (
         "### Signal Interpretation & Opportunity\n\n"
         f"**Top signal:** {top.get('signal_topic', 'Kenya aggregate signal')} ({top.get('signal_category', 'other')}). {top.get('interpretation', 'Signal monitoring is active and awaiting stronger aggregate evidence.')}\n\n"
         f"**Affected sectors:** {sectors}.\n\n"
         f"**Detected from:** Search trends, public news, food price data, and official statistics. Current strongest source summary: {top.get('source_summary', 'Aggregate public sources')}.\n\n"
-        f"**Recommended near-term action:** {top.get('recommended_action', 'Monitor this signal and validate with additional aggregate data.')}\n\n"
-        "Scores improve over time through adaptive signal memory, source agreement, validation checks, and analyst feedback.\n\n"
+        + "\n\n".join(context_lines)
+        + "\n\n"
+        f"**Confidence reasoning:** {top.get('confidence_reasoning', 'Confidence reflects current aggregate evidence and will adapt as memory grows.')}\n\n"
+        "Scores improve over time through adaptive signal memory, source agreement, validation checks, semantic clustering, prediction feedback, and analyst feedback.\n\n"
         f"**Privacy note:** {PRIVACY_NOTE}"
     )
+
 
 def _repeat_for_continuous_loop(signals: list[dict[str, Any]], minimum: int = 5) -> list[dict[str, Any]]:
     if not signals:
@@ -79,6 +91,7 @@ def _repeat_for_continuous_loop(signals: list[dict[str, Any]], minimum: int = 5)
     while len(repeated) < minimum:
         repeated.extend(signals)
     return repeated[: max(minimum, len(repeated))]
+
 
 def _filter_signals(signals: list[dict[str, Any]], location: str, category: str, urgency: str) -> list[dict[str, Any]]:
     output: list[dict[str, Any]] = []
@@ -112,6 +125,10 @@ def _friendly_empty_signal() -> dict[str, Any]:
         "momentum": "Stable",
         "interpretation": "The feed is active and will update as aggregate public signals are available.",
         "privacy_level": "aggregate_public",
+        "predicted_direction": "stable",
+        "forecast_confidence": 50,
+        "spread_risk": "Low",
+        "confidence_reasoning": "Confidence reflects current aggregate evidence and will adapt as memory grows.",
     }
 
 
@@ -128,14 +145,14 @@ def _card(signal: dict[str, Any]) -> str:
     confidence = escape(str(signal.get("confidence_score", 0)))
     updated = escape(str(signal.get("last_updated", "")))
     action = escape(str(signal.get("recommended_action", "Monitor and validate with aggregate data.")))
-    validation = escape(_validation_badge(signal))
-    persistence = escape(str(signal.get("persistence_badge") or ("Breakout" if signal.get("momentum") == "Breakout" else "Emerging")))
-    scope_badge = escape("County-specific" if str(signal.get("geographic_scope", "Kenya-wide")) != "Kenya-wide" else "Kenya-wide")
-    score_note = escape(str(signal.get("score_explanation", "Adaptive score uses aggregate evidence and validation signals.")))
+    score_note = escape(str(signal.get("confidence_reasoning") or signal.get("score_explanation", "Adaptive score uses aggregate evidence and validation signals.")))
+    badges = "".join(f"<span class='signal-card-category'>{escape(badge)}</span>" for badge in _badges(signal, category, momentum))
+    forecast = escape(str(signal.get("predicted_direction", "stable")))
+    spread = escape(str(signal.get("spread_risk", "Low")))
     return (
         "<article class='signal-card'>"
         f"<div class='signal-card-topic'>{topic}</div>"
-        f"<div><span class='signal-card-category'>{category}</span><span class='signal-card-category'>{momentum}</span><span class='signal-card-category'>{validation}</span><span class='signal-card-category'>{persistence}</span><span class='signal-card-category'>{scope_badge}</span></div>"
+        f"<div>{badges}</div>"
         "<div class='signal-card-grid'>"
         f"<span><strong>Demand</strong>{demand}</span>"
         f"<span><strong>Opportunity</strong>{opportunity}</span>"
@@ -143,12 +160,41 @@ def _card(signal: dict[str, Any]) -> str:
         f"<span><strong>Urgency</strong>{urgency}</span>"
         f"<span><strong>Scope</strong>{scope}</span>"
         f"<span><strong>Source</strong>{source}</span>"
+        f"<span><strong>Forecast</strong>{forecast}</span>"
+        f"<span><strong>Spread risk</strong>{spread}</span>"
         f"<span><strong>Confidence</strong>{confidence}%</span>"
         "</div>"
         f"<p>{action}</p>"
         f"<div class='signal-card-time' title='{score_note}'>Last updated: {updated}</div>"
         "</article>"
     )
+
+
+def _badges(signal: dict[str, Any], category: str, momentum: str) -> list[str]:
+    badges = [category, momentum, _validation_badge(signal)]
+    persistence = str(signal.get("persistence_badge") or ("Breakout" if signal.get("momentum") == "Breakout" else "Emerging"))
+    badges.append(persistence)
+    badges.append("County-specific" if str(signal.get("geographic_scope", "Kenya-wide")) != "Kenya-wide" else "Kenya-wide")
+    if float(signal.get("multi_source_confirmation_score", 0) or 0) >= 65:
+        badges.append("Multi-source")
+    for label in signal.get("early_warning_labels", [])[:2]:
+        badges.append(str(label))
+    if signal.get("predicted_direction") == "rising":
+        badges.append("Forecast rising")
+    if signal.get("spread_risk") in {"Moderate", "High"}:
+        badges.append("County spread risk")
+    return _dedupe_badges(badges)[:8]
+
+
+def _dedupe_badges(badges: list[str]) -> list[str]:
+    seen: set[str] = set()
+    output: list[str] = []
+    for badge in badges:
+        if badge and badge not in seen:
+            seen.add(badge)
+            output.append(badge)
+    return output
+
 
 def _validation_badge(signal: dict[str, Any]) -> str:
     status = str(signal.get("validation_status", "unvalidated"))
