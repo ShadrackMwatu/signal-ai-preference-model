@@ -84,6 +84,7 @@ def normalize_signal(raw: dict[str, Any], *, source: str, provider_type: str, lo
         "growth": safe.get("growth") or safe.get("growth_indicator"),
         "sentiment": safe.get("sentiment"),
         "engagement_velocity": coerce_number(safe.get("engagement_velocity"), None),
+        "search_intensity": coerce_number(safe.get("search_intensity") or safe.get("search_volume") or safe.get("traffic"), volume),
         "demand_relevance": round(relevance, 3),
         "confidence": round(confidence, 3),
         "privacy_level": STANDARD_PRIVACY_LEVEL,

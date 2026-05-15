@@ -130,3 +130,9 @@ Signal_CGE/models/gams/70_Result/*
 *.gdx
 *.lst
 *.log
+
+# Behavioral Signals AI runtime learning memory
+Behavioral_Signals_AI/data/prediction_memory/*.jsonl
+Behavioral_Signals_AI/data/prediction_memory/*.csv
+Behavioral_Signals_AI/data/prediction_memory/*.json
+!Behavioral_Signals_AI/data/prediction_memory/.gitkeep

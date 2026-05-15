@@ -60,3 +60,6 @@ Future provider variables include `YOUTUBE_API_KEY`, `TIKTOK_API_KEY`, `INSTAGRA
 ## Privacy Rules
 
 Signal accepts aggregate/public signals only. It must not collect usernames, user IDs, raw posts, personal profiles, private messages, personal timelines, emails, phone numbers, or individual-level targeting data.
+## Adaptive Prediction Loop
+
+Provider outputs feed the revealed preference, demand intelligence, opportunity, forecasting, recommendation, and adaptive learning modules. Prediction snapshots are stored as aggregate-only runtime memory and ignored by Git by default.

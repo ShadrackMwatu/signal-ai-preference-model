@@ -71,3 +71,6 @@ This layer uses topic-level and location-level information only. It does not inf
 Live Trend Intelligence now uses `Behavioral_Signals_AI/providers/` as the canonical provider layer. The dashboard receives normalized aggregate signals from search, social, news, and future provider classes. The existing live-trend UI remains simple, but the backend can combine multiple provider classes before passing records into revealed preference, demand intelligence, opportunity intelligence, recommendations, and forecasting.
 
 The public dashboard shows a simple mode badge: `Live Kenya signals` when at least one live provider returns records, or `Demo fallback` when Signal uses built-in aggregate demo signals.
+## Adaptive Prediction Loop
+
+Provider outputs feed the revealed preference, demand intelligence, opportunity, forecasting, recommendation, and adaptive learning modules. Prediction snapshots are stored as aggregate-only runtime memory and ignored by Git by default.

@@ -1073,12 +1073,16 @@ def _build_demand_signals_frame(trends_df: pd.DataFrame) -> pd.DataFrame:
         "trend_name",
         "revealed_aggregate_demand",
         "inferred_demand_category",
+        "predicted_demand_level",
+        "predicted_opportunity_level",
         "demand_signal_strength",
         "possible_unmet_demand",
         "urgency",
         "affected_county_or_scope",
         "opportunity_type",
         "recommendation",
+        "adaptive_confidence",
+        "signal_persistence_score",
         "confidence_score",
     ]
     available = [column for column in columns if column in frame.columns]

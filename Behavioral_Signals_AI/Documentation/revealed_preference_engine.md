@@ -24,3 +24,6 @@ These outputs feed demand intelligence, opportunity intelligence, recommendation
 ## Privacy Boundary
 
 The engine uses only aggregate public indicators and privacy-safe provider records. It does not process individual profiles, raw private content, or personal identifiers.
+## Adaptive Prediction Loop
+
+Provider outputs feed the revealed preference, demand intelligence, opportunity, forecasting, recommendation, and adaptive learning modules. Prediction snapshots are stored as aggregate-only runtime memory and ignored by Git by default.
