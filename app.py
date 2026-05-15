@@ -1405,7 +1405,7 @@ def refresh_live_trend_intelligence(location: str, trend_limit: float) -> tuple[
 def _dashboard_status_banner() -> str:
     return (
         "<div style='border:1px solid #cbd5e1;border-radius:10px;padding:14px 16px;margin:0 0 12px 0;background:#f8fafc;color:#0f172a;'>"
-        "<div style='font-size:22px;font-weight:800;'>Signal AI Dashboard</div>"
+        "<div style='font-size:22px;font-weight:800;'>OpenSignal</div>"
         "</div>"
     )
 
