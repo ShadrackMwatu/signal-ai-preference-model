@@ -1,4 +1,4 @@
-"""UI renderer for Kenya live aggregate signals."""
+﻿"""UI renderer for Kenya live aggregate signals."""
 
 from __future__ import annotations
 
@@ -50,7 +50,7 @@ def render_emerging_signals(signals: list[dict[str, Any]]) -> str:
     if not selected:
         selected = safe_signals[:3]
     items = "".join(
-        f"<li><strong>{escape(str(signal.get('signal_topic')))}</strong>: {escape(str(signal.get('momentum', 'Stable')))} momentum, {escape(str(signal.get('urgency', 'Medium')))} urgency, forecast {escape(str(signal.get('predicted_direction', 'stable')))}, detected from {escape(str(signal.get('source_summary', 'Aggregate public sources')))}.</li>"
+        f"<li><strong>{escape(str(signal.get('signal_topic')))}</strong>: {escape(str(signal.get('momentum', 'Stable')))} momentum, {escape(str(signal.get('urgency', 'Medium')))} urgency, forecast {escape(str(signal.get('forecast_direction') or signal.get('predicted_direction', 'stable')))}, detected from {escape(str(signal.get('source_summary', 'Aggregate public sources')))}.</li>"
         for signal in selected
     )
     if not items:
@@ -79,7 +79,9 @@ def render_strategic_interpretation(signals: list[dict[str, Any]]) -> str:
         + "\n\n".join(context_lines)
         + "\n\n"
         f"**Confidence reasoning:** {top.get('confidence_reasoning', 'Confidence reflects current aggregate evidence and will adapt as memory grows.')}\n\n"
-        "Scores improve over time through adaptive signal memory, source agreement, validation checks, semantic clustering, prediction feedback, and analyst feedback.\n\n"
+        "### Historical Learning Insight\n\n"
+        f"{_historical_learning_insight(top)}\n\n"
+        "Scores improve over time through adaptive signal memory, source agreement, validation checks, historical pattern matching, semantic clustering, prediction feedback, and analyst feedback.\n\n"
         f"**Privacy note:** {PRIVACY_NOTE}"
     )
 
@@ -126,8 +128,12 @@ def _friendly_empty_signal() -> dict[str, Any]:
         "interpretation": "The feed is active and will update as aggregate public signals are available.",
         "privacy_level": "aggregate_public",
         "predicted_direction": "stable",
+        "forecast_direction": "Stable",
         "forecast_confidence": 50,
         "spread_risk": "Low",
+        "historical_pattern_match": "No close historical pattern yet",
+        "historical_lesson_used": "Historical memory is still accumulating lessons for this signal type.",
+        "likely_next_development": "The system will keep monitoring persistence, validation, and related signals.",
         "confidence_reasoning": "Confidence reflects current aggregate evidence and will adapt as memory grows.",
     }
 
@@ -147,7 +153,7 @@ def _card(signal: dict[str, Any]) -> str:
     action = escape(str(signal.get("recommended_action", "Monitor and validate with aggregate data.")))
     score_note = escape(str(signal.get("confidence_reasoning") or signal.get("score_explanation", "Adaptive score uses aggregate evidence and validation signals.")))
     badges = "".join(f"<span class='signal-card-category'>{escape(badge)}</span>" for badge in _badges(signal, category, momentum))
-    forecast = escape(str(signal.get("predicted_direction", "stable")))
+    forecast = escape(str(signal.get("forecast_direction") or signal.get("predicted_direction", "stable")))
     spread = escape(str(signal.get("spread_risk", "Low")))
     return (
         "<article class='signal-card'>"
@@ -170,6 +176,19 @@ def _card(signal: dict[str, Any]) -> str:
     )
 
 
+def _historical_learning_insight(signal: dict[str, Any]) -> str:
+    pattern = signal.get("historical_pattern_match", "No close historical pattern yet")
+    direction = signal.get("forecast_direction") or str(signal.get("predicted_direction", "stable")).title()
+    confidence = signal.get("forecast_confidence", signal.get("confidence_score", 0))
+    next_step = signal.get("likely_next_development", "The system will keep monitoring persistence, validation, and related signals.")
+    lesson = signal.get("historical_lesson_used", "Historical memory is still accumulating lessons for this signal type.")
+    return (
+        f"Today's signal pattern: **{pattern}**. "
+        f"Historical memory suggests the next direction is **{direction}** with confidence **{confidence}%**. "
+        f"{next_step} Historical lesson used: {lesson}"
+    )
+
+
 def _badges(signal: dict[str, Any], category: str, momentum: str) -> list[str]:
     badges = [category, momentum, _validation_badge(signal)]
     persistence = str(signal.get("persistence_badge") or ("Breakout" if signal.get("momentum") == "Breakout" else "Emerging"))
@@ -179,10 +198,12 @@ def _badges(signal: dict[str, Any], category: str, momentum: str) -> list[str]:
         badges.append("Multi-source")
     for label in signal.get("early_warning_labels", [])[:2]:
         badges.append(str(label))
-    if signal.get("predicted_direction") == "rising":
+    if signal.get("forecast_direction") == "Rising" or signal.get("predicted_direction") == "rising":
         badges.append("Forecast rising")
     if signal.get("spread_risk") in {"Moderate", "High"}:
         badges.append("County spread risk")
+    if signal.get("historical_pattern_match") and signal.get("historical_pattern_match") != "No close historical pattern yet":
+        badges.append("Historical match")
     return _dedupe_badges(badges)[:8]
 
 

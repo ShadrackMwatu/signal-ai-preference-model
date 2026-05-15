@@ -145,3 +145,12 @@ Behavioral_Signals_AI/outputs/*.json
 Behavioral_Signals_AI/outputs/latest_live_signals.json
 Behavioral_Signals_AI/outputs/signal_relationship_graph.json
 Behavioral_Signals_AI/outputs/source_learning.json
+Behavioral_Signals_AI/outputs/historical_signal_memory.json
+Behavioral_Signals_AI/outputs/historical_insight_index.json
+Behavioral_Signals_AI/outputs/forecast_memory.json
+Behavioral_Signals_AI/history/daily/*.json
+Behavioral_Signals_AI/history/monthly/*.json
+Behavioral_Signals_AI/history/yearly/*.json
+!Behavioral_Signals_AI/history/daily/.gitkeep
+!Behavioral_Signals_AI/history/monthly/.gitkeep
+!Behavioral_Signals_AI/history/yearly/.gitkeep

@@ -1,4 +1,4 @@
-"""Kenya signal fusion engine for aggregate public intelligence."""
+﻿"""Kenya signal fusion engine for aggregate public intelligence."""
 
 from __future__ import annotations
 
@@ -10,9 +10,14 @@ from Behavioral_Signals_AI.data_sources import cbk_macro_signals, food_price_mon
 from Behavioral_Signals_AI.privacy import sanitize_aggregate_record
 from Behavioral_Signals_AI.signal_engine.adaptive_learning_engine import adapt_signal_scores, load_cluster_memory, load_feedback, update_signal_memory
 from Behavioral_Signals_AI.signal_engine.continuous_improvement import improve_after_refresh
+from Behavioral_Signals_AI.signal_engine.daily_learning_engine import summarize_daily_signals
 from Behavioral_Signals_AI.signal_engine.early_warning_engine import classify_early_warning
+from Behavioral_Signals_AI.signal_engine.historical_adaptation_engine import apply_historical_adaptation
+from Behavioral_Signals_AI.signal_engine.historical_forecasting_engine import add_historical_forecast, persist_forecasts
+from Behavioral_Signals_AI.signal_engine.historical_memory import initialize_history_stores
 from Behavioral_Signals_AI.signal_engine.kenya_context_engine import map_kenya_context
 from Behavioral_Signals_AI.signal_engine.kenya_interpretation_engine import interpret_kenya_signal
+from Behavioral_Signals_AI.signal_engine.monthly_learning_engine import summarize_monthly_patterns
 from Behavioral_Signals_AI.signal_engine.predictive_signal_engine import predict_signal_evolution
 from Behavioral_Signals_AI.signal_engine.semantic_intelligence import cluster_related_records, detect_latent_themes
 from Behavioral_Signals_AI.signal_engine.signal_classifier import classify_topic
@@ -22,6 +27,7 @@ from Behavioral_Signals_AI.signal_engine.signal_quality import score_signal_qual
 from Behavioral_Signals_AI.signal_engine.signal_relationships import detect_signal_relationships, related_signals_for_topic, relationship_summary
 from Behavioral_Signals_AI.signal_engine.source_learning import update_source_learning
 from Behavioral_Signals_AI.signal_engine.validation_engine import validate_signal
+from Behavioral_Signals_AI.signal_engine.yearly_learning_engine import summarize_yearly_patterns
 
 KENYA_COUNTIES = [
     "Baringo", "Bomet", "Bungoma", "Busia", "Elgeyo Marakwet", "Embu", "Garissa", "Homa Bay", "Isiolo", "Kajiado", "Kakamega", "Kericho", "Kiambu", "Kilifi", "Kirinyaga", "Kisii", "Kisumu", "Kitui", "Kwale", "Laikipia", "Lamu", "Machakos", "Makueni", "Mandera", "Marsabit", "Meru", "Migori", "Mombasa", "Murang'a", "Nairobi", "Nakuru", "Nandi", "Narok", "Nyamira", "Nyandarua", "Nyeri", "Samburu", "Siaya", "Taita Taveta", "Tana River", "Tharaka Nithi", "Trans Nzoia", "Turkana", "Uasin Gishu", "Vihiga", "Wajir", "West Pokot",
@@ -68,6 +74,7 @@ def collect_kenya_source_records(location: str = "Kenya", limit: int = 12) -> li
 
 
 def fuse_kenya_signals(location: str = "Kenya", category: str = "All", urgency: str = "All", limit: int = 10) -> list[dict[str, Any]]:
+    initialize_history_stores()
     raw_records = collect_kenya_source_records(location, limit * 2)
     records = _normalize_records(raw_records)
     quality_records = _quality_filter(records)
@@ -95,25 +102,38 @@ def fuse_kenya_signals(location: str = "Kenya", category: str = "All", urgency: 
 
     graph = detect_signal_relationships(fused)
     graph_summary = relationship_summary(graph)
-    for signal in fused:
+    for index, signal in enumerate(fused):
         related = related_signals_for_topic(str(signal.get("signal_topic", "")), fused, graph)
         signal["related_signal_count"] = len(related)
         signal["relationship_summary"] = graph_summary
         signal.update(predict_signal_evolution(signal, adaptive_memory, related))
         signal.update(map_kenya_context(signal))
         signal.update(classify_early_warning(signal, related))
+        signal = apply_historical_adaptation(signal)
+        signal = add_historical_forecast(signal)
         signal["confidence_reasoning"] = _confidence_reasoning(signal, related)
+        signal["demand_level"] = _level(float(signal.get("demand_intelligence_score", signal.get("priority_score", 50))))
+        signal["opportunity_level"] = _level(float(signal.get("opportunity_intelligence_score", signal.get("priority_score", 50))))
+        fused[index] = signal
 
     filtered = [signal for signal in fused if _matches(signal, category, urgency)]
     filtered.sort(key=lambda item: (float(item.get("confidence_score", 0)), float(item.get("priority_score", 0))), reverse=True)
     filtered = filtered[:limit]
 
     memory_after = update_signal_memory(filtered)
+    daily_summary = summarize_daily_signals(filtered)
+    monthly_summary = summarize_monthly_patterns()
+    yearly_summary = summarize_yearly_patterns()
+    forecast_memory = persist_forecasts(filtered)
     improvement = improve_after_refresh(filtered, memory_after)
     source_learning = update_source_learning(filtered)
     for signal in filtered:
         signal["continuous_improvement"] = improvement.get("ranking_note", "Adaptive ranking updated after refresh.")
         signal["source_learning_status"] = "updated" if source_learning.get("last_updated") else "pending"
+        signal["historical_learning_status"] = "updated" if daily_summary.get("generated_at") else "pending"
+        signal["monthly_learning_status"] = "updated" if monthly_summary.get("generated_at") else "pending"
+        signal["yearly_learning_status"] = "updated" if yearly_summary.get("generated_at") else "pending"
+        signal["forecast_memory_status"] = "updated" if forecast_memory.get("last_updated") else "pending"
     save_signal_memory(filtered)
     return filtered
 
@@ -289,8 +309,10 @@ def _confidence_reasoning(signal: dict[str, Any], related: list[dict[str, Any]])
         reasons.append("related economic pressure signals are also present")
     if signal.get("validation_status") == "validated":
         reasons.append("it aligns with trusted reference signal classes")
-    if signal.get("predicted_direction") == "rising":
-        reasons.append("current momentum suggests a rising near-term pattern")
+    if signal.get("predicted_direction") == "rising" or signal.get("forecast_direction") == "Rising":
+        reasons.append("current and historical evidence suggest a rising near-term pattern")
+    if signal.get("historical_pattern_match") and signal.get("historical_pattern_match") != "No close historical pattern yet":
+        reasons.append("similar historical patterns were found")
     if not reasons:
         reasons.append("current aggregate evidence is active but still developing")
     return "Confidence adjusted because " + "; ".join(reasons) + "."
