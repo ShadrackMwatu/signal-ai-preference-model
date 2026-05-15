@@ -1657,8 +1657,8 @@ with gr.Blocks(title="Signal AI Dashboard", css=SIGNAL_DASHBOARD_CSS) as demo:
             show_api=False,
         )
         if hasattr(gr, "Timer"):
-            ui_timer = gr.Timer(value=1)
-            ui_timer.tick(
+            content_timer = gr.Timer(value=30)
+            content_timer.tick(
                 fn=get_kenya_live_signals_for_ui,
                 inputs=feed_inputs,
                 outputs=feed_outputs,

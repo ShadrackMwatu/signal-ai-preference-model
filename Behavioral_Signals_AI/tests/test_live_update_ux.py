@@ -1,6 +1,6 @@
 from pathlib import Path
 
-from Behavioral_Signals_AI.ui.feed_diff_engine import has_material_signal_change, rank_signals_for_display
+from Behavioral_Signals_AI.ui.feed_diff_engine import has_material_signal_change, rank_signals_for_display, load_render_cache
 
 
 def _signal(topic, **extra):
@@ -53,7 +53,7 @@ def test_unchanged_signals_do_not_trigger_full_feed_rebuild(monkeypatch):
     first = kenya_ui.get_kenya_live_signals_for_ui("Kenya", "All", "All")
     second = kenya_ui.get_kenya_live_signals_for_ui("Kenya", "All", "All")
     assert first == second
-    assert "Last updated: t1" in first[0]
+    assert "Source intelligence updated: t1" in first[0]
 
 
 def test_material_ranking_changes_trigger_feed_update(monkeypatch):
@@ -70,12 +70,30 @@ def test_material_ranking_changes_trigger_feed_update(monkeypatch):
     assert second[0].find("fuel prices") < second[0].find("maize flour prices")
 
 
+def test_timestamp_only_changes_do_not_trigger_rerender(monkeypatch, tmp_path):
+    from Behavioral_Signals_AI.signal_engine import kenya_ui
+
+    monkeypatch.setenv("SIGNAL_RENDER_CACHE", str(tmp_path / "render_cache.json"))
+    kenya_ui.reset_live_feed_render_cache()
+    payload_one = {"last_updated": "source-t1", "signals": [_signal("maize flour prices", confidence_score=60)]}
+    payload_two = {"last_updated": "source-t2", "signals": [_signal("maize flour prices", confidence_score=60)]}
+    calls = iter([payload_one, payload_two])
+    monkeypatch.setattr(kenya_ui, "get_cached_or_fallback_signals", lambda: next(calls))
+    first = kenya_ui.get_kenya_live_signals_for_ui("Kenya", "All", "All")
+    second = kenya_ui.get_kenya_live_signals_for_ui("Kenya", "All", "All")
+    cache = load_render_cache(tmp_path / "render_cache.json")
+    assert first == second
+    assert "source-t1" in second[0]
+    assert cache["live_feed_html"] == first[0]
+
+
 def test_feed_diff_engine_material_change_rules():
     previous = [_signal("maize flour prices"), _signal("fuel prices")]
     assert not has_material_signal_change(previous, [_signal("maize flour prices"), _signal("fuel prices")])
     assert has_material_signal_change(previous, [_signal("fuel prices"), _signal("maize flour prices")])
     assert has_material_signal_change(previous, [_signal("maize flour prices", confidence_score=67), _signal("fuel prices")])
     assert has_material_signal_change(previous, [_signal("maize flour prices", momentum="Rising"), _signal("fuel prices")])
+    assert has_material_signal_change(previous, [_signal("maize flour prices", behavioral_intelligence_score=70), _signal("fuel prices")])
 
 
 def test_top_signal_can_be_overtaken_by_stronger_emerging_signal():

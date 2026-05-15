@@ -60,7 +60,7 @@ def test_background_service_does_not_start_duplicate_threads(monkeypatch, tmp_pa
 
 def test_gradio_timer_reads_cache_path_instead_of_collecting_directly():
     source = Path("app.py").read_text(encoding="utf-8")
-    assert "ui_timer = gr.Timer(value=1)" in source
+    assert "content_timer = gr.Timer(value=30)" in source
     assert "fn=get_kenya_live_signals_for_ui" in source
     assert "refresh_signal_cache" not in source
 
