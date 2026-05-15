@@ -88,6 +88,7 @@ def render_strategic_interpretation(signals: list[dict[str, Any]]) -> str:
         + "\n\n"
         f"**Confidence reasoning:** {top.get('confidence_reasoning', 'Confidence reflects current aggregate evidence and will adapt as memory grows.')}\n\n"
         f"**Behavioral intelligence:** {_behavioral_interpretation(top)}\n\n"
+        f"**Outcome learning:** {_outcome_learning_interpretation(top)}\n\n"
         "Food affordability pressure is not treated as important because of one isolated mention. Its importance rises when related searches, public news, price signals, and county-level recurrence persist together over time.\n\n"
         "Scores improve over time through adaptive signal memory, source agreement, validation checks, historical pattern matching, semantic clustering, prediction feedback, and analyst feedback.\n\n"
         f"**Privacy note:** {PRIVACY_NOTE}"
@@ -212,6 +213,18 @@ def _behavioral_interpretation(signal: dict[str, Any]) -> str:
         f"This is classified as {family_text}. Score {score}/100 reflects persistence {persistence}/100, "
         f"source confirmation {source}/100, geographic spread {spread}/100, and historical recurrence {recurrence}/100. {note}"
     )
+
+def _outcome_learning_interpretation(signal: dict[str, Any]) -> str:
+    status = str(signal.get("outcome_learning_status", "new"))
+    score = signal.get("historical_accuracy_score", 50)
+    note = str(signal.get("outcome_learning_note", "This type of signal is still being monitored; confidence may improve with more evidence."))
+    if status == "historically_confirmed":
+        return f"Historically, similar signals have often preceded real-world issues, pressures, or opportunities. Historical accuracy memory: {score}/100. {note}"
+    if status == "historically_weak":
+        return f"Similar past signals were not consistently confirmed, so Signal keeps the interpretation conservative. Historical accuracy memory: {score}/100. {note}"
+    return f"This type of signal is still being monitored; confidence may improve with more evidence. Historical accuracy memory: {score}/100. {note}"
+
+
 def _historical_learning_insight(signal: dict[str, Any]) -> str:
     pattern = signal.get("historical_pattern_match", "No close historical pattern yet")
     direction = signal.get("forecast_direction") or str(signal.get("predicted_direction", "stable")).title()
@@ -242,6 +255,13 @@ def _badges(signal: dict[str, Any], category: str, momentum: str) -> list[str]:
         badges.append("County spread risk")
     if signal.get("historical_pattern_match") and signal.get("historical_pattern_match") != "No close historical pattern yet":
         badges.append("Historical match")
+    outcome_status = str(signal.get("outcome_learning_status", ""))
+    if outcome_status == "historically_confirmed":
+        badges.append("Historically confirmed")
+    elif outcome_status == "historically_weak":
+        badges.append("Historically weak")
+    elif outcome_status in {"monitoring", "still_monitoring"}:
+        badges.append("Outcome monitoring")
     if float(signal.get("behavioral_intelligence_score", 0) or 0) >= 65:
         badges.append("Collective signal")
     return _dedupe_badges(badges)[:8]

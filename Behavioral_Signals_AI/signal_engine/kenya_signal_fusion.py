@@ -19,6 +19,7 @@ from Behavioral_Signals_AI.signal_engine.historical_memory import initialize_his
 from Behavioral_Signals_AI.signal_engine.kenya_context_engine import map_kenya_context
 from Behavioral_Signals_AI.signal_engine.kenya_interpretation_engine import interpret_kenya_signal
 from Behavioral_Signals_AI.signal_engine.monthly_learning_engine import summarize_monthly_patterns
+from Behavioral_Signals_AI.signal_engine.outcome_learning_engine import apply_outcome_learning
 from Behavioral_Signals_AI.signal_engine.predictive_signal_engine import predict_signal_evolution
 from Behavioral_Signals_AI.signal_engine.semantic_intelligence import cluster_related_records, detect_latent_themes
 from Behavioral_Signals_AI.signal_engine.signal_classifier import classify_topic
@@ -114,6 +115,7 @@ def fuse_kenya_signals(location: str = "Kenya", category: str = "All", urgency: 
         signal = apply_historical_adaptation(signal)
         signal = update_behavioral_learning(signal, [], count_appearance=False)
         signal = add_historical_forecast(signal)
+        signal = apply_outcome_learning(signal)
         signal["confidence_reasoning"] = _confidence_reasoning(signal, related)
         signal["demand_level"] = _level(float(signal.get("demand_intelligence_score", signal.get("priority_score", 50))))
         signal["opportunity_level"] = _level(float(signal.get("opportunity_intelligence_score", signal.get("priority_score", 50))))
@@ -318,6 +320,10 @@ def _confidence_reasoning(signal: dict[str, Any], related: list[dict[str, Any]])
         reasons.append("similar historical patterns were found")
     if float(signal.get("behavioral_intelligence_score", 0)) >= 65:
         reasons.append("repeated collective behavior raised the behavioral intelligence score")
+    if signal.get("outcome_learning_status") == "historically_confirmed":
+        reasons.append("similar past signals were confirmed by later aggregate outcomes")
+    elif signal.get("outcome_learning_status") == "historically_weak":
+        reasons.append("similar past signals were not consistently confirmed, so confidence is conservative")
     if not reasons:
         reasons.append("current aggregate evidence is active but still developing")
     return "Confidence adjusted because " + "; ".join(reasons) + "."
