@@ -136,3 +136,7 @@ Behavioral_Signals_AI/data/prediction_memory/*.jsonl
 Behavioral_Signals_AI/data/prediction_memory/*.csv
 Behavioral_Signals_AI/data/prediction_memory/*.json
 !Behavioral_Signals_AI/data/prediction_memory/.gitkeep
+# Behavioral Signals AI processed runtime outputs
+Behavioral_Signals_AI/outputs/topical_signals.json
+Behavioral_Signals_AI/outputs/*.json
+!Behavioral_Signals_AI/outputs/.gitkeep

@@ -69,6 +69,23 @@ except Exception:
         return f"Showing {len(analyses)} aggregate trend signals for {location}."
 
 try:
+    from Behavioral_Signals_AI.signal_engine import get_topical_signals_for_ui as _engine_get_topical_signals_for_ui
+except Exception:
+    def _engine_get_topical_signals_for_ui(location: str = "Kenya", category: str = "All", demand_level: str = "All", urgency: str = "All") -> tuple[str, str]:
+        timestamp = datetime.now(UTC).isoformat()
+        feed = (
+            "<div class='signal-feed-container'><div class='signal-feed-inner'>"
+            "<article class='signal-card'><div class='signal-card-topic'>Kenya aggregate demand signal</div>"
+            "<div class='signal-card-category'>other</div>"
+            "<div class='signal-card-grid'><span><strong>Demand</strong>Moderate</span><span><strong>Opportunity</strong>Moderate</span>"
+            "<span><strong>Unmet need</strong>Medium</span><span><strong>Urgency</strong>Medium</span>"
+            "<span><strong>Scope</strong>Kenya-wide</span><span><strong>Confidence</strong>50%</span></div>"
+            "<p>Monitor aggregate public signals and validate demand with authorized data.</p>"
+            f"<div class='signal-card-time'>Last updated: {timestamp}</div></article>"
+            "</div></div>"
+        )
+        return feed, f"### Signal Interpretation & Opportunity\n\nAggregate topical signal monitoring is available.\n\n**Privacy note:** {PRIVACY_NOTICE}"
+try:
     from Behavioral_Signals_AI.backend import run_behavioral_intelligence_pipeline
 except Exception:
     def run_behavioral_intelligence_pipeline(trends: list[dict[str, Any]]) -> dict[str, Any]:
@@ -110,7 +127,7 @@ except Exception:
                 "tweet_volume": 1000 + index * 250,
                 "location": location,
                 "fetched_at": datetime.now(UTC).isoformat(),
-                "source": "Demo fallback",
+                "source": "Sample aggregate intelligence",
             }
             for index, topic in enumerate(topics[: int(limit)])
         ]
@@ -118,10 +135,10 @@ except Exception:
     def fetch_trends_from_router(location: str = "Kenya", limit: int = 5):
         class _FallbackResult:
             records = get_demo_trends(location, limit)
-            source_label = "Demo fallback"
+            source_label = "Sample aggregate intelligence"
             is_live = False
             warnings = []
-            status = type("Status", (), {"message": "Demo fallback active."})()
+            status = type("Status", (), {"message": "Sample aggregate intelligence active."})()
         return _FallbackResult()
 
 
@@ -260,6 +277,100 @@ SIGNAL_DASHBOARD_CSS = """
     color: #64748b;
     font-size: 12px;
     margin-top: 10px;
+}
+.signal-feed-container {
+    height: 420px;
+    overflow: hidden;
+    position: relative;
+    border-radius: 14px;
+    border: 1px solid rgba(148, 163, 184, 0.35);
+    background: linear-gradient(180deg, rgba(15, 23, 42, 0.04), rgba(15, 23, 42, 0.015));
+    padding: 12px;
+}
+.signal-feed-inner {
+    animation: scrollSignalsUp 35s linear infinite;
+}
+.signal-feed-container:hover .signal-feed-inner {
+    animation-play-state: paused;
+}
+@keyframes scrollSignalsUp {
+    0% { transform: translateY(30%); }
+    100% { transform: translateY(-60%); }
+}
+.signal-card {
+    border-radius: 14px;
+    padding: 14px;
+    margin-bottom: 12px;
+    background: rgba(255, 255, 255, 0.88);
+    border: 1px solid rgba(148, 163, 184, 0.35);
+    box-shadow: 0 10px 28px rgba(15, 23, 42, 0.08);
+    color: #0f172a;
+}
+.signal-card-topic {
+    font-size: 16px;
+    font-weight: 850;
+    color: #0f172a;
+}
+.signal-card-category {
+    display: inline-block;
+    margin-top: 6px;
+    margin-bottom: 10px;
+    border-radius: 999px;
+    padding: 4px 9px;
+    background: rgba(20, 184, 166, 0.12);
+    color: #0f766e;
+    font-size: 12px;
+    font-weight: 750;
+}
+.signal-card-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 8px;
+}
+.signal-card-grid span {
+    border: 1px solid rgba(148, 163, 184, 0.28);
+    border-radius: 10px;
+    padding: 8px;
+    background: rgba(248, 250, 252, 0.82);
+    font-size: 13px;
+}
+.signal-card-grid strong {
+    display: block;
+    color: #64748b;
+    font-size: 11px;
+    text-transform: uppercase;
+    margin-bottom: 3px;
+}
+.signal-card p {
+    color: #334155;
+    font-size: 13px;
+    line-height: 1.45;
+    margin: 10px 0 0;
+}
+.signal-card-time {
+    color: #64748b;
+    font-size: 12px;
+    margin-top: 10px;
+}
+.signal-privacy-note {
+    border: 1px solid rgba(20, 184, 166, 0.25);
+    border-radius: 12px;
+    background: rgba(20, 184, 166, 0.08);
+    color: #115e59;
+    padding: 10px 12px;
+    font-size: 13px;
+    margin: 8px 0 14px;
+}
+@media (prefers-color-scheme: dark) {
+    .signal-card {
+        background: rgba(15, 23, 42, 0.86);
+        border-color: rgba(148, 163, 184, 0.28);
+        color: #e2e8f0;
+    }
+    .signal-card-topic { color: #f8fafc; }
+    .signal-card-grid span { background: rgba(30, 41, 59, 0.82); }
+    .signal-card p { color: #cbd5e1; }
+    .signal-privacy-note { color: #ccfbf1; }
 }
 """
 
@@ -928,6 +1039,12 @@ def _utc_timestamp() -> str:
     return datetime.now(UTC).strftime("%Y-%m-%d %H:%M UTC")
 
 
+
+def get_topical_signals_for_ui(location: str = "Kenya", category: str = "All", demand_level: str = "All", urgency: str = "All") -> tuple[str, str]:
+    """Return processed topical signal cards and interpretation for the public UI."""
+    return _engine_get_topical_signals_for_ui(location or "Kenya", category or "All", demand_level or "All", urgency or "All")
+
+
 def _build_hidden_trends_frame(raw_frame: pd.DataFrame, intelligence_frame: pd.DataFrame) -> pd.DataFrame:
     if raw_frame.empty:
         raw_frame = pd.DataFrame(get_demo_trends("Kenya", limit=5))
@@ -981,7 +1098,7 @@ def _trend_mode_label(records: list[dict[str, Any]]) -> tuple[str, str]:
     sources = " ".join(str(record.get("source", "")) for record in records).lower()
     platforms = " ".join(str(record.get("platform", "")) for record in records).lower()
     if "demo" in sources or "demo" in platforms:
-        return "Demo fallback", "signal-trend-mode-demo"
+        return "Sample aggregate intelligence", "signal-trend-mode-demo"
     return "Live Kenya signals", "signal-trend-mode-live"
 
 
@@ -1351,98 +1468,76 @@ with gr.Blocks(title="Signal AI Dashboard", css=SIGNAL_DASHBOARD_CSS) as demo:
     gr.Markdown("Behavioral intelligence and AI-native CGE simulation for policy analysis.")
 
     with gr.Tab("Behavioral Signals AI"):
-        gr.Markdown(_behavioral_section_intro())
+        gr.Markdown(
+            "## Behavioral Signals AI\n"
+            "Auto-updating privacy-preserving intelligence on emerging demand, unmet needs, market pressure, and policy opportunities."
+        )
+        gr.HTML(
+            "<div class='signal-privacy-note'>"
+            "Signal uses aggregate, anonymized, public, or user-authorized data sources. "
+            "It does not identify, track, or profile individuals."
+            "</div>"
+        )
         with gr.Accordion("How to Use Signal", open=False):
             gr.Markdown(_how_to_use_signal_markdown())
         with gr.Accordion("Model Interpretation Guide", open=False):
             gr.Markdown(_model_interpretation_markdown())
 
-        gr.Markdown("### Behavioral Demand Prediction")
         with gr.Row():
-            with gr.Column():
-                likes = gr.Number(label="Likes", value=120, precision=0)
-                comments = gr.Number(label="Comments", value=35, precision=0)
-                shares = gr.Number(label="Shares", value=24, precision=0)
-                searches = gr.Number(label="Searches", value=160, precision=0)
-                engagement_intensity = gr.Slider(0, 1, value=0.55, label="Engagement Intensity")
-                purchase_intent_score = gr.Slider(0, 1, value=0.7, label="Purchase Intent Score")
-                trend_growth = gr.Slider(0, 1, value=0.35, label="Trend Growth")
-                predict_button = gr.Button("Predict Demand")
+            location_filter = gr.Dropdown(label="Location", choices=["Kenya", "Nairobi", "Global"], value="Kenya")
+            category_filter = gr.Dropdown(
+                label="Category",
+                choices=[
+                    "All",
+                    "Ceramics",
+                    "food and agriculture",
+                    "jobs and labour market",
+                    "housing",
+                    "health",
+                    "transport",
+                    "energy",
+                    "technology",
+                    "education",
+                    "finance",
+                    "public services",
+                    "climate and environment",
+                    "other",
+                ],
+                value="All",
+            )
+            demand_filter = gr.Dropdown(label="Demand level", choices=["All", "High", "Moderate", "Low"], value="All")
+            urgency_filter = gr.Dropdown(label="Urgency", choices=["All", "High", "Medium", "Low"], value="All")
 
-            with gr.Column():
-                demand_output = gr.Textbox(label="Demand Classification", interactive=False)
-                confidence_output = gr.Number(label="Confidence Score (%)", interactive=False)
-                aggregate_output = gr.Number(label="Aggregate Demand Score", interactive=False)
-                opportunity_output = gr.Number(label="Opportunity Score", interactive=False)
-                interpretation_output = gr.Textbox(label="Investment / Policy Interpretation", lines=2, interactive=False)
-                why_matters_output = gr.Textbox(label="Why This Matters", lines=4, interactive=False)
+        with gr.Row():
+            with gr.Column(scale=3):
+                gr.Markdown("### Live Signal Feed")
+                signal_feed_html = gr.HTML(label="Live Signal Feed")
+            with gr.Column(scale=2):
+                signal_interpretation = gr.Markdown(label="Signal Interpretation & Opportunity")
 
-        emerging_output = gr.Number(label="Emerging Trend Probability (%)", interactive=False, visible=False)
-        unmet_output = gr.Number(label="Unmet Demand Probability (%)", interactive=False, visible=False)
-        source_output = gr.Textbox(label="Model Source and Explanation", lines=16, interactive=False, visible=False)
-        signal_strength_output = gr.Number(label="Signal Strength Score", interactive=False, visible=False)
-        momentum_score_output = gr.Number(label="Momentum Score", interactive=False, visible=False)
-        volatility_output = gr.Number(label="Volatility / Noise Score", interactive=False, visible=False)
-        persistence_output = gr.Number(label="Persistence Score", interactive=False, visible=False)
-        adoption_output = gr.Number(label="Adoption Probability", interactive=False, visible=False)
-        viral_output = gr.Number(label="Viral Probability", interactive=False, visible=False)
-        confidence_gauge_output = gr.HTML(label="Confidence Gauge", visible=False)
-        signal_strength_gauge_output = gr.HTML(label="Signal Strength Gauge", visible=False)
-        momentum_indicator_output = gr.HTML(label="Trend Momentum Indicator", visible=False)
-        opportunity_radar_output = gr.HTML(label="Opportunity Radar Chart", visible=False)
-        key_driver_cards_output = gr.HTML(label="Key Driver Summary Cards", visible=False)
-        live_inputs = [
-            likes,
-            comments,
-            shares,
-            searches,
-            engagement_intensity,
-            purchase_intent_score,
-            trend_growth,
-        ]
-        live_outputs = [
-            demand_output,
-            confidence_output,
-            aggregate_output,
-            opportunity_output,
-            emerging_output,
-            unmet_output,
-            interpretation_output,
-            source_output,
-            signal_strength_output,
-            momentum_score_output,
-            volatility_output,
-            persistence_output,
-            adoption_output,
-            viral_output,
-            why_matters_output,
-            confidence_gauge_output,
-            signal_strength_gauge_output,
-            momentum_indicator_output,
-            opportunity_radar_output,
-            key_driver_cards_output,
-        ]
-
-        for input_component in live_inputs:
-            input_component.change(
-                fn=update_behavioral_dashboard,
-                inputs=live_inputs,
-                outputs=live_outputs,
+        feed_inputs = [location_filter, category_filter, demand_filter, urgency_filter]
+        feed_outputs = [signal_feed_html, signal_interpretation]
+        for filter_component in feed_inputs:
+            filter_component.change(
+                fn=get_topical_signals_for_ui,
+                inputs=feed_inputs,
+                outputs=feed_outputs,
                 show_api=False,
             )
-        predict_button.click(
-            fn=update_behavioral_dashboard,
-            inputs=live_inputs,
-            outputs=live_outputs,
-            show_api=False,
-        )
         demo.load(
-            fn=update_behavioral_dashboard,
-            inputs=live_inputs,
-            outputs=live_outputs,
+            fn=get_topical_signals_for_ui,
+            inputs=feed_inputs,
+            outputs=feed_outputs,
             show_api=False,
         )
-
+        if hasattr(gr, "Timer"):
+            signal_feed_timer = gr.Timer(value=15)
+            signal_feed_timer.tick(
+                fn=get_topical_signals_for_ui,
+                inputs=feed_inputs,
+                outputs=feed_outputs,
+                show_api=False,
+            )
     with gr.Tab("Signal CGE"):
         gr.Markdown(
             "## Signal CGE\n"
