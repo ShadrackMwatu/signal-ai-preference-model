@@ -69,9 +69,9 @@ except Exception:
         return f"Showing {len(analyses)} aggregate trend signals for {location}."
 
 try:
-    from Behavioral_Signals_AI.signal_engine import get_topical_signals_for_ui as _engine_get_topical_signals_for_ui
+    from Behavioral_Signals_AI.signal_engine import get_kenya_live_signals_for_ui as _engine_get_kenya_live_signals_for_ui
 except Exception:
-    def _engine_get_topical_signals_for_ui(location: str = "Kenya", category: str = "All", demand_level: str = "All", urgency: str = "All") -> tuple[str, str]:
+    def _engine_get_kenya_live_signals_for_ui(location: str = "Kenya", category: str = "All", urgency: str = "All") -> tuple[str, str, str]:
         timestamp = datetime.now(UTC).isoformat()
         feed = (
             "<div class='signal-feed-container'><div class='signal-feed-inner'>"
@@ -84,7 +84,7 @@ except Exception:
             f"<div class='signal-card-time'>Last updated: {timestamp}</div></article>"
             "</div></div>"
         )
-        return feed, f"### Signal Interpretation & Opportunity\n\nAggregate topical signal monitoring is available.\n\n**Privacy note:** {PRIVACY_NOTICE}"
+        return feed, "<div class='signal-emerging'><h3>Emerging Kenya Signals</h3><p>Sample aggregate signal monitoring is active.</p></div>", f"### Signal Interpretation & Opportunity\n\nAggregate Kenya signal monitoring is available.\n\n**Privacy note:** {PRIVACY_NOTICE}"
 try:
     from Behavioral_Signals_AI.backend import run_behavioral_intelligence_pipeline
 except Exception:
@@ -360,6 +360,26 @@ SIGNAL_DASHBOARD_CSS = """
     padding: 10px 12px;
     font-size: 13px;
     margin: 8px 0 14px;
+}
+.signal-emerging {
+    border: 1px solid rgba(148, 163, 184, 0.28);
+    border-radius: 14px;
+    padding: 14px 16px;
+    background: rgba(248, 250, 252, 0.82);
+    margin-bottom: 12px;
+    color: #0f172a;
+}
+.signal-emerging h3 {
+    margin: 0 0 8px;
+    font-size: 16px;
+}
+.signal-emerging ul {
+    margin: 0;
+    padding-left: 18px;
+}
+.signal-emerging li {
+    margin-bottom: 8px;
+    line-height: 1.4;
 }
 @media (prefers-color-scheme: dark) {
     .signal-card {
@@ -1040,9 +1060,9 @@ def _utc_timestamp() -> str:
 
 
 
-def get_topical_signals_for_ui(location: str = "Kenya", category: str = "All", demand_level: str = "All", urgency: str = "All") -> tuple[str, str]:
-    """Return processed topical signal cards and interpretation for the public UI."""
-    return _engine_get_topical_signals_for_ui(location or "Kenya", category or "All", demand_level or "All", urgency or "All")
+def get_kenya_live_signals_for_ui(location_filter: str = "Kenya", category_filter: str = "All", urgency_filter: str = "All") -> tuple[str, str, str]:
+    """Return Kenya-aware signal feed, emerging signal HTML, and interpretation."""
+    return _engine_get_kenya_live_signals_for_ui(location_filter or "Kenya", category_filter or "All", urgency_filter or "All")
 
 
 def _build_hidden_trends_frame(raw_frame: pd.DataFrame, intelligence_frame: pd.DataFrame) -> pd.DataFrame:
@@ -1505,7 +1525,6 @@ with gr.Blocks(title="Signal AI Dashboard", css=SIGNAL_DASHBOARD_CSS) as demo:
                 ],
                 value="All",
             )
-            demand_filter = gr.Dropdown(label="Demand level", choices=["All", "High", "Moderate", "Low"], value="All")
             urgency_filter = gr.Dropdown(label="Urgency", choices=["All", "High", "Medium", "Low"], value="All")
 
         with gr.Row():
@@ -1513,27 +1532,28 @@ with gr.Blocks(title="Signal AI Dashboard", css=SIGNAL_DASHBOARD_CSS) as demo:
                 gr.Markdown("### Live Signal Feed")
                 signal_feed_html = gr.HTML(label="Live Signal Feed")
             with gr.Column(scale=2):
+                emerging_signals_html = gr.HTML(label="Emerging Signals")
                 signal_interpretation = gr.Markdown(label="Signal Interpretation & Opportunity")
 
-        feed_inputs = [location_filter, category_filter, demand_filter, urgency_filter]
-        feed_outputs = [signal_feed_html, signal_interpretation]
+        feed_inputs = [location_filter, category_filter, urgency_filter]
+        feed_outputs = [signal_feed_html, emerging_signals_html, signal_interpretation]
         for filter_component in feed_inputs:
             filter_component.change(
-                fn=get_topical_signals_for_ui,
+                fn=get_kenya_live_signals_for_ui,
                 inputs=feed_inputs,
                 outputs=feed_outputs,
                 show_api=False,
             )
         demo.load(
-            fn=get_topical_signals_for_ui,
+            fn=get_kenya_live_signals_for_ui,
             inputs=feed_inputs,
             outputs=feed_outputs,
             show_api=False,
         )
         if hasattr(gr, "Timer"):
-            signal_feed_timer = gr.Timer(value=15)
+            signal_feed_timer = gr.Timer(value=45)
             signal_feed_timer.tick(
-                fn=get_topical_signals_for_ui,
+                fn=get_kenya_live_signals_for_ui,
                 inputs=feed_inputs,
                 outputs=feed_outputs,
                 show_api=False,

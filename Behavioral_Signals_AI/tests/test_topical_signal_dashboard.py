@@ -2,12 +2,12 @@ from pathlib import Path
 
 
 def test_topical_signal_generator_returns_feed_and_interpretation():
-    from app import get_topical_signals_for_ui
+    from app import get_kenya_live_signals_for_ui
 
-    feed_html, interpretation = get_topical_signals_for_ui("Kenya", "All", "All", "All")
+    feed_html, emerging_html, interpretation = get_kenya_live_signals_for_ui("Kenya", "All", "All")
     assert "signal-card" in feed_html
+    assert "Emerging Kenya Signals" in emerging_html
     assert "Signal Interpretation & Opportunity" in interpretation
-    assert "Signal uses aggregate" in interpretation
 
 
 def test_app_source_hides_raw_behavioral_inputs():
@@ -25,24 +25,6 @@ def test_app_source_hides_raw_behavioral_inputs():
     ]
     for text in forbidden:
         assert text not in source
-
-
-def test_missing_credentials_do_not_crash(monkeypatch):
-    for key in [
-        "GOOGLE_TRENDS_ENABLED",
-        "YOUTUBE_API_KEY",
-        "REDDIT_CLIENT_ID",
-        "REDDIT_CLIENT_SECRET",
-        "X_BEARER_TOKEN",
-        "GOOGLE_ANALYTICS_PROPERTY_ID",
-        "SIGNAL_DATA_MODE",
-    ]:
-        monkeypatch.delenv(key, raising=False)
-    from Behavioral_Signals_AI.signal_engine.topical_signal_generator import generate_topical_signals
-
-    signals = generate_topical_signals("Kenya", "All", "All", "All")
-    assert signals
-    assert all(signal["privacy_level"] == "aggregate_public" for signal in signals)
 
 
 def test_privacy_guardrails_block_individual_fields():

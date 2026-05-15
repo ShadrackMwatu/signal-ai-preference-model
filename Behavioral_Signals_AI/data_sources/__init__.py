@@ -1,3 +1,5 @@
-"""Legitimate aggregate or user-authorized signal source connectors."""
+"""Kenya-aware aggregate/public data source connectors."""
 
-__all__ = []
+from .fallback_sample_source import collect as collect_sample_signals
+
+__all__ = ["collect_sample_signals"]
