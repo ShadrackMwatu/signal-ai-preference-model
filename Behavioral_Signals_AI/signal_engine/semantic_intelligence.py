@@ -7,6 +7,8 @@ from collections import Counter, defaultdict
 from difflib import SequenceMatcher
 from typing import Any
 
+from Behavioral_Signals_AI.llm.semantic_clusterer import llm_cluster_label
+
 THEME_SYNONYMS = {
     "Affordable smartphone demand": ["cheap smartphone", "budget android", "affordable smartphone", "phone prices", "low cost phone"],
     "Food affordability pressure": ["maize flour", "unga", "food prices", "flour prices", "maize prices"],
@@ -106,9 +108,13 @@ def _tokens(topic: str) -> list[str]:
     return [token for token in cleaned.split() if token]
 
 def cluster_related_records(records: list[dict[str, Any]], threshold: float = 0.62) -> dict[str, list[dict[str, Any]]]:
-    """Group normalized source records by semantic theme."""
+    """Group normalized source records by semantic theme, optionally refined by LLM labels."""
     clusters = cluster_related_topics(records, threshold=threshold)
-    return {cluster["semantic_cluster"]: list(cluster["signals"]) for cluster in clusters}
+    grouped: dict[str, list[dict[str, Any]]] = {}
+    for cluster in clusters:
+        label = llm_cluster_label(list(cluster["signals"]), str(cluster["semantic_cluster"]))
+        grouped[label] = list(cluster["signals"])
+    return grouped
 
 
 def detect_latent_themes(records: list[dict[str, Any]] | list[str]) -> list[str]:

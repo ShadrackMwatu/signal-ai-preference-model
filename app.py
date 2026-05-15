@@ -1599,7 +1599,8 @@ with gr.Blocks(title="Signal AI Dashboard", css=SIGNAL_DASHBOARD_CSS) as demo:
         gr.HTML(
             "<div class='signal-privacy-note'>"
             "Signal uses aggregate, anonymized, public, or user-authorized data sources. "
-            "It does not identify, track, or profile individuals."
+            "It does not identify, track, or profile individuals. "
+            "Interpretations are AI-assisted and based on aggregate signal patterns, historical learning, and source validation."
             "</div>"
         )
         with gr.Accordion("How to Use Signal", open=False):

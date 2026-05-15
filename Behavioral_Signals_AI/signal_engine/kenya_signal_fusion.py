@@ -7,6 +7,7 @@ from typing import Any
 
 from Behavioral_Signals_AI.data_sources import cbk_source, fallback_sample_source, google_trends_kenya, kenya_news_source, kilimostat_source, knbs_source, wfp_food_prices_source, worldbank_food_prices_source
 from Behavioral_Signals_AI.data_sources import cbk_macro_signals, food_price_monitor, kilimostat_agriculture_source, knbs_indicator_source, reddit_public_kenya, youtube_public_trends
+from Behavioral_Signals_AI.llm.signal_interpreter import interpret_signal_with_llm
 from Behavioral_Signals_AI.privacy import sanitize_aggregate_record
 from Behavioral_Signals_AI.signal_engine.adaptive_learning_engine import adapt_signal_scores, load_cluster_memory, load_feedback, update_signal_memory
 from Behavioral_Signals_AI.signal_engine.behavioral_learning_engine import update_behavioral_learning
@@ -116,6 +117,7 @@ def fuse_kenya_signals(location: str = "Kenya", category: str = "All", urgency: 
         signal = update_behavioral_learning(signal, [], count_appearance=False)
         signal = add_historical_forecast(signal)
         signal = apply_outcome_learning(signal)
+        signal.update(_llm_interpretation_fields(signal))
         signal["confidence_reasoning"] = _confidence_reasoning(signal, related)
         signal["demand_level"] = _level(float(signal.get("demand_intelligence_score", signal.get("priority_score", 50))))
         signal["opportunity_level"] = _level(float(signal.get("opportunity_intelligence_score", signal.get("priority_score", 50))))
@@ -142,6 +144,33 @@ def fuse_kenya_signals(location: str = "Kenya", category: str = "All", urgency: 
     save_signal_memory(filtered)
     return filtered
 
+
+def _llm_interpretation_fields(signal: dict[str, Any]) -> dict[str, Any]:
+    try:
+        interpretation = interpret_signal_with_llm(signal)
+    except Exception as exc:
+        interpretation = {
+            "plain_language_meaning": signal.get("probable_meaning", "Aggregate signal interpretation is active."),
+            "economic_interpretation": signal.get("economic_or_social_pressure", "Aggregate evidence is still developing."),
+            "opportunity_interpretation": signal.get("business_opportunity", "Monitor and validate the opportunity."),
+            "policy_implication": signal.get("policy_implication", "Use aggregate monitoring for policy validation."),
+            "recommended_action": signal.get("recommended_action", "Monitor persistence and source agreement."),
+            "risk_note": f"LLM interpretation failed safely and rule-based interpretation was retained: {exc}",
+            "llm_mode": "rule_based_fallback",
+        }
+    return {
+        "plain_language_meaning": interpretation.get("plain_language_meaning", ""),
+        "economic_interpretation": interpretation.get("economic_interpretation", ""),
+        "opportunity_interpretation": interpretation.get("opportunity_interpretation", signal.get("opportunity_interpretation", "")),
+        "policy_implication": interpretation.get("policy_implication", signal.get("policy_implication", "")),
+        "recommended_action": interpretation.get("recommended_action") or signal.get("recommended_action") or "Monitor persistence and source agreement.",
+        "risk_note": interpretation.get("risk_note", "Interpret only as aggregate intelligence."),
+        "llm_mode": interpretation.get("llm_mode", "rule_based_fallback"),
+        "llm_input_privacy": interpretation.get("llm_input_privacy", "aggregate_sanitized"),
+        "llm_warning": interpretation.get("llm_warning", ""),
+        "interpretation": interpretation.get("plain_language_meaning") or signal.get("interpretation", ""),
+        "business_opportunity": interpretation.get("opportunity_interpretation") or signal.get("business_opportunity", ""),
+    }
 
 def _normalize_records(raw_records: list[dict[str, Any]]) -> list[dict[str, Any]]:
     records: list[dict[str, Any]] = []

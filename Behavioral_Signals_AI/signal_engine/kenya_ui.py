@@ -109,6 +109,7 @@ def render_strategic_interpretation(signals: list[dict[str, Any]]) -> str:
         f"**Confidence reasoning:** {top.get('confidence_reasoning', 'Confidence reflects current aggregate evidence and will adapt as memory grows.')}\n\n"
         f"**Behavioral intelligence:** {_behavioral_interpretation(top)}\n\n"
         f"**Outcome learning:** {_outcome_learning_interpretation(top)}\n\n"
+        "**AI-assisted interpretation note:** Interpretations are AI-assisted and based on aggregate signal patterns, historical learning, and source validation.\n\n"
         "Food affordability pressure is not treated as important because of one isolated mention. Its importance rises when related searches, public news, price signals, and county-level recurrence persist together over time.\n\n"
         "Scores improve over time through adaptive signal memory, source agreement, validation checks, historical pattern matching, semantic clustering, prediction feedback, and analyst feedback.\n\n"
         f"**Privacy note:** {PRIVACY_NOTE}"
