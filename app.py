@@ -29,6 +29,7 @@ for _mpl_candidate in [
         continue
 
 import gradio as gr
+from Behavioral_Signals_AI.geography.county_matcher import county_dropdown_choices
 
 from app_routes.behavioral_route import run_behavioral_signal_prediction
 from app_routes.signal_cge_route import (
@@ -1609,7 +1610,7 @@ with gr.Blocks(title="Signal AI Dashboard", css=SIGNAL_DASHBOARD_CSS) as demo:
             gr.Markdown(_model_interpretation_markdown())
 
         with gr.Row():
-            location_filter = gr.Dropdown(label="Location", choices=["Kenya", "Nairobi", "Global"], value="Kenya")
+            location_filter = gr.Dropdown(label="Location", choices=county_dropdown_choices(), value="Kenya")
             category_filter = gr.Dropdown(
                 label="Category",
                 choices=[

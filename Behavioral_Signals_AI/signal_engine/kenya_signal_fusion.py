@@ -7,6 +7,7 @@ from typing import Any
 
 from Behavioral_Signals_AI.data_sources import cbk_source, fallback_sample_source, google_trends_kenya, kenya_news_source, kilimostat_source, knbs_source, wfp_food_prices_source, worldbank_food_prices_source
 from Behavioral_Signals_AI.data_sources import cbk_macro_signals, food_price_monitor, kilimostat_agriculture_source, knbs_indicator_source, reddit_public_kenya, youtube_public_trends
+from Behavioral_Signals_AI.geography.county_matcher import detect_county_from_text
 from Behavioral_Signals_AI.llm.signal_interpreter import interpret_signal_with_llm
 from Behavioral_Signals_AI.mobility_intelligence.place_activity_refresh import refresh_place_activity
 from Behavioral_Signals_AI.mobility_intelligence.signal_fusion import fuse_mobility_with_live_signals
@@ -16,6 +17,7 @@ from Behavioral_Signals_AI.signal_engine.behavioral_learning_engine import updat
 from Behavioral_Signals_AI.signal_engine.continuous_improvement import improve_after_refresh
 from Behavioral_Signals_AI.signal_engine.daily_learning_engine import summarize_daily_signals
 from Behavioral_Signals_AI.signal_engine.early_warning_engine import classify_early_warning
+from Behavioral_Signals_AI.signal_engine.geospatial_learning import update_geospatial_learning
 from Behavioral_Signals_AI.signal_engine.historical_adaptation_engine import apply_historical_adaptation
 from Behavioral_Signals_AI.signal_engine.historical_forecasting_engine import add_historical_forecast, persist_forecasts
 from Behavioral_Signals_AI.signal_engine.historical_memory import initialize_history_stores
@@ -44,11 +46,7 @@ KENYA_CATEGORIES = [
 
 
 def detect_county(text: str) -> str:
-    lower = str(text or "").lower()
-    for county in KENYA_COUNTIES:
-        if county.lower() in lower:
-            return county
-    return "Kenya-wide"
+    return detect_county_from_text(text).get("geographic_scope", "Kenya-wide")
 
 
 def collect_kenya_source_records(location: str = "Kenya", limit: int = 12) -> list[dict[str, Any]]:
@@ -120,6 +118,7 @@ def fuse_kenya_signals(location: str = "Kenya", category: str = "All", urgency: 
         signal = add_historical_forecast(signal)
         signal = apply_outcome_learning(signal)
         signal.update(_llm_interpretation_fields(signal))
+        signal = update_geospatial_learning(signal)
         signal["confidence_reasoning"] = _confidence_reasoning(signal, related)
         signal["demand_level"] = _level(float(signal.get("demand_intelligence_score", signal.get("priority_score", 50))))
         signal["opportunity_level"] = _level(float(signal.get("opportunity_intelligence_score", signal.get("priority_score", 50))))
@@ -208,7 +207,8 @@ def _fuse_group(semantic_topic: str, group: list[dict[str, Any]], legacy_memory:
     source_topics = sorted({str(item.get("topic", "Kenya signal")) for item in group if item.get("topic")})
     topic_text = " ".join(source_topics) or semantic_topic
     signal_category = _kenya_category(topic_text, str(base.get("category", "other")))
-    county = detect_county(topic_text)
+    county_info = detect_county_from_text(topic_text)
+    county = county_info.get("geographic_scope", "Kenya-wide")
     source_count = len({str(item.get("source_type", "aggregate_public")) for item in group})
     search_growth = _avg(group, "growth_signal")
     news_frequency = 65.0 if any("news" in str(item.get("source_type", "")) for item in group) else 42.0
@@ -238,6 +238,12 @@ def _fuse_group(semantic_topic: str, group: list[dict[str, Any]], legacy_memory:
         "unmet_demand_likelihood": _unmet_level(price_pressure, urgency_score),
         "urgency": _urgency(urgency_score),
         "geographic_scope": county,
+        "county_name": county_info.get("county_name", "Kenya-wide"),
+        "county_code": county_info.get("county_code", ""),
+        "spread_risk": "Moderate" if county != "Kenya-wide" else "Low",
+        "forecast_direction": _momentum(search_growth, priority).replace("Breakout", "Rising"),
+        "geospatial_insight": f"{county} aggregate evidence is being monitored for localized demand, stress, or opportunity.",
+        "ml_rank_score": round(priority, 2),
         "source_summary": source_summary,
         "confidence_score": round(min(96.0, 38.0 + priority * 0.36 + multi_source * 0.10 + quality_score * 0.12), 1),
         "last_updated": str(base.get("timestamp") or datetime.now(UTC).isoformat()),

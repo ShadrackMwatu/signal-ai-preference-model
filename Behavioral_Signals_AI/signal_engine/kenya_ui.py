@@ -5,6 +5,7 @@ from __future__ import annotations
 from html import escape
 from typing import Any
 
+from Behavioral_Signals_AI.geography.county_matcher import canonical_county_name, signal_matches_location
 from Behavioral_Signals_AI.privacy import PRIVACY_NOTE
 from Behavioral_Signals_AI.signal_engine.signal_cache import get_cached_or_fallback_signals
 from Behavioral_Signals_AI.ui.feed_diff_engine import clear_render_cache, get_cached_rendered_outputs, rank_signals_for_display, save_rendered_outputs, signal_signature
@@ -25,9 +26,15 @@ def get_kenya_live_signals_for_ui(location_filter: str = "Kenya", category_filte
     reads latest_live_signals.json and renders processed cards.
     """
     payload = get_cached_or_fallback_signals()
-    signals = _filter_signals(list(payload.get("signals", [])), location_filter or "Kenya", category_filter or "All", urgency_filter or "All")
+    all_signals = list(payload.get("signals", []))
+    signals = _filter_signals(all_signals, location_filter or "Kenya", category_filter or "All", urgency_filter or "All")
     if not signals:
-        signals = list(payload.get("signals", []))
+        signals = _filter_signals(
+            _kenya_wide_fallback(all_signals, location_filter or "Kenya"),
+            "Kenya",
+            category_filter or "All",
+            urgency_filter or "All",
+        )
     if not signals:
         signals = [_friendly_empty_signal()]
     signals = rank_signals_for_display(signals)
@@ -136,13 +143,19 @@ def _filter_signals(signals: list[dict[str, Any]], location: str, category: str,
         if urgency != "All" and str(signal.get("urgency", "")).lower() != urgency.lower():
             continue
         if location not in {"", "All", "Kenya", "Global"}:
-            scope = str(signal.get("geographic_scope", "")).lower()
-            topic = str(signal.get("signal_topic", "")).lower()
-            if location.lower() not in scope and location.lower() not in topic:
+            if not signal_matches_location(signal, location):
                 continue
         output.append(signal)
     return output
 
+
+def _kenya_wide_fallback(signals: list[dict[str, Any]], location: str) -> list[dict[str, Any]]:
+    if location in {"", "All", "Kenya", "Global"}:
+        return signals
+    county = canonical_county_name(location)
+    if not county:
+        return [signal for signal in signals if str(signal.get("geographic_scope", "Kenya-wide")) == "Kenya-wide"] or signals
+    return [signal for signal in signals if str(signal.get("geographic_scope", "Kenya-wide")) == "Kenya-wide"]
 
 def _friendly_empty_signal() -> dict[str, Any]:
     return {
@@ -192,7 +205,9 @@ def _card(signal: dict[str, Any]) -> str:
     source = escape(str(signal.get("source_summary", "Aggregate public sources")))
     confidence = escape(str(signal.get("confidence_score", 0)))
     updated = escape(str(signal.get("last_updated", "")))
-    action = escape(str(signal.get("recommended_action", "Monitor and validate with aggregate data.")))
+    action_text = str(signal.get("recommended_action", "Monitor and validate with aggregate data."))
+    geo_note = str(signal.get("geospatial_insight", "")).strip()
+    action = escape(action_text + (f" {geo_note}" if geo_note else ""))
     score_note = escape(str(signal.get("confidence_reasoning") or signal.get("score_explanation", "Adaptive score uses aggregate evidence and validation signals.")))
     badges = "".join(f"<span class='signal-card-category'>{escape(badge)}</span>" for badge in _badges(signal, category, momentum))
     forecast = escape(str(signal.get("forecast_direction") or signal.get("predicted_direction", "stable")))
