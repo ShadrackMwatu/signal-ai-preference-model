@@ -8,6 +8,8 @@ from typing import Any
 from Behavioral_Signals_AI.data_sources import cbk_source, fallback_sample_source, google_trends_kenya, kenya_news_source, kilimostat_source, knbs_source, wfp_food_prices_source, worldbank_food_prices_source
 from Behavioral_Signals_AI.data_sources import cbk_macro_signals, food_price_monitor, kilimostat_agriculture_source, knbs_indicator_source, reddit_public_kenya, youtube_public_trends
 from Behavioral_Signals_AI.llm.signal_interpreter import interpret_signal_with_llm
+from Behavioral_Signals_AI.mobility_intelligence.place_activity_refresh import refresh_place_activity
+from Behavioral_Signals_AI.mobility_intelligence.signal_fusion import fuse_mobility_with_live_signals
 from Behavioral_Signals_AI.privacy import sanitize_aggregate_record
 from Behavioral_Signals_AI.signal_engine.adaptive_learning_engine import adapt_signal_scores, load_cluster_memory, load_feedback, update_signal_memory
 from Behavioral_Signals_AI.signal_engine.behavioral_learning_engine import update_behavioral_learning
@@ -123,6 +125,7 @@ def fuse_kenya_signals(location: str = "Kenya", category: str = "All", urgency: 
         signal["opportunity_level"] = _level(float(signal.get("opportunity_intelligence_score", signal.get("priority_score", 50))))
         fused[index] = signal
 
+    fused = _apply_mobility_reinforcement(fused, location)
     filtered = [signal for signal in fused if _matches(signal, category, urgency)]
     filtered.sort(key=lambda item: (float(item.get("confidence_score", 0)), float(item.get("priority_score", 0))), reverse=True)
     filtered = filtered[:limit]
@@ -144,6 +147,15 @@ def fuse_kenya_signals(location: str = "Kenya", category: str = "All", urgency: 
     save_signal_memory(filtered)
     return filtered
 
+
+
+def _apply_mobility_reinforcement(signals: list[dict[str, Any]], location: str) -> list[dict[str, Any]]:
+    try:
+        activity_payload = refresh_place_activity(region=location, limit=8)
+        mobility_signals = list(activity_payload.get("signals", []))
+        return fuse_mobility_with_live_signals(signals, mobility_signals)
+    except Exception:
+        return signals
 
 def _llm_interpretation_fields(signal: dict[str, Any]) -> dict[str, Any]:
     try:
