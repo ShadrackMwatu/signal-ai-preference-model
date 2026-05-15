@@ -7,6 +7,7 @@ from typing import Any
 
 from Behavioral_Signals_AI.geography.county_matcher import canonical_county_name, signal_matches_location
 from Behavioral_Signals_AI.privacy import PRIVACY_NOTE
+from Behavioral_Signals_AI.signal_engine.category_learning import category_matches_signal, learn_categories_from_signals
 from Behavioral_Signals_AI.signal_engine.signal_cache import get_cached_or_fallback_signals
 from Behavioral_Signals_AI.ui.feed_diff_engine import clear_render_cache, get_cached_rendered_outputs, rank_signals_for_display, save_rendered_outputs, signal_signature
 
@@ -27,6 +28,7 @@ def get_kenya_live_signals_for_ui(location_filter: str = "Kenya", category_filte
     """
     payload = get_cached_or_fallback_signals()
     all_signals = list(payload.get("signals", []))
+    learn_categories_from_signals(all_signals)
     signals = _filter_signals(all_signals, location_filter or "Kenya", category_filter or "All", urgency_filter or "All")
     if not signals:
         signals = _filter_signals(
@@ -138,7 +140,7 @@ def _repeat_for_continuous_loop(signals: list[dict[str, Any]], minimum: int = 5)
 def _filter_signals(signals: list[dict[str, Any]], location: str, category: str, urgency: str) -> list[dict[str, Any]]:
     output: list[dict[str, Any]] = []
     for signal in signals:
-        if category != "All" and str(signal.get("signal_category", "")).lower() != category.lower():
+        if not category_matches_signal(signal, category):
             continue
         if urgency != "All" and str(signal.get("urgency", "")).lower() != urgency.lower():
             continue

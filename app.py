@@ -30,6 +30,7 @@ for _mpl_candidate in [
 
 import gradio as gr
 from Behavioral_Signals_AI.geography.location_options import LOCATION_OPTIONS
+from Behavioral_Signals_AI.signal_engine.category_learning import get_category_options
 
 from app_routes.behavioral_route import run_behavioral_signal_prediction
 from app_routes.signal_cge_route import (
@@ -1589,22 +1590,7 @@ with gr.Blocks(title="Signal AI Dashboard", css=SIGNAL_DASHBOARD_CSS) as demo:
             location_filter = gr.Dropdown(label="Location", choices=LOCATION_OPTIONS, value="Kenya")
             category_filter = gr.Dropdown(
                 label="Category",
-                choices=[
-                    "All",
-                    "Ceramics",
-                    "food and agriculture",
-                    "jobs and labour market",
-                    "housing",
-                    "health",
-                    "transport",
-                    "energy",
-                    "technology",
-                    "education",
-                    "finance",
-                    "public services",
-                    "climate and environment",
-                    "other",
-                ],
+                choices=get_category_options(),
                 value="All",
             )
             urgency_filter = gr.Dropdown(label="Urgency", choices=["All", "High", "Medium", "Low"], value="All")
