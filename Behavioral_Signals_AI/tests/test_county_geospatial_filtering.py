@@ -2,10 +2,9 @@
 
 from __future__ import annotations
 
-import json
-
 import pytest
 
+from Behavioral_Signals_AI.geography.location_options import LOCATION_OPTIONS
 from Behavioral_Signals_AI.geography.county_matcher import (
     county_dropdown_choices,
     detect_county_from_text,
@@ -18,15 +17,66 @@ from Behavioral_Signals_AI.signal_engine.geospatial_learning import load_geospat
 from Behavioral_Signals_AI.signal_engine.signal_cache import write_signal_cache
 
 
+EXPECTED_COUNTIES = [
+    "Mombasa",
+    "Kwale",
+    "Kilifi",
+    "Tana River",
+    "Lamu",
+    "Taita Taveta",
+    "Garissa",
+    "Wajir",
+    "Mandera",
+    "Marsabit",
+    "Isiolo",
+    "Meru",
+    "Tharaka Nithi",
+    "Embu",
+    "Kitui",
+    "Machakos",
+    "Makueni",
+    "Nyandarua",
+    "Nyeri",
+    "Kirinyaga",
+    "Murang’a",
+    "Kiambu",
+    "Turkana",
+    "West Pokot",
+    "Samburu",
+    "Trans Nzoia",
+    "Uasin Gishu",
+    "Elgeyo Marakwet",
+    "Nandi",
+    "Baringo",
+    "Laikipia",
+    "Nakuru",
+    "Narok",
+    "Kajiado",
+    "Kericho",
+    "Bomet",
+    "Kakamega",
+    "Vihiga",
+    "Bungoma",
+    "Busia",
+    "Siaya",
+    "Kisumu",
+    "Homa Bay",
+    "Migori",
+    "Kisii",
+    "Nyamira",
+    "Nairobi",
+]
+
+
 def test_location_dropdown_includes_global_kenya_and_all_47_counties() -> None:
-    choices = county_dropdown_choices()
+    choices = LOCATION_OPTIONS
 
     assert choices[:2] == ["Global", "Kenya"]
     assert len(choices) == 49
-    assert "Mombasa" in choices
-    assert "Makueni" in choices
-    assert "Uasin Gishu" in choices
-    assert "Nairobi" in choices
+    assert len(set(choices)) == 49
+    assert county_dropdown_choices() == LOCATION_OPTIONS
+    for county in EXPECTED_COUNTIES:
+        assert county in choices
 
 
 def test_county_registry_uses_official_codes() -> None:

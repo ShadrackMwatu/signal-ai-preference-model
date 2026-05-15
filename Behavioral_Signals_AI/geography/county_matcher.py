@@ -8,6 +8,8 @@ from functools import lru_cache
 from pathlib import Path
 from typing import Any
 
+from Behavioral_Signals_AI.geography.location_options import LOCATION_OPTIONS
+
 BASE_DIR = Path(__file__).resolve().parent
 COUNTY_REGISTRY_PATH = BASE_DIR / "county_code_registry.json"
 COUNTY_ALIASES_PATH = BASE_DIR / "county_aliases.json"
@@ -28,7 +30,7 @@ def county_names() -> list[str]:
 
 
 def county_dropdown_choices() -> list[str]:
-    return ["Global", "Kenya"] + county_names()
+    return list(LOCATION_OPTIONS)
 
 
 def county_code_for_name(name: str) -> str:
