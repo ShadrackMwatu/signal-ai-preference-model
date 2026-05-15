@@ -1,50 +1,35 @@
-"""Adaptive learning engine for Kenya aggregate signal intelligence."""
+﻿"""Adaptive learning engine for Kenya aggregate signal intelligence."""
 
 from __future__ import annotations
 
-import json
 import os
 from datetime import UTC, datetime
 from difflib import SequenceMatcher
 from pathlib import Path
 from typing import Any
 
+from Behavioral_Signals_AI.storage.storage_manager import read_json, write_json
+
 MEMORY_PATH = Path(os.getenv("SIGNAL_CLUSTER_MEMORY_PATH", "Behavioral_Signals_AI/outputs/signal_memory.json"))
 FEEDBACK_PATH = Path(os.getenv("SIGNAL_FEEDBACK_PATH", "Behavioral_Signals_AI/outputs/signal_feedback.json"))
 
 
 def load_cluster_memory(path: str | Path | None = None) -> dict[str, Any]:
-    target = Path(path or MEMORY_PATH)
-    if not target.exists():
-        return {"clusters": {}, "last_updated": None}
-    try:
-        data = json.loads(target.read_text(encoding="utf-8"))
-        return data if isinstance(data, dict) else {"clusters": {}, "last_updated": None}
-    except Exception:
-        return {"clusters": {}, "last_updated": None}
+    data = read_json(Path(path or MEMORY_PATH), {"clusters": {}, "last_updated": None})
+    return data if isinstance(data, dict) else {"clusters": {}, "last_updated": None}
 
 
 def save_cluster_memory(memory: dict[str, Any], path: str | Path | None = None) -> None:
-    target = Path(path or MEMORY_PATH)
-    target.parent.mkdir(parents=True, exist_ok=True)
-    target.write_text(json.dumps(memory, indent=2, ensure_ascii=True), encoding="utf-8")
+    write_json(Path(path or MEMORY_PATH), memory)
 
 
 def load_feedback(path: str | Path | None = None) -> dict[str, Any]:
-    target = Path(path or FEEDBACK_PATH)
-    if not target.exists():
-        return {"feedback": []}
-    try:
-        data = json.loads(target.read_text(encoding="utf-8"))
-        return data if isinstance(data, dict) else {"feedback": []}
-    except Exception:
-        return {"feedback": []}
+    data = read_json(Path(path or FEEDBACK_PATH), {"feedback": []})
+    return data if isinstance(data, dict) else {"feedback": []}
 
 
 def save_feedback(feedback: dict[str, Any], path: str | Path | None = None) -> None:
-    target = Path(path or FEEDBACK_PATH)
-    target.parent.mkdir(parents=True, exist_ok=True)
-    target.write_text(json.dumps(feedback, indent=2, ensure_ascii=True), encoding="utf-8")
+    write_json(Path(path or FEEDBACK_PATH), feedback)
 
 
 def analyst_confirms_signal(topic: str, note: str = "") -> dict[str, Any]:
@@ -218,3 +203,5 @@ def _urgency_base(signal: dict[str, Any]) -> float:
 def _volatility_penalty(cluster: dict[str, Any]) -> float:
     momentum = list(cluster.get("momentum_history", []))[-6:]
     return 45.0 if len(set(momentum)) >= 3 else 15.0
+
+

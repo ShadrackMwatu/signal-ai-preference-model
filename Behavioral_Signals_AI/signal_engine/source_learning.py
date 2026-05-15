@@ -1,31 +1,25 @@
-"""Source learning for Behavioral Signals AI aggregate providers."""
+﻿"""Source learning for Behavioral Signals AI aggregate providers."""
 
 from __future__ import annotations
 
-import json
 import os
 from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
 
+from Behavioral_Signals_AI.storage.storage_manager import read_json, write_json
+
 SOURCE_LEARNING_PATH = Path(os.getenv("SIGNAL_SOURCE_LEARNING_PATH", "Behavioral_Signals_AI/outputs/source_learning.json"))
+DEFAULT_SOURCE_LEARNING = {"sources": {}, "underrepresented_counties": [], "predictive_topics": {}, "last_updated": None}
 
 
 def load_source_learning(path: str | Path | None = None) -> dict[str, Any]:
-    target = Path(path or SOURCE_LEARNING_PATH)
-    if not target.exists():
-        return {"sources": {}, "underrepresented_counties": [], "predictive_topics": {}, "last_updated": None}
-    try:
-        data = json.loads(target.read_text(encoding="utf-8"))
-        return data if isinstance(data, dict) else {"sources": {}, "underrepresented_counties": [], "predictive_topics": {}, "last_updated": None}
-    except Exception:
-        return {"sources": {}, "underrepresented_counties": [], "predictive_topics": {}, "last_updated": None}
+    data = read_json(Path(path or SOURCE_LEARNING_PATH), DEFAULT_SOURCE_LEARNING.copy())
+    return data if isinstance(data, dict) else DEFAULT_SOURCE_LEARNING.copy()
 
 
 def save_source_learning(payload: dict[str, Any], path: str | Path | None = None) -> None:
-    target = Path(path or SOURCE_LEARNING_PATH)
-    target.parent.mkdir(parents=True, exist_ok=True)
-    target.write_text(json.dumps(payload, indent=2, ensure_ascii=True), encoding="utf-8")
+    write_json(Path(path or SOURCE_LEARNING_PATH), payload)
 
 
 def update_source_learning(signals: list[dict[str, Any]], path: str | Path | None = None) -> dict[str, Any]:

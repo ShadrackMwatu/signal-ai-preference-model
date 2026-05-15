@@ -1,8 +1,7 @@
-"""Cache helpers for resilient Kenya live signal rendering."""
+﻿"""Cache helpers for resilient Kenya live signal rendering."""
 
 from __future__ import annotations
 
-import json
 import os
 from datetime import UTC, datetime
 from pathlib import Path
@@ -10,6 +9,7 @@ from typing import Any
 
 from Behavioral_Signals_AI.data_sources import fallback_sample_source
 from Behavioral_Signals_AI.signal_engine.kenya_signal_fusion import fuse_kenya_signals
+from Behavioral_Signals_AI.storage.storage_manager import read_json, write_json
 
 DEFAULT_CACHE_PATH = Path(os.getenv("SIGNAL_LIVE_SIGNAL_CACHE", "Behavioral_Signals_AI/outputs/latest_live_signals.json"))
 
@@ -52,15 +52,11 @@ def refresh_signal_cache(location: str = "Kenya", path: str | Path | None = None
 
 
 def read_signal_cache(path: str | Path | None = None) -> dict[str, Any]:
-    target = cache_path(path)
-    try:
-        data = json.loads(target.read_text(encoding="utf-8"))
-        if isinstance(data, dict):
-            data.setdefault("signals", [])
-            data.setdefault("last_updated", datetime.now(UTC).isoformat())
-            return data
-    except Exception:
-        pass
+    data = read_json(cache_path(path), {"signals": [], "last_updated": "", "status": "missing"})
+    if isinstance(data, dict):
+        data.setdefault("signals", [])
+        data.setdefault("last_updated", datetime.now(UTC).isoformat())
+        return data
     return {"signals": [], "last_updated": "", "status": "missing"}
 
 
@@ -72,9 +68,7 @@ def get_cached_or_fallback_signals(path: str | Path | None = None) -> dict[str, 
 
 
 def write_signal_cache(payload: dict[str, Any], path: str | Path | None = None) -> None:
-    target = cache_path(path)
-    target.parent.mkdir(parents=True, exist_ok=True)
-    target.write_text(json.dumps(payload, indent=2, ensure_ascii=True), encoding="utf-8")
+    write_json(cache_path(path), payload)
 
 
 def _payload(signals: list[dict[str, Any]], status: str, warning: str | None = None) -> dict[str, Any]:
@@ -90,7 +84,6 @@ def _payload(signals: list[dict[str, Any]], status: str, warning: str | None = N
 
 
 def _fallback_fused_signals() -> list[dict[str, Any]]:
-    # Import locally to avoid import cycles at app startup.
     from Behavioral_Signals_AI.signal_engine.kenya_interpretation_engine import interpret_kenya_signal
 
     signals: list[dict[str, Any]] = []

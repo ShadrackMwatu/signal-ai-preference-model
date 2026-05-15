@@ -1,0 +1,64 @@
+﻿sources:
+  - name: google_trends_kenya
+    enabled: true
+    requires_api_key: false
+    environment_key: ""
+    update_frequency_seconds: 1800
+    reliability_prior: 0.78
+    kenya_relevance_prior: 0.92
+  - name: serpapi_search_trends
+    enabled: true
+    requires_api_key: true
+    environment_key: SERPAPI_KEY
+    update_frequency_seconds: 1800
+    reliability_prior: 0.82
+    kenya_relevance_prior: 0.88
+  - name: x_public_trends
+    enabled: true
+    requires_api_key: true
+    environment_key: X_BEARER_TOKEN
+    update_frequency_seconds: 900
+    reliability_prior: 0.66
+    kenya_relevance_prior: 0.82
+  - name: kenya_news_source
+    enabled: true
+    requires_api_key: false
+    environment_key: ""
+    update_frequency_seconds: 1200
+    reliability_prior: 0.72
+    kenya_relevance_prior: 0.9
+  - name: news_api
+    enabled: true
+    requires_api_key: true
+    environment_key: NEWS_API_KEY
+    update_frequency_seconds: 1200
+    reliability_prior: 0.76
+    kenya_relevance_prior: 0.84
+  - name: wfp_food_prices
+    enabled: true
+    requires_api_key: false
+    environment_key: ""
+    update_frequency_seconds: 86400
+    reliability_prior: 0.86
+    kenya_relevance_prior: 0.82
+  - name: knbs_indicators
+    enabled: true
+    requires_api_key: false
+    environment_key: ""
+    update_frequency_seconds: 86400
+    reliability_prior: 0.9
+    kenya_relevance_prior: 0.95
+  - name: cbk_macro_signals
+    enabled: true
+    requires_api_key: false
+    environment_key: ""
+    update_frequency_seconds: 86400
+    reliability_prior: 0.88
+    kenya_relevance_prior: 0.9
+  - name: youtube_public_trends
+    enabled: false
+    requires_api_key: true
+    environment_key: YOUTUBE_API_KEY
+    update_frequency_seconds: 3600
+    reliability_prior: 0.62
+    kenya_relevance_prior: 0.7

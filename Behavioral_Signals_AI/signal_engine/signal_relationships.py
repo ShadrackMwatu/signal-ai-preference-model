@@ -1,11 +1,12 @@
-"""Relationship graph for Kenya behavioral-economic signals."""
+﻿"""Relationship graph for Kenya behavioral-economic signals."""
 
 from __future__ import annotations
 
-import json
 import os
 from pathlib import Path
 from typing import Any
+
+from Behavioral_Signals_AI.storage.storage_manager import write_json
 
 GRAPH_PATH = Path(os.getenv("SIGNAL_RELATIONSHIP_GRAPH_PATH", "Behavioral_Signals_AI/outputs/signal_relationship_graph.json"))
 
@@ -45,9 +46,17 @@ def relationship_summary(graph: dict[str, Any]) -> str:
 
 
 def write_relationship_graph(graph: dict[str, Any], path: str | Path | None = None) -> None:
-    target = Path(path or GRAPH_PATH)
-    target.parent.mkdir(parents=True, exist_ok=True)
-    target.write_text(json.dumps(graph, indent=2, ensure_ascii=True), encoding="utf-8")
+    write_json(Path(path or GRAPH_PATH), graph)
+
+
+def related_signals_for_topic(topic: str, signals: list[dict[str, Any]], graph: dict[str, Any]) -> list[dict[str, Any]]:
+    connected: set[str] = set()
+    for edge in graph.get("edges", []):
+        if edge.get("from") == topic:
+            connected.add(str(edge.get("to")))
+        if edge.get("to") == topic:
+            connected.add(str(edge.get("from")))
+    return [signal for signal in signals if str(signal.get("signal_topic")) in connected]
 
 
 def _node(signal: dict[str, Any]) -> dict[str, Any]:
@@ -72,13 +81,3 @@ def _dedupe_edges(edges: list[dict[str, str]]) -> list[dict[str, str]]:
             seen.add(key)
             output.append(edge)
     return output
-
-def related_signals_for_topic(topic: str, signals: list[dict[str, Any]], graph: dict[str, Any]) -> list[dict[str, Any]]:
-    """Return signal records connected to topic in the relationship graph."""
-    connected: set[str] = set()
-    for edge in graph.get("edges", []):
-        if edge.get("from") == topic:
-            connected.add(str(edge.get("to")))
-        if edge.get("to") == topic:
-            connected.add(str(edge.get("from")))
-    return [signal for signal in signals if str(signal.get("signal_topic")) in connected]

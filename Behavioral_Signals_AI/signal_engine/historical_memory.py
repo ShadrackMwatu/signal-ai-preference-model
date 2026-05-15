@@ -2,11 +2,12 @@
 
 from __future__ import annotations
 
-import json
 import os
 from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
+
+from Behavioral_Signals_AI.storage.storage_manager import ensure_json, read_json, storage_health, write_json
 
 HISTORICAL_MEMORY_PATH = Path(os.getenv("SIGNAL_HISTORICAL_MEMORY_PATH", "Behavioral_Signals_AI/outputs/historical_signal_memory.json"))
 INSIGHT_INDEX_PATH = Path(os.getenv("SIGNAL_HISTORICAL_INSIGHT_INDEX_PATH", "Behavioral_Signals_AI/outputs/historical_insight_index.json"))
@@ -15,20 +16,7 @@ HISTORY_ROOT = Path(os.getenv("SIGNAL_HISTORY_ROOT", "Behavioral_Signals_AI/hist
 
 
 def load_json(path: str | Path, default: Any) -> Any:
-    target = Path(path)
-    if not target.exists():
-        return default
-    try:
-        data = json.loads(target.read_text(encoding="utf-8"))
-        return data if data not in {None, ""} else default
-    except Exception:
-        return default
-
-
-def write_json(path: str | Path, payload: Any) -> None:
-    target = Path(path)
-    target.parent.mkdir(parents=True, exist_ok=True)
-    target.write_text(json.dumps(payload, indent=2, ensure_ascii=True), encoding="utf-8")
+    return read_json(path, default)
 
 
 def initialize_history_stores() -> None:
@@ -39,13 +27,16 @@ def initialize_history_stores() -> None:
         (INSIGHT_INDEX_PATH, {"themes": {}, "counties": {}, "categories": {}, "lessons": [], "last_updated": None}),
         (FORECAST_MEMORY_PATH, {"forecasts": [], "last_updated": None}),
     ]:
-        if not Path(path).exists():
-            write_json(path, default)
+        ensure_json(path, default)
+
+
+def get_historical_storage_health() -> dict[str, Any]:
+    return storage_health({"memory": HISTORICAL_MEMORY_PATH, "history": INSIGHT_INDEX_PATH, "forecast": FORECAST_MEMORY_PATH})
 
 
 def update_historical_memory(signals: list[dict[str, Any]], period: str = "daily") -> dict[str, Any]:
     initialize_history_stores()
-    payload = load_json(HISTORICAL_MEMORY_PATH, {"records": [], "last_updated": None, "warnings": []})
+    payload = read_json(HISTORICAL_MEMORY_PATH, {"records": [], "last_updated": None, "warnings": []})
     records = list(payload.get("records", [])) if isinstance(payload, dict) else []
     now = datetime.now(UTC).isoformat()
     for signal in signals:
@@ -72,7 +63,7 @@ def update_insight_index(records: list[dict[str, Any]]) -> dict[str, Any]:
 
 def append_forecast_memory(signals: list[dict[str, Any]]) -> dict[str, Any]:
     initialize_history_stores()
-    payload = load_json(FORECAST_MEMORY_PATH, {"forecasts": [], "last_updated": None})
+    payload = read_json(FORECAST_MEMORY_PATH, {"forecasts": [], "last_updated": None})
     forecasts = list(payload.get("forecasts", [])) if isinstance(payload, dict) else []
     now = datetime.now(UTC).isoformat()
     for signal in signals:
