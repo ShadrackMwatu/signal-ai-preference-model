@@ -74,3 +74,8 @@ The public dashboard shows a simple mode badge: `Live Kenya signals` when at lea
 ## Adaptive Prediction Loop
 
 Provider outputs feed the revealed preference, demand intelligence, opportunity, forecasting, recommendation, and adaptive learning modules. Prediction snapshots are stored as aggregate-only runtime memory and ignored by Git by default.
+## Resilient Live Feed Operation
+
+Behavioral Signals AI keeps the public feed resilient by writing the latest processed Kenya signals to `Behavioral_Signals_AI/outputs/latest_live_signals.json`. The Gradio timer reads processed signals from this cache rather than performing heavy source collection directly. If live collection fails, Signal uses the last successful cache, then sample aggregate signals, and finally a friendly visible state so the live feed never renders blank.
+
+Free Hugging Face Spaces may sleep after inactivity. For continuous 24/7 operation, use paid always-on Spaces hardware, an external scheduled job, or a separate backend service that updates the signal cache. The optional GitHub Actions health check only verifies that the configured Space URL loads; it does not collect private data and does not bypass platform rules.

@@ -86,6 +86,11 @@ except Exception:
         )
         return feed, "<div class='signal-emerging'><h3>Emerging Kenya Signals</h3><p>Sample aggregate signal monitoring is active.</p></div>", f"### Signal Interpretation & Opportunity\n\nAggregate Kenya signal monitoring is available.\n\n**Privacy note:** {PRIVACY_NOTICE}"
 try:
+    from Behavioral_Signals_AI.signal_engine.background_signal_service import start_background_signal_service
+except Exception:
+    def start_background_signal_service() -> bool:
+        return False
+try:
     from Behavioral_Signals_AI.backend import run_behavioral_intelligence_pipeline
 except Exception:
     def run_behavioral_intelligence_pipeline(trends: list[dict[str, Any]]) -> dict[str, Any]:
@@ -148,6 +153,11 @@ LEGACY_MODEL_PATH = ROOT_DIR / "model.pkl"
 PRIMARY_MODEL_METADATA_PATH = ROOT_DIR / "Behavioral_Signals_AI" / "models" / "metadata.json"
 
 PUBLIC_TABS = ["Behavioral Signals AI", "Signal CGE"]
+
+try:
+    start_background_signal_service()
+except Exception:
+    pass
 
 SIGNAL_DASHBOARD_CSS = """
 .signal-trend-shell {
@@ -278,8 +288,15 @@ SIGNAL_DASHBOARD_CSS = """
     font-size: 12px;
     margin-top: 10px;
 }
+.signal-feed-status {
+    color: #475569;
+    font-size: 13px;
+    font-weight: 750;
+    margin: 0 0 8px;
+}
 .signal-feed-container {
-    height: 420px;
+    min-height: 420px;
+    max-height: 420px;
     overflow: hidden;
     position: relative;
     border-radius: 14px;
@@ -288,14 +305,17 @@ SIGNAL_DASHBOARD_CSS = """
     padding: 12px;
 }
 .signal-feed-inner {
-    animation: scrollSignalsUp 35s linear infinite;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    animation: scrollSignalsUp 45s linear infinite;
 }
 .signal-feed-container:hover .signal-feed-inner {
     animation-play-state: paused;
 }
 @keyframes scrollSignalsUp {
-    0% { transform: translateY(30%); }
-    100% { transform: translateY(-60%); }
+    0% { transform: translateY(0); }
+    100% { transform: translateY(-50%); }
 }
 .signal-card {
     border-radius: 14px;

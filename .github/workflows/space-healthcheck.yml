@@ -1,0 +1,21 @@
+name: Hugging Face Space Health Check
+
+on:
+  schedule:
+    - cron: "*/30 * * * *"
+  workflow_dispatch:
+
+jobs:
+  healthcheck:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check configured Space URL
+        env:
+          SPACE_URL: ${{ vars.HF_SPACE_URL }}
+        run: |
+          if [ -z "$SPACE_URL" ]; then
+            echo "HF_SPACE_URL repository variable is not configured; skipping health check."
+            exit 0
+          fi
+          echo "Checking Hugging Face Space availability without collecting private data."
+          curl --fail --silent --show-error --max-time 20 "$SPACE_URL" > /dev/null

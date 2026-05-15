@@ -140,3 +140,6 @@ Behavioral_Signals_AI/data/prediction_memory/*.json
 Behavioral_Signals_AI/outputs/topical_signals.json
 Behavioral_Signals_AI/outputs/*.json
 !Behavioral_Signals_AI/outputs/.gitkeep
+
+# Behavioral Signals AI live signal cache
+Behavioral_Signals_AI/outputs/latest_live_signals.json
