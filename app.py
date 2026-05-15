@@ -71,7 +71,7 @@ except Exception:
 try:
     from Behavioral_Signals_AI.signal_engine import get_kenya_live_signals_for_ui as _engine_get_kenya_live_signals_for_ui
 except Exception:
-    def _engine_get_kenya_live_signals_for_ui(location: str = "Kenya", category: str = "All", urgency: str = "All") -> tuple[str, str, str]:
+    def _engine_get_kenya_live_signals_for_ui(location: str = "Kenya", category: str = "All", urgency: str = "All") -> tuple[str, str, str, str]:
         timestamp = datetime.now(UTC).isoformat()
         feed = (
             "<div class='signal-feed-container'><div class='signal-feed-inner'>"
@@ -84,7 +84,8 @@ except Exception:
             f"<div class='signal-card-time'>Last updated: {timestamp}</div></article>"
             "</div></div>"
         )
-        return feed, "<div class='signal-emerging'><h3>Emerging Kenya Signals</h3><p>Sample aggregate signal monitoring is active.</p></div>", f"### Signal Interpretation & Opportunity\n\nAggregate Kenya signal monitoring is available.\n\n**Privacy note:** {PRIVACY_NOTICE}"
+        historical = "### Historical Learning Insight\n\nHistorical learning is active and will update as cached aggregate signals accumulate."
+        return feed, "<div class='signal-emerging'><h3>Emerging Kenya Signals</h3><p>Sample aggregate signal monitoring is active.</p></div>", f"### Signal Interpretation & Opportunity\n\nAggregate Kenya signal monitoring is available.\n\n**Privacy note:** {PRIVACY_NOTICE}", historical
 try:
     from Behavioral_Signals_AI.signal_engine.background_signal_service import start_background_signal_service
 except Exception:
@@ -1122,7 +1123,7 @@ def _utc_timestamp() -> str:
 
 
 
-def get_kenya_live_signals_for_ui(location_filter: str = "Kenya", category_filter: str = "All", urgency_filter: str = "All") -> tuple[str, str, str]:
+def get_kenya_live_signals_for_ui(location_filter: str = "Kenya", category_filter: str = "All", urgency_filter: str = "All") -> tuple[str, str, str, str]:
     """Return Kenya-aware signal feed, emerging signal HTML, and interpretation."""
     return _engine_get_kenya_live_signals_for_ui(location_filter or "Kenya", category_filter or "All", urgency_filter or "All")
 
@@ -1596,9 +1597,10 @@ with gr.Blocks(title="Signal AI Dashboard", css=SIGNAL_DASHBOARD_CSS) as demo:
             with gr.Column(scale=2):
                 emerging_signals_html = gr.HTML(label="Emerging Signals")
                 signal_interpretation = gr.Markdown(label="Signal Interpretation & Opportunity")
+                historical_learning_markdown = gr.Markdown(label="Historical Learning Insight")
 
         feed_inputs = [location_filter, category_filter, urgency_filter]
-        feed_outputs = [signal_feed_html, emerging_signals_html, signal_interpretation]
+        feed_outputs = [signal_feed_html, emerging_signals_html, signal_interpretation, historical_learning_markdown]
         for filter_component in feed_inputs:
             filter_component.change(
                 fn=get_kenya_live_signals_for_ui,
@@ -1613,8 +1615,8 @@ with gr.Blocks(title="Signal AI Dashboard", css=SIGNAL_DASHBOARD_CSS) as demo:
             show_api=False,
         )
         if hasattr(gr, "Timer"):
-            signal_feed_timer = gr.Timer(value=45)
-            signal_feed_timer.tick(
+            ui_timer = gr.Timer(value=1)
+            ui_timer.tick(
                 fn=get_kenya_live_signals_for_ui,
                 inputs=feed_inputs,
                 outputs=feed_outputs,

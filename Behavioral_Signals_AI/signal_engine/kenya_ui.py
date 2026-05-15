@@ -6,7 +6,6 @@ from html import escape
 from typing import Any
 
 from Behavioral_Signals_AI.privacy import PRIVACY_NOTE
-from Behavioral_Signals_AI.signal_engine.kenya_signal_fusion import fuse_kenya_signals
 from Behavioral_Signals_AI.signal_engine.signal_cache import get_cached_or_fallback_signals
 
 MOMENTUM_BADGES = {
@@ -17,17 +16,26 @@ MOMENTUM_BADGES = {
 }
 
 
-def get_kenya_live_signals_for_ui(location_filter: str = "Kenya", category_filter: str = "All", urgency_filter: str = "All") -> tuple[str, str, str]:
+def get_kenya_live_signals_for_ui(location_filter: str = "Kenya", category_filter: str = "All", urgency_filter: str = "All") -> tuple[str, str, str, str]:
+    """Render the live feed from processed cache only.
+
+    Heavy source collection is handled by background_signal_service on its own poll
+    interval. The Gradio timer can safely call this every second because it only
+    reads latest_live_signals.json and renders processed cards.
+    """
     payload = get_cached_or_fallback_signals()
     signals = _filter_signals(list(payload.get("signals", [])), location_filter or "Kenya", category_filter or "All", urgency_filter or "All")
     if not signals:
         signals = list(payload.get("signals", []))
     if not signals:
-        signals = fuse_kenya_signals(location_filter or "Kenya", category_filter or "All", urgency_filter or "All")
-    if not signals:
         signals = [_friendly_empty_signal()]
     last_updated = str(payload.get("last_updated") or signals[0].get("last_updated") or "recently")
-    return render_live_signal_feed(signals, last_updated), render_emerging_signals(signals), render_strategic_interpretation(signals)
+    return (
+        render_live_signal_feed(signals, last_updated),
+        render_emerging_signals(signals),
+        render_strategic_interpretation(signals),
+        render_historical_learning_insight(signals),
+    )
 
 
 def render_live_signal_feed(signals: list[dict[str, Any]], last_updated: str = "recently") -> str:
@@ -79,11 +87,14 @@ def render_strategic_interpretation(signals: list[dict[str, Any]]) -> str:
         + "\n\n".join(context_lines)
         + "\n\n"
         f"**Confidence reasoning:** {top.get('confidence_reasoning', 'Confidence reflects current aggregate evidence and will adapt as memory grows.')}\n\n"
-        "### Historical Learning Insight\n\n"
-        f"{_historical_learning_insight(top)}\n\n"
         "Scores improve over time through adaptive signal memory, source agreement, validation checks, historical pattern matching, semantic clustering, prediction feedback, and analyst feedback.\n\n"
         f"**Privacy note:** {PRIVACY_NOTE}"
     )
+
+
+def render_historical_learning_insight(signals: list[dict[str, Any]]) -> str:
+    top = (signals or [_friendly_empty_signal()])[0]
+    return "### Historical Learning Insight\n\n" + _historical_learning_insight(top)
 
 
 def _repeat_for_continuous_loop(signals: list[dict[str, Any]], minimum: int = 5) -> list[dict[str, Any]]:
