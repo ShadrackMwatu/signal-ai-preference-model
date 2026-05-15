@@ -1572,7 +1572,7 @@ with gr.Blocks(title="Signal AI Dashboard", css=SIGNAL_DASHBOARD_CSS) as demo:
 
     with gr.Tab("Behavioral Signals AI"):
         gr.HTML(
-            "<h2 class='behavioral-heading'>Behavioral Signals AI "
+            "<h2 class='behavioral-heading'>Open Signals "
             "<span class='live-status-dot' title='Live signal intelligence updating'></span></h2>"
             "<p class='behavioral-subtitle'>Auto-updating privacy-preserving intelligence on emerging demand, unmet needs, market pressure, and policy opportunities.</p>"
             "<p class='behavioral-live-note'>Live signal intelligence is updating continuously. Rankings adjust as stronger collective signals emerge.</p>"
