@@ -4,10 +4,11 @@ from pathlib import Path
 def test_topical_signal_generator_returns_feed_and_interpretation():
     from app import get_kenya_live_signals_for_ui
 
-    feed_html, emerging_html, interpretation = get_kenya_live_signals_for_ui("Kenya", "All", "All")
+    feed_html, emerging_html, interpretation, historical = get_kenya_live_signals_for_ui("Kenya", "All", "All")
     assert "signal-card" in feed_html
     assert "Emerging Kenya Signals" in emerging_html
     assert "Signal Interpretation & Opportunity" in interpretation
+    assert "Historical Learning Insight" in historical
 
 
 def test_app_source_hides_raw_behavioral_inputs():

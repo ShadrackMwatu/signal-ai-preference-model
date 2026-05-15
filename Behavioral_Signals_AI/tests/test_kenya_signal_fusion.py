@@ -4,10 +4,11 @@ from pathlib import Path
 def test_app_import_and_kenya_ui_function():
     import app
 
-    feed, emerging, interpretation = app.get_kenya_live_signals_for_ui("Kenya", "All", "All")
+    feed, emerging, interpretation, historical = app.get_kenya_live_signals_for_ui("Kenya", "All", "All")
     assert "signal-card" in feed
     assert "Emerging Kenya Signals" in emerging
     assert "Detected from:" in interpretation
+    assert "Historical Learning Insight" in historical
 
 
 def test_behavioral_ui_has_no_refresh_or_raw_labels():

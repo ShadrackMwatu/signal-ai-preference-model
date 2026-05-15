@@ -289,6 +289,45 @@ SIGNAL_DASHBOARD_CSS = """
     font-size: 12px;
     margin-top: 10px;
 }
+.behavioral-heading {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin: 0 0 6px;
+    color: #0f172a;
+    font-size: 26px;
+    line-height: 1.2;
+    font-weight: 850;
+}
+.live-status-dot {
+    display: inline-block;
+    width: 11px;
+    height: 11px;
+    margin-left: 2px;
+    border-radius: 50%;
+    background: #22c55e;
+    box-shadow: 0 0 8px rgba(34, 197, 94, 0.8);
+    animation: signalPulse 1s infinite ease-in-out;
+    vertical-align: middle;
+    flex: 0 0 auto;
+}
+@keyframes signalPulse {
+    0% { opacity: 0.25; transform: scale(0.85); }
+    50% { opacity: 1; transform: scale(1.15); }
+    100% { opacity: 0.25; transform: scale(0.85); }
+}
+.behavioral-subtitle {
+    color: #475569;
+    margin: 0 0 8px;
+    font-size: 15px;
+    line-height: 1.45;
+}
+.behavioral-live-note {
+    color: #0f766e;
+    font-weight: 700;
+    margin: 0 0 14px;
+    font-size: 13px;
+}
 .signal-feed-status {
     color: #475569;
     font-size: 13px;
@@ -1551,9 +1590,11 @@ with gr.Blocks(title="Signal AI Dashboard", css=SIGNAL_DASHBOARD_CSS) as demo:
     gr.Markdown("Behavioral intelligence and AI-native CGE simulation for policy analysis.")
 
     with gr.Tab("Behavioral Signals AI"):
-        gr.Markdown(
-            "## Behavioral Signals AI\n"
-            "Auto-updating privacy-preserving intelligence on emerging demand, unmet needs, market pressure, and policy opportunities."
+        gr.HTML(
+            "<h2 class='behavioral-heading'>Behavioral Signals AI "
+            "<span class='live-status-dot' title='Live signal intelligence updating'></span></h2>"
+            "<p class='behavioral-subtitle'>Auto-updating privacy-preserving intelligence on emerging demand, unmet needs, market pressure, and policy opportunities.</p>"
+            "<p class='behavioral-live-note'>Live signal intelligence is updating continuously. Rankings adjust as stronger collective signals emerge.</p>"
         )
         gr.HTML(
             "<div class='signal-privacy-note'>"

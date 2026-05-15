@@ -7,6 +7,9 @@ from typing import Any
 
 from Behavioral_Signals_AI.privacy import PRIVACY_NOTE
 from Behavioral_Signals_AI.signal_engine.signal_cache import get_cached_or_fallback_signals
+from Behavioral_Signals_AI.ui.feed_diff_engine import has_material_signal_change, rank_signals_for_display, signal_signature
+
+_RENDER_CACHE: dict[str, dict[str, Any]] = {}
 
 MOMENTUM_BADGES = {
     "Rising": "Rising",
@@ -29,14 +32,31 @@ def get_kenya_live_signals_for_ui(location_filter: str = "Kenya", category_filte
         signals = list(payload.get("signals", []))
     if not signals:
         signals = [_friendly_empty_signal()]
+    signals = rank_signals_for_display(signals)
     last_updated = str(payload.get("last_updated") or signals[0].get("last_updated") or "recently")
-    return (
+    cache_key = _cache_key(location_filter or "Kenya", category_filter or "All", urgency_filter or "All")
+    current_signature = signal_signature(signals)
+    cached = _RENDER_CACHE.get(cache_key)
+    if cached and not has_material_signal_change(cached.get("signature", []), current_signature):
+        return cached["outputs"]
+    outputs = (
         render_live_signal_feed(signals, last_updated),
         render_emerging_signals(signals),
         render_strategic_interpretation(signals),
         render_historical_learning_insight(signals),
     )
+    _RENDER_CACHE[cache_key] = {"signature": current_signature, "outputs": outputs}
+    return outputs
 
+
+
+def reset_live_feed_render_cache() -> None:
+    """Clear cached rendered feed outputs for tests or hot reloads."""
+    _RENDER_CACHE.clear()
+
+
+def _cache_key(location: str, category: str, urgency: str) -> str:
+    return "|".join(str(part or "All").strip().lower() for part in [location, category, urgency])
 
 def render_live_signal_feed(signals: list[dict[str, Any]], last_updated: str = "recently") -> str:
     safe_signals = signals or [_friendly_empty_signal()]
