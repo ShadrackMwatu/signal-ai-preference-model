@@ -1417,26 +1417,6 @@ def _behavioral_section_intro() -> str:
     )
 
 
-def _how_to_use_signal_markdown() -> str:
-    return (
-        "1. Adjust behavioural signal inputs.\n"
-        "2. Click **Predict Demand**.\n"
-        "3. Review demand classification and opportunity score.\n"
-        "4. Use Live Trend Intelligence to compare current topical issues."
-    )
-
-
-def _model_interpretation_markdown() -> str:
-    return (
-        "- **Demand Classification:** Overall demand band inferred from aggregate signal quality.\n"
-        "- **Confidence Score:** How strongly Signal trusts the current classification.\n"
-        "- **Aggregate Demand Score:** Combined demand intensity from engagement and search proxies.\n"
-        "- **Opportunity Score:** Estimated market or policy action potential.\n"
-        "- **Unmet Demand Probability:** Likelihood of access, affordability, or delivery gaps.\n"
-        "- **Emerging Trend Probability:** Likelihood that the signal is gaining early momentum."
-    )
-
-
 def _fallback_live_trend_html(message: str = "Live API unavailable — displaying demo aggregate trends.") -> str:
     return f"<div class='signal-trend-shell'><h3>Live Trend Intelligence</h3><p>{escape(message)}</p></div>"
 
@@ -1604,10 +1584,6 @@ with gr.Blocks(title="Signal AI Dashboard", css=SIGNAL_DASHBOARD_CSS) as demo:
             "Interpretations are AI-assisted and based on aggregate signal patterns, historical learning, and source validation."
             "</div>"
         )
-        with gr.Accordion("How to Use Signal", open=False):
-            gr.Markdown(_how_to_use_signal_markdown())
-        with gr.Accordion("Model Interpretation Guide", open=False):
-            gr.Markdown(_model_interpretation_markdown())
 
         with gr.Row():
             location_filter = gr.Dropdown(label="Location", choices=county_dropdown_choices(), value="Kenya")
