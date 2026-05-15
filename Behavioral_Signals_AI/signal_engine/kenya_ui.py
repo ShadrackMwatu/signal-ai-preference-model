@@ -1,4 +1,4 @@
-﻿"""UI renderer for Kenya live aggregate signals."""
+"""UI renderer for Kenya live aggregate signals."""
 
 from __future__ import annotations
 
@@ -87,6 +87,8 @@ def render_strategic_interpretation(signals: list[dict[str, Any]]) -> str:
         + "\n\n".join(context_lines)
         + "\n\n"
         f"**Confidence reasoning:** {top.get('confidence_reasoning', 'Confidence reflects current aggregate evidence and will adapt as memory grows.')}\n\n"
+        f"**Behavioral intelligence:** {_behavioral_interpretation(top)}\n\n"
+        "Food affordability pressure is not treated as important because of one isolated mention. Its importance rises when related searches, public news, price signals, and county-level recurrence persist together over time.\n\n"
         "Scores improve over time through adaptive signal memory, source agreement, validation checks, historical pattern matching, semantic clustering, prediction feedback, and analyst feedback.\n\n"
         f"**Privacy note:** {PRIVACY_NOTE}"
     )
@@ -146,6 +148,15 @@ def _friendly_empty_signal() -> dict[str, Any]:
         "historical_lesson_used": "Historical memory is still accumulating lessons for this signal type.",
         "likely_next_development": "The system will keep monitoring persistence, validation, and related signals.",
         "confidence_reasoning": "Confidence reflects current aggregate evidence and will adapt as memory grows.",
+        "behavioral_families": ["Demand"],
+        "behavioral_intelligence_score": 50,
+        "persistence_score": 35,
+        "cross_source_confirmation_score": 35,
+        "geographic_spread_score": 45,
+        "historical_recurrence_score": 10,
+        "learning_note": "Collective behavioral evidence is still accumulating.",
+        "adaptation_note": "Behavioral scoring remains conservative until signals persist.",
+        "opportunity_interpretation": "Behavioral family evidence is developing.",
     }
 
 
@@ -187,6 +198,20 @@ def _card(signal: dict[str, Any]) -> str:
     )
 
 
+
+def _behavioral_interpretation(signal: dict[str, Any]) -> str:
+    families = signal.get("behavioral_families") or ["Demand"]
+    family_text = ", ".join(str(family) for family in families)
+    score = signal.get("behavioral_intelligence_score", 0)
+    persistence = signal.get("persistence_score", 0)
+    source = signal.get("cross_source_confirmation_score", 0)
+    spread = signal.get("geographic_spread_score", 0)
+    recurrence = signal.get("historical_recurrence_score", 0)
+    note = signal.get("opportunity_interpretation") or signal.get("learning_note") or "Collective behavioral evidence is still developing."
+    return (
+        f"This is classified as {family_text}. Score {score}/100 reflects persistence {persistence}/100, "
+        f"source confirmation {source}/100, geographic spread {spread}/100, and historical recurrence {recurrence}/100. {note}"
+    )
 def _historical_learning_insight(signal: dict[str, Any]) -> str:
     pattern = signal.get("historical_pattern_match", "No close historical pattern yet")
     direction = signal.get("forecast_direction") or str(signal.get("predicted_direction", "stable")).title()
@@ -202,6 +227,8 @@ def _historical_learning_insight(signal: dict[str, Any]) -> str:
 
 def _badges(signal: dict[str, Any], category: str, momentum: str) -> list[str]:
     badges = [category, momentum, _validation_badge(signal)]
+    for family in signal.get("behavioral_families", [])[:4]:
+        badges.append(_family_badge(str(family)))
     persistence = str(signal.get("persistence_badge") or ("Breakout" if signal.get("momentum") == "Breakout" else "Emerging"))
     badges.append(persistence)
     badges.append("County-specific" if str(signal.get("geographic_scope", "Kenya-wide")) != "Kenya-wide" else "Kenya-wide")
@@ -215,6 +242,8 @@ def _badges(signal: dict[str, Any], category: str, momentum: str) -> list[str]:
         badges.append("County spread risk")
     if signal.get("historical_pattern_match") and signal.get("historical_pattern_match") != "No close historical pattern yet":
         badges.append("Historical match")
+    if float(signal.get("behavioral_intelligence_score", 0) or 0) >= 65:
+        badges.append("Collective signal")
     return _dedupe_badges(badges)[:8]
 
 
@@ -226,6 +255,15 @@ def _dedupe_badges(badges: list[str]) -> list[str]:
             seen.add(badge)
             output.append(badge)
     return output
+
+
+def _family_badge(family: str) -> str:
+    return {
+        "Demand": "Demand signal",
+        "Affordability": "Affordability pressure",
+        "Stress": "Stress signal",
+        "Opportunity": "Opportunity signal",
+    }.get(family, family)
 
 
 def _validation_badge(signal: dict[str, Any]) -> str:

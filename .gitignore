@@ -154,3 +154,4 @@ Behavioral_Signals_AI/history/yearly/*.json
 !Behavioral_Signals_AI/history/daily/.gitkeep
 !Behavioral_Signals_AI/history/monthly/.gitkeep
 !Behavioral_Signals_AI/history/yearly/.gitkeep
+Behavioral_Signals_AI/outputs/behavioral_intelligence_memory.json

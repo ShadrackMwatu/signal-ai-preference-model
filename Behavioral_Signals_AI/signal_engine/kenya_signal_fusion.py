@@ -1,4 +1,4 @@
-﻿"""Kenya signal fusion engine for aggregate public intelligence."""
+"""Kenya signal fusion engine for aggregate public intelligence."""
 
 from __future__ import annotations
 
@@ -9,6 +9,7 @@ from Behavioral_Signals_AI.data_sources import cbk_source, fallback_sample_sourc
 from Behavioral_Signals_AI.data_sources import cbk_macro_signals, food_price_monitor, kilimostat_agriculture_source, knbs_indicator_source, reddit_public_kenya, youtube_public_trends
 from Behavioral_Signals_AI.privacy import sanitize_aggregate_record
 from Behavioral_Signals_AI.signal_engine.adaptive_learning_engine import adapt_signal_scores, load_cluster_memory, load_feedback, update_signal_memory
+from Behavioral_Signals_AI.signal_engine.behavioral_learning_engine import update_behavioral_learning
 from Behavioral_Signals_AI.signal_engine.continuous_improvement import improve_after_refresh
 from Behavioral_Signals_AI.signal_engine.daily_learning_engine import summarize_daily_signals
 from Behavioral_Signals_AI.signal_engine.early_warning_engine import classify_early_warning
@@ -91,6 +92,7 @@ def fuse_kenya_signals(location: str = "Kenya", category: str = "All", urgency: 
         if not group:
             continue
         signal = _fuse_group(semantic_topic, group, legacy_memory)
+        signal = update_behavioral_learning(signal, group)
         signal.update(validate_signal(signal))
         signal.update(interpret_kenya_signal(signal))
         signal["recommended_action"] = signal.get("near_term_monitoring_recommendation") or signal.get("recommended_action") or "Monitor and validate with additional aggregate data."
@@ -110,6 +112,7 @@ def fuse_kenya_signals(location: str = "Kenya", category: str = "All", urgency: 
         signal.update(map_kenya_context(signal))
         signal.update(classify_early_warning(signal, related))
         signal = apply_historical_adaptation(signal)
+        signal = update_behavioral_learning(signal, [], count_appearance=False)
         signal = add_historical_forecast(signal)
         signal["confidence_reasoning"] = _confidence_reasoning(signal, related)
         signal["demand_level"] = _level(float(signal.get("demand_intelligence_score", signal.get("priority_score", 50))))
@@ -313,6 +316,9 @@ def _confidence_reasoning(signal: dict[str, Any], related: list[dict[str, Any]])
         reasons.append("current and historical evidence suggest a rising near-term pattern")
     if signal.get("historical_pattern_match") and signal.get("historical_pattern_match") != "No close historical pattern yet":
         reasons.append("similar historical patterns were found")
+    if float(signal.get("behavioral_intelligence_score", 0)) >= 65:
+        reasons.append("repeated collective behavior raised the behavioral intelligence score")
     if not reasons:
         reasons.append("current aggregate evidence is active but still developing")
     return "Confidence adjusted because " + "; ".join(reasons) + "."
+
