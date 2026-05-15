@@ -11,10 +11,13 @@ def generate_place_activity_signal(place_record: dict[str, Any]) -> dict[str, An
     category = str(place_record.get("place_category", "general_place_activity"))
     prominence = float(place_record.get("place_prominence", 0) or 0)
     confidence = float(place_record.get("confidence", 50) or 50)
-    review_level = _level_score(str(place_record.get("review_activity_level", "moderate")))
+    review_count = float(place_record.get("review_count", 0) or 0)
+    review_level = min(100.0, review_count / 10.0)
     trend = str(place_record.get("estimated_activity_trend", "stable"))
     trend_bonus = 14 if trend == "rising" else -8 if trend == "falling" else 0
-    demand_relevance = min(100.0, prominence * 0.45 + review_level * 0.25 + confidence * 0.20 + trend_bonus)
+    business_bonus = 8 if str(place_record.get("business_status", "")).upper() == "OPERATIONAL" else 0
+    hours_bonus = 5 if str(place_record.get("opening_hours_status", "")) in {"open_now", "available"} else 0
+    demand_relevance = min(100.0, prominence * 0.40 + review_level * 0.22 + confidence * 0.18 + trend_bonus + business_bonus + hours_bonus)
     opportunity_score = min(100.0, demand_relevance * 0.72 + _category_importance(category) * 0.28)
     infrastructure_pressure = min(100.0, demand_relevance * 0.55 + (20 if "pressure" in category or "transport" in category or "health" in category else 0))
     place_name = str(place_record.get("place_name", "place category"))
@@ -27,9 +30,12 @@ def generate_place_activity_signal(place_record: dict[str, Any]) -> dict[str, An
         "signal_topic": f"{signal_category} place activity",
         "signal_category": signal_category,
         "mobility_place_category": category,
+        "demand_category": place_record.get("demand_category") or signal_category,
         "geographic_scope": place_record.get("county") or place_record.get("region") or "Kenya-wide",
         "demand_relevance": round(demand_relevance, 2),
         "economic_activity_signal": round(prominence, 2),
+        "review_count": int(place_record.get("review_count", 0) or 0),
+        "rating": float(place_record.get("rating", 0) or 0),
         "revealed_preference_strength": round(min(100.0, demand_relevance * 0.8 + confidence * 0.2), 2),
         "opportunity_score": round(opportunity_score, 2),
         "infrastructure_pressure_score": round(infrastructure_pressure, 2),

@@ -26,7 +26,7 @@ def refresh_place_activity(region: str = "Kenya", limit: int = 8) -> dict[str, A
     if google_maps_available():
         for query in DEFAULT_QUERIES:
             try:
-                records.extend(build_place_activity_profile(region=region, query=query, limit=max(1, limit // len(DEFAULT_QUERIES))))
+                records.extend(build_place_activity_profile(location_scope=region, queries=[query], limit=max(1, limit // len(DEFAULT_QUERIES))))
             except Exception:
                 continue
     if not records:

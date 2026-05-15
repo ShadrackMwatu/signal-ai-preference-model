@@ -9,10 +9,11 @@ def score_place_activity_signal(record: dict[str, Any]) -> dict[str, Any]:
     popularity = _level_score(str(record.get("popularity_level", "moderate")))
     trend = {"rising": 80.0, "stable": 55.0, "falling": 30.0}.get(str(record.get("estimated_activity_trend", "stable")), 50.0)
     confidence = float(record.get("confidence", 50) or 50)
-    review = _level_score(str(record.get("review_activity_level", "moderate")))
+    review = min(100.0, float(record.get("review_count", 0) or 0) / 10.0)
     prominence = float(record.get("place_prominence", 0) or 0)
     category = _category_score(str(record.get("place_category", "")))
-    strength = popularity * 0.20 + trend * 0.15 + category * 0.15 + confidence * 0.15 + review * 0.15 + prominence * 0.20
+    business = 78.0 if str(record.get("business_status", "")).upper() == "OPERATIONAL" else 45.0
+    strength = popularity * 0.16 + trend * 0.14 + category * 0.15 + confidence * 0.14 + review * 0.16 + prominence * 0.18 + business * 0.07
     urgency = min(100.0, strength + (10 if str(record.get("activity_indicator")) == "increasing" else 0))
     return {
         "mobility_signal_strength": round(strength, 2),

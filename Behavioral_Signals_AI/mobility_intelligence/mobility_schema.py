@@ -18,18 +18,24 @@ class AggregatedPlaceActivityIndicator:
     place_name: str
     place_id: str
     place_category: str
+    demand_category: str
+    rating: float
+    review_count: int
+    opening_hours_status: str
+    business_status: str
+    place_prominence: float
     popularity_level: PopularityLevel
     activity_indicator: ActivityIndicator
-    review_activity_level: PopularityLevel
     estimated_activity_trend: ActivityTrend
-    place_prominence: float
-    date: str
     source: str
     confidence: float
     privacy_status: str = "approved"
+    date: str = ""
 
     def to_dict(self) -> dict[str, object]:
-        return asdict(self)
+        payload = asdict(self)
+        payload["date"] = payload["date"] or today_iso()
+        return payload
 
 
 def today_iso() -> str:
