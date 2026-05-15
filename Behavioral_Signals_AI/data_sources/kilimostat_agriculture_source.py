@@ -1,0 +1,11 @@
+"""Kilimostat agriculture source alias for agriculture signal validation."""
+
+from __future__ import annotations
+
+from typing import Any
+
+from Behavioral_Signals_AI.data_sources import kilimostat_source
+
+
+def collect(location: str = "Kenya", limit: int = 8) -> list[dict[str, Any]]:
+    return kilimostat_source.collect(location=location, limit=limit)

@@ -68,10 +68,9 @@ def render_strategic_interpretation(signals: list[dict[str, Any]]) -> str:
         f"**Affected sectors:** {sectors}.\n\n"
         f"**Detected from:** Search trends, public news, food price data, and official statistics. Current strongest source summary: {top.get('source_summary', 'Aggregate public sources')}.\n\n"
         f"**Recommended near-term action:** {top.get('recommended_action', 'Monitor this signal and validate with additional aggregate data.')}\n\n"
+        "Scores improve over time through adaptive signal memory, source agreement, validation checks, and analyst feedback.\n\n"
         f"**Privacy note:** {PRIVACY_NOTE}"
     )
-
-
 
 def _repeat_for_continuous_loop(signals: list[dict[str, Any]], minimum: int = 5) -> list[dict[str, Any]]:
     if not signals:
@@ -129,10 +128,14 @@ def _card(signal: dict[str, Any]) -> str:
     confidence = escape(str(signal.get("confidence_score", 0)))
     updated = escape(str(signal.get("last_updated", "")))
     action = escape(str(signal.get("recommended_action", "Monitor and validate with aggregate data.")))
+    validation = escape(_validation_badge(signal))
+    persistence = escape(str(signal.get("persistence_badge") or ("Breakout" if signal.get("momentum") == "Breakout" else "Emerging")))
+    scope_badge = escape("County-specific" if str(signal.get("geographic_scope", "Kenya-wide")) != "Kenya-wide" else "Kenya-wide")
+    score_note = escape(str(signal.get("score_explanation", "Adaptive score uses aggregate evidence and validation signals.")))
     return (
         "<article class='signal-card'>"
         f"<div class='signal-card-topic'>{topic}</div>"
-        f"<div><span class='signal-card-category'>{category}</span><span class='signal-card-category'>{momentum}</span></div>"
+        f"<div><span class='signal-card-category'>{category}</span><span class='signal-card-category'>{momentum}</span><span class='signal-card-category'>{validation}</span><span class='signal-card-category'>{persistence}</span><span class='signal-card-category'>{scope_badge}</span></div>"
         "<div class='signal-card-grid'>"
         f"<span><strong>Demand</strong>{demand}</span>"
         f"<span><strong>Opportunity</strong>{opportunity}</span>"
@@ -143,6 +146,14 @@ def _card(signal: dict[str, Any]) -> str:
         f"<span><strong>Confidence</strong>{confidence}%</span>"
         "</div>"
         f"<p>{action}</p>"
-        f"<div class='signal-card-time'>Last updated: {updated}</div>"
+        f"<div class='signal-card-time' title='{score_note}'>Last updated: {updated}</div>"
         "</article>"
     )
+
+def _validation_badge(signal: dict[str, Any]) -> str:
+    status = str(signal.get("validation_status", "unvalidated"))
+    if status == "validated":
+        return "Validated"
+    if status == "partially_validated":
+        return "Partially validated"
+    return "Emerging"
