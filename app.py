@@ -1357,87 +1357,40 @@ with gr.Blocks(title="Signal AI Dashboard", css=SIGNAL_DASHBOARD_CSS) as demo:
         with gr.Accordion("Model Interpretation Guide", open=False):
             gr.Markdown(_model_interpretation_markdown())
 
-        live_trend_feed = gr.HTML(value=_fallback_live_trend_html())
-
-        with gr.Accordion("Advanced Analytics", open=False):
-            gr.Markdown("Technical controls, model internals, gauges, and diagnostic-style scores are kept here so the main dashboard stays decision-oriented.")
-            with gr.Row():
-                with gr.Column():
-                    likes = gr.Number(label="Likes", value=120, precision=0)
-                    comments = gr.Number(label="Comments", value=35, precision=0)
-                    shares = gr.Number(label="Shares", value=24, precision=0)
-                    searches = gr.Number(label="Searches", value=160, precision=0)
-                    engagement_intensity = gr.Slider(0, 1, value=0.55, label="Engagement Intensity")
-                    purchase_intent_score = gr.Slider(0, 1, value=0.7, label="Purchase Intent Score")
-                    trend_growth = gr.Slider(0, 1, value=0.35, label="Trend Growth")
-                    predict_button = gr.Button("Predict Demand")
-
-                with gr.Column():
-                    with gr.Row():
-                        demand_output = gr.Textbox(label="Demand Classification", interactive=False)
-                        confidence_output = gr.Number(label="Confidence Score (%)", interactive=False)
-                    with gr.Row():
-                        aggregate_output = gr.Number(label="Aggregate Demand Score", interactive=False)
-                        opportunity_output = gr.Number(label="Opportunity Score", interactive=False)
-                    with gr.Row():
-                        emerging_output = gr.Number(label="Emerging Trend Probability (%)", interactive=False)
-                        unmet_output = gr.Number(label="Unmet Demand Probability (%)", interactive=False)
-                    interpretation_output = gr.Textbox(label="Investment / Policy Interpretation", lines=2, interactive=False)
-                    with gr.Row():
-                        signal_strength_output = gr.Number(label="Signal Strength Score", interactive=False)
-                        momentum_score_output = gr.Number(label="Momentum Score", interactive=False)
-                        volatility_output = gr.Number(label="Volatility / Noise Score", interactive=False)
-                    with gr.Row():
-                        persistence_output = gr.Number(label="Persistence Score", interactive=False)
-                        adoption_output = gr.Number(label="Adoption Probability", interactive=False)
-                        viral_output = gr.Number(label="Viral Probability", interactive=False)
-                    why_matters_output = gr.Textbox(label="Why This Matters", lines=4, interactive=False)
-                    with gr.Accordion("Technical Model Source and Explanation", open=False):
-                        source_output = gr.Textbox(label="Model Source and Explanation", lines=16, interactive=False)
-
-            with gr.Row():
-                confidence_gauge_output = gr.HTML(label="Confidence Gauge")
-                signal_strength_gauge_output = gr.HTML(label="Signal Strength Gauge")
-                momentum_indicator_output = gr.HTML(label="Trend Momentum Indicator")
-
-            with gr.Row():
-                opportunity_radar_output = gr.HTML(label="Opportunity Radar Chart")
-                key_driver_cards_output = gr.HTML(label="Key Driver Summary Cards")
-
-        gr.Markdown("### Kenya Revealed Demand Intelligence")
+        gr.Markdown("### Behavioral Demand Prediction")
         with gr.Row():
-            trends_location = gr.Dropdown(label="Trend Location", choices=["Kenya", "Nairobi", "Global"], value="Kenya")
-            trends_limit = gr.Slider(label="Number of Trends", minimum=3, maximum=10, step=1, value=5)
-            refresh_trends_button = gr.Button("Refresh Trends")
+            with gr.Column():
+                likes = gr.Number(label="Likes", value=120, precision=0)
+                comments = gr.Number(label="Comments", value=35, precision=0)
+                shares = gr.Number(label="Shares", value=24, precision=0)
+                searches = gr.Number(label="Searches", value=160, precision=0)
+                engagement_intensity = gr.Slider(0, 1, value=0.55, label="Engagement Intensity")
+                purchase_intent_score = gr.Slider(0, 1, value=0.7, label="Purchase Intent Score")
+                trend_growth = gr.Slider(0, 1, value=0.35, label="Trend Growth")
+                predict_button = gr.Button("Predict Demand")
 
-        active_trends_output = gr.Number(label="Active Trends", precision=0, interactive=False, visible=False)
-        trends_table = gr.Dataframe(label="Trend Intelligence Table", interactive=False, visible=True, wrap=True)
-        trend_intelligence_table = gr.Dataframe(label="Hidden Signal Intelligence Table", interactive=False, visible=False)
-        demand_signals_table = gr.Dataframe(label="Demand Signals from Live Trends", interactive=False, visible=True, wrap=True)
-        trends_summary = gr.Markdown(label="What these Kenya trends may imply", visible=True)
+            with gr.Column():
+                demand_output = gr.Textbox(label="Demand Classification", interactive=False)
+                confidence_output = gr.Number(label="Confidence Score (%)", interactive=False)
+                aggregate_output = gr.Number(label="Aggregate Demand Score", interactive=False)
+                opportunity_output = gr.Number(label="Opportunity Score", interactive=False)
+                interpretation_output = gr.Textbox(label="Investment / Policy Interpretation", lines=2, interactive=False)
+                why_matters_output = gr.Textbox(label="Why This Matters", lines=4, interactive=False)
 
-        trend_outputs = [
-            trends_table,
-            live_trend_feed,
-            active_trends_output,
-            trends_summary,
-            trend_intelligence_table,
-            demand_signals_table,
-        ]
-
-        refresh_trends_button.click(
-            fn=refresh_live_trend_intelligence,
-            inputs=[trends_location, trends_limit],
-            outputs=trend_outputs,
-            show_api=False,
-        )
-        demo.load(
-            fn=refresh_live_trend_intelligence,
-            inputs=[trends_location, trends_limit],
-            outputs=trend_outputs,
-            show_api=False,
-        )
-
+        emerging_output = gr.Number(label="Emerging Trend Probability (%)", interactive=False, visible=False)
+        unmet_output = gr.Number(label="Unmet Demand Probability (%)", interactive=False, visible=False)
+        source_output = gr.Textbox(label="Model Source and Explanation", lines=16, interactive=False, visible=False)
+        signal_strength_output = gr.Number(label="Signal Strength Score", interactive=False, visible=False)
+        momentum_score_output = gr.Number(label="Momentum Score", interactive=False, visible=False)
+        volatility_output = gr.Number(label="Volatility / Noise Score", interactive=False, visible=False)
+        persistence_output = gr.Number(label="Persistence Score", interactive=False, visible=False)
+        adoption_output = gr.Number(label="Adoption Probability", interactive=False, visible=False)
+        viral_output = gr.Number(label="Viral Probability", interactive=False, visible=False)
+        confidence_gauge_output = gr.HTML(label="Confidence Gauge", visible=False)
+        signal_strength_gauge_output = gr.HTML(label="Signal Strength Gauge", visible=False)
+        momentum_indicator_output = gr.HTML(label="Trend Momentum Indicator", visible=False)
+        opportunity_radar_output = gr.HTML(label="Opportunity Radar Chart", visible=False)
+        key_driver_cards_output = gr.HTML(label="Key Driver Summary Cards", visible=False)
         live_inputs = [
             likes,
             comments,
