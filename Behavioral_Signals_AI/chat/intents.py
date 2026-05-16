@@ -1,4 +1,4 @@
-﻿"""Lightweight intent detection for Open Signals chat."""
+"""Lightweight intent detection for Open Signals chat."""
 
 from __future__ import annotations
 
@@ -13,13 +13,35 @@ class OpenSignalsIntent(TypedDict):
     confidence: float
 
 
-SIGNAL_KEYWORDS = {
-    "what", "show", "explain", "compare", "risk", "risks", "opportunity", "opportunities",
-    "signal", "signals", "county", "counties", "trend", "trends", "pressure", "affordability",
-    "forecast", "demand", "unemployment", "fuel", "prices", "food", "water", "health",
-    "transport", "jobs", "policy", "policymakers", "market", "business", "rising", "stronger",
-    "changed", "persisted", "sector", "sectors", "stress", "Nairobi", "Nakuru", "Makueni",
+ANALYSIS_KEYWORDS = {
+    "risk", "risks", "opportunity", "opportunities", "signal", "signals", "county", "counties",
+    "trend", "trends", "pressure", "affordability", "forecast", "demand", "unemployment",
+    "fuel", "prices", "food", "water", "health", "transport", "jobs", "policy", "policymakers",
+    "market", "business", "rising", "stronger", "changed", "persisted", "sector", "sectors",
+    "stress", "inflation", "shortage", "shortages", "cost", "living", "urgency", "urgent",
+    "monitor", "monitoring", "emerging", "persistent", "declining", "comparison",
 }
+
+ANALYSIS_PHRASES = [
+    "food prices",
+    "fuel prices",
+    "cost of living",
+    "market opportunity",
+    "business opportunity",
+    "policy concern",
+    "county trend",
+    "county signals",
+    "demand signal",
+    "affordability pressure",
+    "economic pressure",
+    "water access",
+    "public services",
+    "what is happening in",
+    "show signals",
+    "show risks",
+    "show opportunities",
+    "what should policymakers",
+]
 
 CATEGORY_TERMS = {
     "food", "agriculture", "jobs", "labour", "housing", "health", "transport", "energy",
@@ -33,11 +55,36 @@ GREETING_PATTERNS = [
 ]
 FAREWELL_PATTERNS = [r"^bye$", r"^goodbye$", r"^see you", r"^later$"]
 GRATITUDE_PATTERNS = [r"^thanks?$", r"^thank you", r"^asante"]
-SMALL_TALK_PATTERNS = [r"how are you", r"how are things", r"who are you"]
-HELP_PATTERNS = [r"what can you do", r"help$", r"help me", r"how do i use", r"what do you do"]
-FOLLOW_UP_PATTERNS = [r"what about", r"how about", r"why is that", r"why this", r"what does it show", r"what should .*do", r"what opportunity", r"why is .*rising"]
+IDENTITY_PATTERNS = [
+    r"\bwhat(?:'s| is) your name\b",
+    r"\byour name\b",
+    r"\bwho are you\b",
+    r"\bare you (?:an? )?ai\b",
+    r"\bare you artificial intelligence\b",
+    r"\bexplain yourself\b",
+    r"\bintroduce yourself\b",
+]
+CAPABILITY_PATTERNS = [
+    r"\bwhat can you do\b",
+    r"\bwhat do you do\b",
+    r"\bcan you help(?: me)?\b",
+    r"\bhow do you work\b",
+    r"\bwhat can you analyze\b",
+    r"\bwhat are signals\b",
+    r"\bexplain signals\b",
+    r"\bhow should i use\b",
+    r"\bhow do i use\b",
+]
+SMALL_TALK_PATTERNS = [r"how are you", r"how are things", r"how is it going"]
+HELP_PATTERNS = [r"^help$", r"^help me$", r"\bhelp with open signals\b"]
+FOLLOW_UP_PATTERNS = [
+    r"what about", r"how about", r"why is that", r"why this", r"what does it show",
+    r"what should .*do", r"what opportunity", r"why is .*rising",
+]
 COMPARISON_PATTERNS = [r"compare", r"different", r"stronger", r"versus", r"\bvs\b", r"which county"]
 POLICY_PATTERNS = [r"policy", r"policymaker", r"government", r"county officials", r"monitor"]
+
+LOW_CONFIDENCE_THRESHOLD = 0.65
 
 
 def detect_open_signals_intent(message: str) -> OpenSignalsIntent:
@@ -52,6 +99,10 @@ def detect_open_signals_intent(message: str) -> OpenSignalsIntent:
         return {"intent": "farewell", "confidence": 0.95}
     if _matches(lowered, GRATITUDE_PATTERNS):
         return {"intent": "gratitude", "confidence": 0.95}
+    if _matches(lowered, IDENTITY_PATTERNS):
+        return {"intent": "identity_query", "confidence": 0.96}
+    if _matches(lowered, CAPABILITY_PATTERNS):
+        return {"intent": "capability_query", "confidence": 0.94}
     if _matches(lowered, HELP_PATTERNS):
         return {"intent": "help", "confidence": 0.92}
     if _matches(lowered, SMALL_TALK_PATTERNS):
@@ -66,7 +117,7 @@ def detect_open_signals_intent(message: str) -> OpenSignalsIntent:
         return {"intent": "signal_query", "confidence": 0.82}
     if len(lowered.split()) <= 3:
         return {"intent": "unclear_query", "confidence": 0.75}
-    return {"intent": "small_talk", "confidence": 0.55}
+    return {"intent": "unclear_query", "confidence": 0.55}
 
 
 def _matches(text: str, patterns: list[str]) -> bool:
@@ -79,8 +130,11 @@ def _mentions_county(text: str) -> bool:
 
 
 def _contains_signal_keyword(text: str) -> bool:
-    tokens = set(re.findall(r"[a-zA-Z]+", text))
-    return bool(tokens.intersection({word.lower() for word in SIGNAL_KEYWORDS | CATEGORY_TERMS}))
+    normalized = _normalize(text)
+    if any(phrase in normalized for phrase in ANALYSIS_PHRASES):
+        return True
+    tokens = set(re.findall(r"[a-zA-Z]+", normalized))
+    return bool(tokens.intersection({word.lower() for word in ANALYSIS_KEYWORDS | CATEGORY_TERMS}))
 
 
 def _normalize(text: str) -> str:

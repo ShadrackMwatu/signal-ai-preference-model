@@ -73,7 +73,7 @@ def answer_open_signals_prompt(message: str, history: list[Any] | None, location
     effective_urgency = urgency or "All"
 
     if detected_intent["intent"] == "unclear_query":
-        return "Could you clarify what signal, county, sector, or issue you would like to explore?"
+        return "I can help explore signals, risks, opportunities, county trends, and market pressure across Kenya. What would you like to examine?"
     if detected_intent["intent"] == "comparison_query" or _is_comparison_question(cleaned):
         return _comparison_answer(cleaned, effective_category, effective_urgency, session_context)
     if _is_time_question(cleaned):
@@ -184,6 +184,23 @@ def _conversational_response(intent: str, message: str) -> str:
             "Hello. I'm Open Signals - I monitor emerging aggregate behavioral signals, market pressure, risks, "
             "and opportunities across Kenya. What would you like to explore?"
         )
+    if intent == "identity_query":
+        return (
+            "I'm Open Signals - a privacy-preserving behavioral intelligence system focused on emerging "
+            "aggregate signals, risks, opportunities, and demand patterns across Kenya."
+        )
+    if intent == "capability_query":
+        lowered = _normalize(message)
+        if "signal" in lowered:
+            return (
+                "Signals are interpreted aggregate patterns that may point to demand, affordability pressure, "
+                "economic stress, market opportunity, or policy concern. I can help explain those patterns by "
+                "county, category, urgency, and confidence using privacy-preserving aggregate intelligence."
+            )
+        return (
+            "I can help analyze emerging county-level signals, affordability pressure, market opportunities, "
+            "economic stress indicators, and evolving behavioral trends using aggregate intelligence."
+        )
     if intent == "farewell":
         return "Goodbye. I will be here when you want to explore Kenya signals, risks, opportunities, or county trends."
     if intent == "gratitude":
@@ -195,10 +212,9 @@ def _conversational_response(intent: str, message: str) -> str:
             "'compare Nakuru and Makueni', or 'what should policymakers monitor?'"
         )
     if intent == "small_talk":
-        lowered = _normalize(message)
-        if "who are you" in lowered:
-            return "I'm Open Signals, a privacy-preserving analyst for aggregate demand, risk, and opportunity intelligence in Kenya."
         return "I'm ready to help. I can interpret emerging aggregate signals, county trends, market opportunities, and policy risks."
+    if intent == "unclear_query":
+        return "I can help explore signals, risks, opportunities, county trends, and market pressure across Kenya. What would you like to examine?"
     return ""
 
 
@@ -617,3 +633,4 @@ def _normalize(text: str) -> str:
 def _trim_chat_history(history: list[Any], max_messages: int = 8) -> list[Any]:
     """Keep the public chat compact while preserving recent context."""
     return list(history or [])[-max_messages:]
+

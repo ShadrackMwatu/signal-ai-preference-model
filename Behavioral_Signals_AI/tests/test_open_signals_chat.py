@@ -77,7 +77,14 @@ def test_conversational_intent_detection_handles_greetings_and_help() -> None:
     assert detect_open_signals_intent("hi")["intent"] == "greeting"
     assert detect_open_signals_intent("hello")["intent"] == "greeting"
     assert detect_open_signals_intent("how are you?")["intent"] == "small_talk"
-    assert detect_open_signals_intent("what can you do?")["intent"] == "help"
+    assert detect_open_signals_intent("what can you do?")["intent"] == "capability_query"
+    assert detect_open_signals_intent("what is your name?")["intent"] == "identity_query"
+    assert detect_open_signals_intent("who are you?")["intent"] == "identity_query"
+    assert detect_open_signals_intent("are you AI?")["intent"] == "identity_query"
+    assert detect_open_signals_intent("what do you do?")["intent"] == "capability_query"
+    assert detect_open_signals_intent("can you help me?")["intent"] == "capability_query"
+    assert detect_open_signals_intent("what are signals?")["intent"] == "capability_query"
+    assert detect_open_signals_intent("explain signals")["intent"] == "capability_query"
     assert detect_open_signals_intent("show signals in Nairobi")["intent"] == "signal_query"
     assert detect_open_signals_intent("compare Nakuru and Makueni")["intent"] == "comparison_query"
 
@@ -87,19 +94,25 @@ def test_greeting_and_small_talk_do_not_trigger_signal_analysis() -> None:
     hello = answer_open_signals_prompt("hello", [], "Kenya", "All", "All")
     how = answer_open_signals_prompt("how are you?", [], "Kenya", "All", "All")
     capabilities = answer_open_signals_prompt("what can you do?", [], "Kenya", "All", "All")
+    identity = answer_open_signals_prompt("what is your name?", [], "Kenya", "All", "All")
+    ai = answer_open_signals_prompt("are you AI?", [], "Kenya", "All", "All")
+    explain = answer_open_signals_prompt("explain signals", [], "Kenya", "All", "All")
 
     assert "Hello. I'm Open Signals" in hi
     assert "Hello. I'm Open Signals" in hello
     assert "I'm ready to help" in how
-    assert "I help interpret aggregate signals" in capabilities
-    for answer in [hi, hello, how, capabilities]:
+    assert "I can help analyze emerging county-level signals" in capabilities
+    assert "I'm Open Signals" in identity
+    assert "privacy-preserving behavioral intelligence system" in ai
+    assert "Signals are interpreted aggregate patterns" in explain
+    for answer in [hi, hello, how, capabilities, identity, ai, explain]:
         assert "Strongest relevant signal" not in answer
 
 
 def test_unclear_prompt_requests_clarification() -> None:
     answer = answer_open_signals_prompt("blue table", [], "Kenya", "All", "All")
 
-    assert "Could you clarify" in answer
+    assert "I can help explore signals" in answer
     assert "Strongest relevant signal" not in answer
 
 
