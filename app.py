@@ -31,6 +31,7 @@ for _mpl_candidate in [
 import gradio as gr
 from Behavioral_Signals_AI.geography.location_options import LOCATION_OPTIONS
 from Behavioral_Signals_AI.signal_engine.category_learning import get_category_options
+from Behavioral_Signals_AI.signal_engine.open_signals_chat import respond_open_signals_chat
 
 from app_routes.behavioral_route import run_behavioral_signal_prediction
 from app_routes.signal_cge_route import (
@@ -450,15 +451,6 @@ SIGNAL_DASHBOARD_CSS = """
     font-size: 12px;
     margin-top: 10px;
 }
-.signal-privacy-note {
-    border: 1px solid rgba(20, 184, 166, 0.25);
-    border-radius: 12px;
-    background: rgba(20, 184, 166, 0.08);
-    color: #115e59;
-    padding: 10px 12px;
-    font-size: 13px;
-    margin: 8px 0 14px;
-}
 .signal-emerging {
     border: 1px solid rgba(148, 163, 184, 0.28);
     border-radius: 14px;
@@ -494,7 +486,7 @@ SIGNAL_DASHBOARD_CSS = """
     }
     .signal-card-grid span { background: rgba(30, 41, 59, 0.82); }
     .signal-card p { color: #cbd5e1; }
-    .signal-privacy-note { color: #ccfbf1; }
+
 }
 """
 
@@ -1578,14 +1570,14 @@ with gr.Blocks(title="Signal AI Dashboard", css=SIGNAL_DASHBOARD_CSS) as demo:
             "<p class='behavioral-subtitle'>Auto-updating privacy-preserving intelligence on emerging demand, unmet needs, market pressure, and policy opportunities.</p>"
             "<p class='behavioral-live-note'>Live signal intelligence is updating continuously. Rankings adjust as stronger collective signals emerge.</p>"
         )
-        gr.HTML(
-            "<div class='signal-privacy-note'>"
-            "Signal uses aggregate, anonymized, public, or user-authorized data sources. "
-            "It does not identify, track, or profile individuals. "
-            "Interpretations are AI-assisted and based on aggregate signal patterns, historical learning, and source validation."
-            "</div>"
+        gr.Markdown("### Ask Open Signals")
+        open_signals_chatbot = gr.Chatbot(label="Ask Open Signals", height=170, type="messages")
+        open_signals_chat_input = gr.Textbox(
+            label="Ask Open Signals",
+            placeholder="Ask about live signals, counties, demand, risks, or opportunities...",
+            lines=1,
         )
-
+        gr.Markdown("Open Signals answers are based on aggregate, anonymized, public, or user-authorized signal intelligence.")
         with gr.Row():
             location_filter = gr.Dropdown(label="Location", choices=LOCATION_OPTIONS, value="Kenya")
             category_filter = gr.Dropdown(
@@ -1606,6 +1598,12 @@ with gr.Blocks(title="Signal AI Dashboard", css=SIGNAL_DASHBOARD_CSS) as demo:
 
         feed_inputs = [location_filter, category_filter, urgency_filter]
         feed_outputs = [signal_feed_html, emerging_signals_html, signal_interpretation, historical_learning_markdown]
+        open_signals_chat_input.submit(
+            fn=respond_open_signals_chat,
+            inputs=[open_signals_chat_input, open_signals_chatbot, location_filter, category_filter, urgency_filter],
+            outputs=[open_signals_chatbot, open_signals_chat_input],
+            show_api=False,
+        )
         for filter_component in feed_inputs:
             filter_component.change(
                 fn=get_kenya_live_signals_for_ui,
