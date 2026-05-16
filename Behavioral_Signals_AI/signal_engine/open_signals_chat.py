@@ -15,6 +15,7 @@ from Behavioral_Signals_AI.llm.open_signals_system_prompt import OPEN_SIGNALS_SY
 from Behavioral_Signals_AI.llm.safety_guardrails import contains_private_fields, sanitize_llm_signals
 from Behavioral_Signals_AI.signal_engine.category_learning import category_matches_signal, get_category_options
 from Behavioral_Signals_AI.signal_engine.signal_cache import get_cached_or_fallback_signals
+from Behavioral_Signals_AI.signal_engine.signal_trajectory import detect_emerging_signals, detect_weakening_signals
 from Behavioral_Signals_AI.ui.feed_diff_engine import rank_signals_for_display
 
 PRIVATE_DATA_RESPONSE = (
@@ -352,7 +353,11 @@ def _is_comparison_question(question: str) -> bool:
 
 def _is_time_question(question: str) -> bool:
     q = _normalize(question)
-    return any(term in q for term in ["changed recently", "what changed", "rising fastest", "persisted", "longest", "recent", "fastest", "trajectory"])
+    return any(term in q for term in [
+        "changed recently", "what changed", "rising fastest", "persisted", "persistent", "longest",
+        "recent", "fastest", "trajectory", "accelerating", "weakened", "weakening", "spreading fastest",
+        "spread fastest", "newly emerged", "new emerged", "emerged", "fading",
+    ])
 
 
 def _comparison_answer(question: str, category: str, urgency: str, session_context: dict[str, str]) -> str:
@@ -389,24 +394,33 @@ def _time_aware_answer(question: str, location: str, category: str, urgency: str
     if not signals:
         return _no_signal_answer(location or "Kenya", category or "All", urgency or "All")
     q = _normalize(question)
-    if "persist" in q or "longest" in q:
+    if "weaken" in q or "fading" in q:
+        selected = detect_weakening_signals(signals) or sorted(signals, key=lambda signal: _trajectory_score(signal))[:3]
+        mode = "weakening"
+    elif "newly" in q or "emerged" in q or "emerging" in q:
+        selected = [signal for signal in detect_emerging_signals(signals) if signal.get("is_new_signal")] or detect_emerging_signals(signals) or signals[:3]
+        mode = "newly emerged"
+    elif "spread" in q:
+        selected = sorted(signals, key=lambda signal: _safe_number(signal.get("geographic_spread_score") or signal.get("spread_score") or signal.get("confidence_score")), reverse=True)[:3]
+        mode = "spreading fastest"
+    elif "accelerat" in q or "fastest" in q or "rising" in q or "changed" in q:
+        selected = sorted(signals, key=lambda signal: (_trajectory_score(signal), _signal_score(signal)), reverse=True)[:3]
+        mode = "accelerating"
+    elif "persist" in q or "longest" in q:
         selected = sorted(signals, key=lambda signal: _safe_number(signal.get("persistence_score") or signal.get("appearance_count") or signal.get("confidence_score")), reverse=True)[:3]
         mode = "persistent"
-    elif "fastest" in q or "rising" in q or "changed" in q:
-        selected = sorted(signals, key=lambda signal: (_trajectory_score(signal), _signal_score(signal)), reverse=True)[:3]
-        mode = "rising fastest"
     else:
         selected = signals[:3]
         mode = "most active"
     top = selected[0]
     lines = [
-        f"**Short answer:** The {mode} signal is {_topic(top)} in {_scope(top)}; it appears {_trajectory_label(top)} with {_confidence(top)}% confidence.",
+        f"**Short answer:** The {mode} signal is {_topic(top)} in {_scope(top)}; it appears {top.get('trajectory_label') or _trajectory_label(top)} with {_confidence(top)}% confidence.",
         "",
         "**What changed:**",
     ]
     for signal in selected:
         lines.append(
-            f"- **{_topic(signal)}:** {_trajectory_label(signal)}; momentum {signal.get('momentum', 'Stable')}; forecast {signal.get('forecast_direction', 'Stable')}; validation {signal.get('validation_status', 'unvalidated')}.")
+            f"- **{_topic(signal)}:** {signal.get('trajectory_label') or _trajectory_label(signal)}; momentum {signal.get('momentum', 'Stable')}; forecast {signal.get('forecast_direction', 'Stable')}; validation {signal.get('validation_status', 'unvalidated')}.")
     lines.extend([
         "",
         "**Why it matters:** Time-aware ranking uses persistence, ranking movement, outcome learning notes, historical pattern matches, and current adaptive scores when available.",
