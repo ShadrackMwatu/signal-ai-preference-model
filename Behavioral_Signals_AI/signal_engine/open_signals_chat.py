@@ -61,19 +61,22 @@ def answer_open_signals_prompt(message: str, history: list[Any] | None, location
         return PRIVATE_DATA_RESPONSE
 
     detected_intent = detect_open_signals_intent(cleaned)
-    conversational = _conversational_response(detected_intent["intent"], cleaned)
-    if conversational:
-        return conversational
+    if detected_intent["intent"] != "unclear_query":
+        conversational = _conversational_response(detected_intent["intent"], cleaned)
+        if conversational:
+            return conversational
 
     session_context = _conversation_context(history)
     question_location = _location_from_question(cleaned)
     question_category = _category_from_question(cleaned)
+    if _needs_clarification(cleaned, detected_intent["intent"], session_context, question_location, question_category):
+        return _clarification_prompt()
     effective_location = question_location or _context_location_for_followup(cleaned, session_context) or location or "Kenya"
     effective_category = question_category or _context_category_for_followup(cleaned, session_context) or category or "All"
     effective_urgency = urgency or "All"
 
-    if detected_intent["intent"] == "unclear_query":
-        return "I can help explore signals, risks, opportunities, county trends, and market pressure across Kenya. What would you like to examine?"
+    if detected_intent["intent"] == "unclear_query" and not _has_session_context(session_context):
+        return _clarification_prompt()
     if detected_intent["intent"] == "comparison_query" or _is_comparison_question(cleaned):
         return _comparison_answer(cleaned, effective_category, effective_urgency, session_context)
     if _is_time_question(cleaned):
@@ -213,10 +216,61 @@ def _conversational_response(intent: str, message: str) -> str:
         )
     if intent == "small_talk":
         return "I'm ready to help. I can interpret emerging aggregate signals, county trends, market opportunities, and policy risks."
-    if intent == "unclear_query":
-        return "I can help explore signals, risks, opportunities, county trends, and market pressure across Kenya. What would you like to examine?"
     return ""
 
+
+
+def _needs_clarification(
+    question: str,
+    intent: str,
+    session_context: dict[str, str],
+    question_location: str,
+    question_category: str,
+) -> bool:
+    """Ask a clarifying question for vague prompts unless context makes the reference clear."""
+    if question_location or question_category:
+        return False
+    has_context = _has_session_context(session_context)
+    if _is_vague_prompt(question):
+        return not has_context
+    if intent == "follow_up_query":
+        return not has_context
+    if intent == "unclear_query":
+        return True
+    return False
+
+
+def _has_session_context(session_context: dict[str, str]) -> bool:
+    return bool(
+        session_context.get("last_county")
+        or session_context.get("last_category")
+        or session_context.get("last_signal")
+    )
+
+
+def _is_vague_prompt(question: str) -> bool:
+    q = _normalize(question).strip(" ?.!\t\n\r")
+    vague_exact = {
+        "tell me more",
+        "what about this",
+        "explain",
+        "show me",
+        "what is happening",
+        "what's happening",
+        "what happens",
+        "more",
+        "continue",
+        "go on",
+        "this",
+        "that",
+    }
+    if q in vague_exact:
+        return True
+    return bool(re.search(r"\b(tell me more|what about this|explain this|show me more|what is happening\??)\b", q))
+
+
+def _clarification_prompt() -> str:
+    return "Do you want me to explain the strongest current signal, a specific county, or a market opportunity?"
 
 def _conversation_context(history: list[Any] | None) -> dict[str, str]:
     """Extract temporary session context from visible chat history only."""

@@ -116,6 +116,29 @@ def test_unclear_prompt_requests_clarification() -> None:
     assert "Strongest relevant signal" not in answer
 
 
+def test_vague_prompts_request_short_clarification() -> None:
+    expected = "Do you want me to explain the strongest current signal, a specific county, or a market opportunity?"
+
+    for prompt in ["tell me more", "what about this?", "explain", "show me", "what is happening?"]:
+        answer = answer_open_signals_prompt(prompt, [], "Kenya", "All", "All")
+
+        assert answer == expected
+        assert "Strongest relevant signal" not in answer
+
+
+def test_vague_followup_uses_session_context(tmp_path, monkeypatch) -> None:
+    cache_path = tmp_path / "latest_live_signals.json"
+    monkeypatch.setenv("SIGNAL_LIVE_SIGNAL_CACHE", str(cache_path))
+    monkeypatch.setenv("SIGNAL_LLM_ENABLED", "false")
+    write_signal_cache({"signals": [_signal("Nakuru water access stress", "water and sanitation", "Nakuru", 86)]}, cache_path)
+
+    history, _ = respond_open_signals_chat("What is happening in Nakuru?", [], "Kenya", "All", "All")
+    answer = answer_open_signals_prompt("tell me more", history, "Kenya", "All", "All")
+
+    assert "Strongest relevant signal" in answer
+    assert "Nakuru water access stress" in answer
+
+
 def test_signal_query_still_triggers_analysis(tmp_path, monkeypatch) -> None:
     cache_path = tmp_path / "latest_live_signals.json"
     monkeypatch.setenv("SIGNAL_LIVE_SIGNAL_CACHE", str(cache_path))
