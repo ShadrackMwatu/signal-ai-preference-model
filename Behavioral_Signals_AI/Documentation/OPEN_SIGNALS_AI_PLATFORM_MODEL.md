@@ -14,13 +14,13 @@ Feedback = the continuous improvement mechanism. It compares past signals with l
 
 ## Platform Flow
 
-User prompt  
--> intent detection  
--> retrieval from live signal cache and aggregate memory  
--> adaptive memory, history, outcome, geospatial, category, and evaluation context  
--> privacy and safety filtering  
--> response planning  
--> optional LLM interpretation or deterministic fallback  
+User prompt
+-> intent detection
+-> retrieval from live signal cache and aggregate memory
+-> adaptive memory, history, outcome, geospatial, category, and evaluation context
+-> privacy and safety filtering
+-> response planning
+-> optional LLM interpretation or deterministic fallback
 -> concise conversational answer
 
 ## Retrieval-Grounded Reasoning
