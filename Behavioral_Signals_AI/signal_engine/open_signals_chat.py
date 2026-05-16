@@ -101,7 +101,7 @@ def respond_open_signals_chat(message: str, history: list[Any] | None, location:
     else:
         updated_history.append({"role": "user", "content": str(message or "").strip()})
         updated_history.append({"role": "assistant", "content": answer})
-    return updated_history, ""
+    return _trim_chat_history(updated_history), ""
 
 
 def _filtered_ranked_signals(location: str, category: str, urgency: str) -> list[dict[str, Any]]:
@@ -287,3 +287,8 @@ def _strip_private_terms(text: str) -> str:
 
 def _normalize(text: str) -> str:
     return " ".join(str(text or "").lower().replace("_", " ").replace("-", " ").split())
+
+
+def _trim_chat_history(history: list[Any], max_messages: int = 8) -> list[Any]:
+    """Keep the public chat compact while preserving recent context."""
+    return list(history or [])[-max_messages:]

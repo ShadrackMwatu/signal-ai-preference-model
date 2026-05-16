@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from pathlib import Path
 
-from Behavioral_Signals_AI.signal_engine.open_signals_chat import PRIVATE_DATA_RESPONSE, answer_open_signals_prompt
+from Behavioral_Signals_AI.signal_engine.open_signals_chat import PRIVATE_DATA_RESPONSE, answer_open_signals_prompt, respond_open_signals_chat
 from Behavioral_Signals_AI.signal_engine.signal_cache import write_signal_cache
 
 APP_TEXT = Path("app.py").read_text(encoding="utf-8")
@@ -13,8 +13,25 @@ APP_TEXT = Path("app.py").read_text(encoding="utf-8")
 def test_chatbox_renders_and_privacy_notice_box_removed() -> None:
     assert "Ask Open Signals" in APP_TEXT
     assert "open_signals_chatbot" in APP_TEXT
+    assert "open_signals_send_button" in APP_TEXT
+    assert 'placeholder="Get signals"' in APP_TEXT
+    assert "open-signals-prompt-input" in APP_TEXT
     assert "signal-privacy-note" not in APP_TEXT
     assert "Open Signals answers are based on aggregate" in APP_TEXT
+
+
+def test_prompt_submission_returns_answer_above_input(tmp_path, monkeypatch) -> None:
+    cache_path = tmp_path / "latest_live_signals.json"
+    monkeypatch.setenv("SIGNAL_LIVE_SIGNAL_CACHE", str(cache_path))
+    monkeypatch.setenv("SIGNAL_LLM_ENABLED", "false")
+    write_signal_cache({"signals": [_signal("Kenya market opportunity", "trade and business", "Kenya-wide", 82)]}, cache_path)
+
+    history, cleared = respond_open_signals_chat("Get strongest signal", [], "Kenya", "All", "All")
+
+    assert cleared == ""
+    assert history[-2]["role"] == "user"
+    assert history[-1]["role"] == "assistant"
+    assert "Strongest relevant signal" in history[-1]["content"]
 
 
 def test_prompt_answer_works_without_llm_and_uses_cache(tmp_path, monkeypatch) -> None:

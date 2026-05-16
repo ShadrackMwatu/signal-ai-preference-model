@@ -451,6 +451,33 @@ SIGNAL_DASHBOARD_CSS = """
     font-size: 12px;
     margin-top: 10px;
 }
+.open-signals-chatbox {
+    margin: 8px 0 8px;
+}
+.open-signals-prompt-row {
+    align-items: center;
+    gap: 8px;
+    margin: 6px 0 8px;
+}
+.open-signals-prompt-input textarea,
+.open-signals-prompt-input input {
+    border-radius: 999px !important;
+    min-height: 42px !important;
+    border: 1px solid rgba(148, 163, 184, 0.45) !important;
+    box-shadow: none !important;
+    padding-left: 16px !important;
+    padding-right: 16px !important;
+}
+.open-signals-send {
+    min-width: 76px !important;
+}
+.open-signals-send button,
+.open-signals-send .lg,
+.open-signals-send .md {
+    border-radius: 999px !important;
+    min-height: 42px !important;
+    font-weight: 800 !important;
+}
 .signal-emerging {
     border: 1px solid rgba(148, 163, 184, 0.28);
     border-radius: 14px;
@@ -1571,12 +1598,22 @@ with gr.Blocks(title="Signal AI Dashboard", css=SIGNAL_DASHBOARD_CSS) as demo:
             "<p class='behavioral-live-note'>Live signal intelligence is updating continuously. Rankings adjust as stronger collective signals emerge.</p>"
         )
         gr.Markdown("### Ask Open Signals")
-        open_signals_chatbot = gr.Chatbot(label="Ask Open Signals", height=170, type="messages")
-        open_signals_chat_input = gr.Textbox(
+        open_signals_chatbot = gr.Chatbot(
             label="Ask Open Signals",
-            placeholder="Ask about live signals, counties, demand, risks, or opportunities...",
-            lines=1,
+            height=170,
+            type="messages",
+            elem_classes=["open-signals-chatbox"],
         )
+        with gr.Row(elem_classes=["open-signals-prompt-row"]):
+            open_signals_chat_input = gr.Textbox(
+                label="Ask Open Signals",
+                placeholder="Get signals",
+                lines=1,
+                scale=8,
+                container=False,
+                elem_classes=["open-signals-prompt-input"],
+            )
+            open_signals_send_button = gr.Button("Send", scale=1, elem_classes=["open-signals-send"])
         gr.Markdown("Open Signals answers are based on aggregate, anonymized, public, or user-authorized signal intelligence.")
         with gr.Row():
             location_filter = gr.Dropdown(label="Location", choices=LOCATION_OPTIONS, value="Kenya")
@@ -1599,6 +1636,12 @@ with gr.Blocks(title="Signal AI Dashboard", css=SIGNAL_DASHBOARD_CSS) as demo:
         feed_inputs = [location_filter, category_filter, urgency_filter]
         feed_outputs = [signal_feed_html, emerging_signals_html, signal_interpretation, historical_learning_markdown]
         open_signals_chat_input.submit(
+            fn=respond_open_signals_chat,
+            inputs=[open_signals_chat_input, open_signals_chatbot, location_filter, category_filter, urgency_filter],
+            outputs=[open_signals_chatbot, open_signals_chat_input],
+            show_api=False,
+        )
+        open_signals_send_button.click(
             fn=respond_open_signals_chat,
             inputs=[open_signals_chat_input, open_signals_chatbot, location_filter, category_filter, urgency_filter],
             outputs=[open_signals_chatbot, open_signals_chat_input],
