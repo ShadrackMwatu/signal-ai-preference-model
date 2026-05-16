@@ -31,13 +31,8 @@ for _mpl_candidate in [
 import gradio as gr
 from Behavioral_Signals_AI.geography.location_options import LOCATION_OPTIONS
 from Behavioral_Signals_AI.signal_engine.category_learning import get_category_options
-from Behavioral_Signals_AI.signal_engine.open_signals_chat import (
-    ask_county_risks,
-    ask_opportunities,
-    ask_policy_monitoring,
-    ask_strongest_signal_now,
-    respond_open_signals_chat,
-)
+from Behavioral_Signals_AI.signal_engine.open_signals_chat import respond_open_signals_chat
+
 
 from app_routes.behavioral_route import run_behavioral_signal_prediction
 from app_routes.signal_cge_route import (
@@ -470,8 +465,8 @@ SIGNAL_DASHBOARD_CSS = """
     box-shadow: none !important;
 }
 .open-signals-chat-history {
-    min-height: 92px;
-    max-height: 220px;
+    min-height: 0;
+    max-height: 160px;
     overflow-y: auto;
     border: none !important;
     background: transparent !important;
@@ -495,25 +490,7 @@ SIGNAL_DASHBOARD_CSS = """
     background: transparent !important;
     box-shadow: none !important;
 }
-.open-signals-chip-row {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 8px;
-    margin-top: 8px;
-}
-.open-signals-chip button,
-.open-signals-chip .lg,
-.open-signals-chip .md,
-.open-signals-chip .sm {
-    border-radius: 999px !important;
-    min-height: 30px !important;
-    padding: 4px 12px !important;
-    font-size: 12px !important;
-    font-weight: 700 !important;
-    border: 1px solid rgba(148, 163, 184, 0.38) !important;
-    background: rgba(248, 250, 252, 0.78) !important;
-    color: #334155 !important;
-}
+
 .open-signals-chat-input-row {
     display: flex;
     gap: 10px;
@@ -1662,16 +1639,12 @@ with gr.Blocks(title="Signal AI Dashboard", css=SIGNAL_DASHBOARD_CSS) as demo:
         with gr.Group(elem_classes=["open-signals-chat-container"]):
             open_signals_chatbot = gr.Chatbot(
                 label="Ask Open Signals",
-                height=140,
+                height=80,
                 type="messages",
                 show_label=False,
                 elem_classes=["open-signals-chat-history"],
             )
-            with gr.Row(elem_classes=["open-signals-chip-row"]):
-                strongest_signal_chip = gr.Button("Strongest signal now", elem_classes=["open-signals-chip"])
-                county_risks_chip = gr.Button("Show county risks", elem_classes=["open-signals-chip"])
-                opportunities_chip = gr.Button("Show opportunities", elem_classes=["open-signals-chip"])
-                policy_monitoring_chip = gr.Button("What should policymakers monitor?", elem_classes=["open-signals-chip"])
+
             with gr.Row(elem_classes=["open-signals-chat-input-row"]):
                 open_signals_chat_input = gr.Textbox(
                     label="Ask Open Signals",
@@ -1715,30 +1688,7 @@ with gr.Blocks(title="Signal AI Dashboard", css=SIGNAL_DASHBOARD_CSS) as demo:
             outputs=[open_signals_chatbot, open_signals_chat_input],
             show_api=False,
         )
-        strongest_signal_chip.click(
-            fn=ask_strongest_signal_now,
-            inputs=[open_signals_chatbot, location_filter, category_filter, urgency_filter],
-            outputs=[open_signals_chatbot, open_signals_chat_input],
-            show_api=False,
-        )
-        county_risks_chip.click(
-            fn=ask_county_risks,
-            inputs=[open_signals_chatbot, location_filter, category_filter, urgency_filter],
-            outputs=[open_signals_chatbot, open_signals_chat_input],
-            show_api=False,
-        )
-        opportunities_chip.click(
-            fn=ask_opportunities,
-            inputs=[open_signals_chatbot, location_filter, category_filter, urgency_filter],
-            outputs=[open_signals_chatbot, open_signals_chat_input],
-            show_api=False,
-        )
-        policy_monitoring_chip.click(
-            fn=ask_policy_monitoring,
-            inputs=[open_signals_chatbot, location_filter, category_filter, urgency_filter],
-            outputs=[open_signals_chatbot, open_signals_chat_input],
-            show_api=False,
-        )
+
         for filter_component in feed_inputs:
             filter_component.change(
                 fn=get_kenya_live_signals_for_ui,

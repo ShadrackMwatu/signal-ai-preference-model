@@ -8,10 +8,6 @@ from Behavioral_Signals_AI.geography.location_options import LOCATION_OPTIONS
 from Behavioral_Signals_AI.signal_engine.open_signals_chat import (
     PRIVATE_DATA_RESPONSE,
     answer_open_signals_prompt,
-    ask_county_risks,
-    ask_opportunities,
-    ask_policy_monitoring,
-    ask_strongest_signal_now,
     respond_open_signals_chat,
 )
 from Behavioral_Signals_AI.signal_engine.signal_cache import write_signal_cache
@@ -27,30 +23,12 @@ def test_chatbox_renders_as_one_unified_panel_and_privacy_notice_box_removed() -
     assert 'placeholder="Get signals"' in ui
     assert ui.count('elem_classes=["open-signals-chat-container"]') == 1
     assert "open-signals-chat-history" in ui
-    assert "open-signals-chip-row" in ui
+    assert "open-signals-chip-row" not in ui
+    assert "Strongest relevant signal" not in ui
     assert "open-signals-chat-input-row" in ui
     assert "open-signals-chat-input" in ui
     assert "signal-privacy-note" not in APP_TEXT
     assert "Open Signals answers are based on aggregate" in APP_TEXT
-
-
-def test_prompt_chips_render_and_submit(tmp_path, monkeypatch) -> None:
-    cache_path = tmp_path / "latest_live_signals.json"
-    monkeypatch.setenv("SIGNAL_LIVE_SIGNAL_CACHE", str(cache_path))
-    monkeypatch.setenv("SIGNAL_LLM_ENABLED", "false")
-    write_signal_cache({"signals": [_signal("Kenya market opportunity", "trade and business", "Kenya-wide", 82)]}, cache_path)
-
-    for chip_text, fn in [
-        ("Strongest signal now", ask_strongest_signal_now),
-        ("Show county risks", ask_county_risks),
-        ("Show opportunities", ask_opportunities),
-        ("What should policymakers monitor?", ask_policy_monitoring),
-    ]:
-        assert chip_text in APP_TEXT
-        history, cleared = fn([], "Kenya", "All", "All")
-        assert cleared == ""
-        assert history[-2]["content"] == chip_text
-        assert "Strongest relevant signal" in history[-1]["content"]
 
 
 def test_open_signals_public_ui_hides_legacy_raw_fields() -> None:
@@ -107,7 +85,6 @@ def test_prompt_answer_works_without_llm_and_uses_cache(tmp_path, monkeypatch) -
     assert "County/scope" in answer
     assert "Opportunity or risk" in answer
     assert "Recommended action" in answer
-    assert "Suggested follow-up prompts" in answer
 
 
 def test_question_category_prioritizes_matching_category(tmp_path, monkeypatch) -> None:

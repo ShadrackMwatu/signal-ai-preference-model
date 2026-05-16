@@ -27,7 +27,7 @@ CHAT_SYSTEM_PROMPT = (
     "Do not reveal raw searches, raw likes, raw comments, raw shares, personal identities, device IDs, exact personal locations, "
     "private movement traces, or individual profiles. Be concise and focus on demand, risks, opportunities, counties, and policy implications. "
     "Every answer must include strongest relevant signal, what it means, confidence level, county or scope, opportunity or risk, recommended action, "
-    "and suggested follow-up prompts. Return JSON with one field: answer."
+    "Return JSON with one field: answer."
 )
 
 SAFE_FIELDS = [
@@ -81,7 +81,6 @@ def answer_open_signals_prompt(message: str, history: list[Any] | None, location
             "county or scope",
             "opportunity or risk",
             "recommended action",
-            "suggested follow-up prompts",
         ],
         "signals": [_safe_signal(signal) for signal in signals[:6]],
         "history_turns": _safe_history(history),
@@ -105,25 +104,6 @@ def respond_open_signals_chat(message: str, history: list[Any] | None, location:
 
 
 
-
-def ask_strongest_signal_now(history: list[Any] | None, location: str, category: str, urgency: str) -> tuple[list[Any], str]:
-    """Submit the strongest-signal prompt from the compact chip UI."""
-    return respond_open_signals_chat("Strongest signal now", history, location, category, urgency)
-
-
-def ask_county_risks(history: list[Any] | None, location: str, category: str, urgency: str) -> tuple[list[Any], str]:
-    """Submit the county-risk prompt from the compact chip UI."""
-    return respond_open_signals_chat("Show county risks", history, location, category, urgency)
-
-
-def ask_opportunities(history: list[Any] | None, location: str, category: str, urgency: str) -> tuple[list[Any], str]:
-    """Submit the opportunity prompt from the compact chip UI."""
-    return respond_open_signals_chat("Show opportunities", history, location, category, urgency)
-
-
-def ask_policy_monitoring(history: list[Any] | None, location: str, category: str, urgency: str) -> tuple[list[Any], str]:
-    """Submit the policy-monitoring prompt from the compact chip UI."""
-    return respond_open_signals_chat("What should policymakers monitor?", history, location, category, urgency)
 
 def _filtered_ranked_signals(location: str, category: str, urgency: str) -> list[dict[str, Any]]:
     payload = get_cached_or_fallback_signals()
@@ -184,8 +164,7 @@ def _format_grounded_answer(signal: dict[str, Any], emphasis: str, location: str
         f"**Confidence level:** {confidence}% based on aggregate interpreted signal evidence, source validation, historical learning, and current ranking.\n\n"
         f"**County/scope:** {scope}.\n\n"
         f"**Opportunity or risk:** Opportunity is {opportunity}; urgency is {urgency_value}; risk signal is {risk}.\n\n"
-        f"**Recommended action:** {action}\n\n"
-        "**Suggested follow-up prompts:** Show risks | Show opportunities | Explain county relevance | What should policymakers do?"
+        f"**Recommended action:** {action}"
     )
 
 
@@ -267,7 +246,7 @@ def _category_from_question(question: str) -> str:
 
 
 def _ensure_grounded_answer(answer: str, signal: dict[str, Any], location: str) -> str:
-    required_markers = ["Strongest relevant signal", "What it means", "Confidence level", "County/scope", "Opportunity or risk", "Recommended action", "Suggested follow-up prompts"]
+    required_markers = ["Strongest relevant signal", "What it means", "Confidence level", "County/scope", "Opportunity or risk", "Recommended action"]
     if all(marker.lower() in answer.lower() for marker in required_markers):
         return answer
     return _format_grounded_answer(signal, answer or _meaning_sentence(signal), location, str(signal.get("signal_category", "All")), str(signal.get("urgency", "All")))
@@ -276,7 +255,7 @@ def _ensure_grounded_answer(answer: str, signal: dict[str, Any], location: str) 
 def _no_signal_answer(location: str, category: str, urgency: str) -> str:
     return (
         f"No matching aggregate signals are currently available for {location}, {category}, {urgency}.\n\n"
-        "**Suggested follow-up prompts:** Show Kenya-wide signals | Show opportunities | What should policymakers do? | Explain county relevance"
+        "Try asking about Kenya-wide signals, opportunities, policy monitoring, or county relevance."
     )
 
 
