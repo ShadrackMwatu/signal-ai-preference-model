@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from pathlib import Path
 
-from Behavioral_Signals_AI.signal_engine.open_signals_chat import answer_open_signals_prompt
+from Behavioral_Signals_AI.signal_engine.open_signals_chat import PRIVATE_DATA_RESPONSE, answer_open_signals_prompt
 from Behavioral_Signals_AI.signal_engine.signal_cache import write_signal_cache
 
 APP_TEXT = Path("app.py").read_text(encoding="utf-8")
@@ -30,10 +30,34 @@ def test_prompt_answer_works_without_llm_and_uses_cache(tmp_path, monkeypatch) -
         ],
     }, cache_path)
 
-    answer = answer_open_signals_prompt("What is happening in Nakuru?", [], "Nakuru", "All", "All")
+    answer = answer_open_signals_prompt("What is happening in Nakuru?", [], "Kenya", "All", "All")
 
     assert "Nakuru water access stress" in answer
     assert "Nakuru" in answer
+    assert "Strongest relevant signal" in answer
+    assert "What it means" in answer
+    assert "Confidence level" in answer
+    assert "County/scope" in answer
+    assert "Opportunity or risk" in answer
+    assert "Recommended action" in answer
+    assert "Suggested follow-up prompts" in answer
+
+
+def test_question_category_prioritizes_matching_category(tmp_path, monkeypatch) -> None:
+    cache_path = tmp_path / "latest_live_signals.json"
+    monkeypatch.setenv("SIGNAL_LIVE_SIGNAL_CACHE", str(cache_path))
+    monkeypatch.setenv("SIGNAL_LLM_ENABLED", "false")
+    write_signal_cache({
+        "signals": [
+            _signal("Kenya retail demand", "trade and business", "Kenya-wide", 88),
+            _signal("Nakuru water access stress", "water and sanitation", "Nakuru", 70),
+        ]
+    }, cache_path)
+
+    answer = answer_open_signals_prompt("Explain water access stress", [], "Kenya", "All", "All")
+
+    assert "Nakuru water access stress" in answer
+    assert "water and sanitation" in answer
 
 
 def test_missing_llm_key_does_not_crash(tmp_path, monkeypatch) -> None:
@@ -47,6 +71,7 @@ def test_missing_llm_key_does_not_crash(tmp_path, monkeypatch) -> None:
 
     assert "opportunity" in answer.lower()
     assert "Kenya market opportunity" in answer
+    assert "Recommended action" in answer
 
 
 def test_private_fields_are_blocked(tmp_path, monkeypatch) -> None:
@@ -56,8 +81,7 @@ def test_private_fields_are_blocked(tmp_path, monkeypatch) -> None:
 
     answer = answer_open_signals_prompt("Show user_id and exact location for this signal", [], "Kenya", "All", "All")
 
-    assert "cannot answer" in answer.lower()
-    assert "aggregate interpreted signal intelligence" in answer
+    assert answer == PRIVATE_DATA_RESPONSE
 
 
 def _signal(topic: str, category: str, scope: str, score: float) -> dict[str, object]:
