@@ -1,64 +1,188 @@
 ﻿sources:
-  - name: google_trends_kenya
-    enabled: true
+  - source_name: KNBS
+    name: KNBS
+    source_type: official_statistics
+    enabled: false
     requires_api_key: false
-    environment_key: ""
-    update_frequency_seconds: 1800
-    reliability_prior: 0.78
-    kenya_relevance_prior: 0.92
-  - name: serpapi_search_trends
-    enabled: true
-    requires_api_key: true
-    environment_key: SERPAPI_KEY
-    update_frequency_seconds: 1800
-    reliability_prior: 0.82
-    kenya_relevance_prior: 0.88
-  - name: x_public_trends
-    enabled: true
-    requires_api_key: true
-    environment_key: X_BEARER_TOKEN
-    update_frequency_seconds: 900
-    reliability_prior: 0.66
-    kenya_relevance_prior: 0.82
-  - name: kenya_news_source
-    enabled: true
-    requires_api_key: false
-    environment_key: ""
-    update_frequency_seconds: 1200
-    reliability_prior: 0.72
-    kenya_relevance_prior: 0.9
-  - name: news_api
-    enabled: true
-    requires_api_key: true
-    environment_key: NEWS_API_KEY
-    update_frequency_seconds: 1200
-    reliability_prior: 0.76
-    kenya_relevance_prior: 0.84
-  - name: wfp_food_prices
-    enabled: true
-    requires_api_key: false
+    env_var: ""
     environment_key: ""
     update_frequency_seconds: 86400
-    reliability_prior: 0.86
-    kenya_relevance_prior: 0.82
-  - name: knbs_indicators
-    enabled: true
+    privacy_level: public_aggregate
+    kenya_relevance_prior: 98
+    reliability_prior: 94
+  - source_name: CBK
+    name: CBK
+    source_type: macro
+    enabled: false
     requires_api_key: false
+    env_var: ""
     environment_key: ""
     update_frequency_seconds: 86400
-    reliability_prior: 0.9
-    kenya_relevance_prior: 0.95
-  - name: cbk_macro_signals
-    enabled: true
+    privacy_level: public_aggregate
+    kenya_relevance_prior: 96
+    reliability_prior: 92
+  - source_name: Kenya Open Data
+    name: Kenya Open Data
+    source_type: official_statistics
+    enabled: false
     requires_api_key: false
+    env_var: ""
     environment_key: ""
     update_frequency_seconds: 86400
-    reliability_prior: 0.88
-    kenya_relevance_prior: 0.9
-  - name: youtube_public_trends
+    privacy_level: public_aggregate
+    kenya_relevance_prior: 92
+    reliability_prior: 84
+  - source_name: KilimoSTAT
+    name: KilimoSTAT
+    source_type: agriculture
+    enabled: false
+    requires_api_key: false
+    env_var: ""
+    environment_key: ""
+    update_frequency_seconds: 86400
+    privacy_level: public_aggregate
+    kenya_relevance_prior: 88
+    reliability_prior: 86
+  - source_name: FEWS NET
+    name: FEWS NET
+    source_type: food_prices
+    enabled: false
+    requires_api_key: false
+    env_var: ""
+    environment_key: ""
+    update_frequency_seconds: 86400
+    privacy_level: public_aggregate
+    kenya_relevance_prior: 86
+    reliability_prior: 88
+  - source_name: Kenya news/public reports
+    name: Kenya news/public reports
+    source_type: news
+    enabled: false
+    requires_api_key: false
+    env_var: ""
+    environment_key: ""
+    update_frequency_seconds: 3600
+    privacy_level: public_aggregate
+    kenya_relevance_prior: 90
+    reliability_prior: 74
+  - source_name: county public reports
+    name: county public reports
+    source_type: official_statistics
+    enabled: false
+    requires_api_key: false
+    env_var: ""
+    environment_key: ""
+    update_frequency_seconds: 86400
+    privacy_level: public_aggregate
+    kenya_relevance_prior: 90
+    reliability_prior: 78
+  - source_name: World Bank Open Data
+    name: World Bank Open Data
+    source_type: macro
+    enabled: false
+    requires_api_key: false
+    env_var: ""
+    environment_key: ""
+    update_frequency_seconds: 604800
+    privacy_level: public_aggregate
+    kenya_relevance_prior: 82
+    reliability_prior: 92
+  - source_name: IMF Data
+    name: IMF Data
+    source_type: macro
+    enabled: false
+    requires_api_key: false
+    env_var: ""
+    environment_key: ""
+    update_frequency_seconds: 604800
+    privacy_level: public_aggregate
+    kenya_relevance_prior: 78
+    reliability_prior: 90
+  - source_name: UN Data
+    name: UN Data
+    source_type: official_statistics
+    enabled: false
+    requires_api_key: false
+    env_var: ""
+    environment_key: ""
+    update_frequency_seconds: 604800
+    privacy_level: public_aggregate
+    kenya_relevance_prior: 76
+    reliability_prior: 88
+  - source_name: FAO
+    name: FAO
+    source_type: agriculture
+    enabled: false
+    requires_api_key: false
+    env_var: ""
+    environment_key: ""
+    update_frequency_seconds: 604800
+    privacy_level: public_aggregate
+    kenya_relevance_prior: 84
+    reliability_prior: 90
+  - source_name: Google Trends / SerpAPI
+    name: Google Trends / SerpAPI
+    source_type: search_trends
     enabled: false
     requires_api_key: true
+    env_var: SERPAPI_KEY
+    environment_key: SERPAPI_KEY
+    update_frequency_seconds: 3600
+    privacy_level: public_aggregate
+    kenya_relevance_prior: 88
+    reliability_prior: 82
+  - source_name: YouTube public metadata
+    name: YouTube public metadata
+    source_type: social_public
+    enabled: false
+    requires_api_key: true
+    env_var: YOUTUBE_API_KEY
     environment_key: YOUTUBE_API_KEY
     update_frequency_seconds: 3600
-    reliability_prior: 0.62
-    kenya_relevance_prior: 0.7
+    privacy_level: public_aggregate
+    kenya_relevance_prior: 72
+    reliability_prior: 68
+  - source_name: Reddit public metadata
+    name: Reddit public metadata
+    source_type: social_public
+    enabled: false
+    requires_api_key: true
+    env_var: REDDIT_CLIENT_ID
+    environment_key: REDDIT_CLIENT_ID
+    update_frequency_seconds: 3600
+    privacy_level: public_aggregate
+    kenya_relevance_prior: 62
+    reliability_prior: 62
+  - source_name: OpenStreetMap
+    name: OpenStreetMap
+    source_type: geospatial
+    enabled: false
+    requires_api_key: false
+    env_var: ""
+    environment_key: ""
+    update_frequency_seconds: 604800
+    privacy_level: public_aggregate
+    kenya_relevance_prior: 84
+    reliability_prior: 82
+  - source_name: weather/climate APIs
+    name: weather/climate APIs
+    source_type: geospatial
+    enabled: false
+    requires_api_key: true
+    env_var: WEATHER_API_KEY
+    environment_key: WEATHER_API_KEY
+    update_frequency_seconds: 21600
+    privacy_level: public_aggregate
+    kenya_relevance_prior: 86
+    reliability_prior: 78
+  - source_name: aggregate mobility placeholder
+    name: aggregate mobility placeholder
+    source_type: mobility_aggregate
+    enabled: false
+    requires_api_key: true
+    env_var: GOOGLE_MAPS_API_KEY
+    environment_key: GOOGLE_MAPS_API_KEY
+    update_frequency_seconds: 86400
+    privacy_level: public_aggregate
+    kenya_relevance_prior: 78
+    reliability_prior: 70

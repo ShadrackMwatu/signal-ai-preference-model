@@ -5,6 +5,7 @@ from __future__ import annotations
 from pathlib import Path
 from typing import Any
 
+from Behavioral_Signals_AI.data_ingestion.retrieval_index import retrieve_relevant_context
 from Behavioral_Signals_AI.geography.county_matcher import signal_matches_location
 from Behavioral_Signals_AI.signal_engine.category_learning import category_matches_signal
 from Behavioral_Signals_AI.signal_engine.signal_cache import get_cached_or_fallback_signals
@@ -51,7 +52,9 @@ def retrieve_live_signals(location: str = "Kenya", category: str = "All", urgenc
 def retrieve_memory_context(signals: list[dict[str, Any]] | None = None) -> dict[str, Any]:
     topics = {_normalize(signal.get("signal_topic", "")) for signal in list(signals or [])[:8]}
     memory = {name: read_json(path, _default_for_memory(name)) for name, path in MEMORY_FILES.items()}
+    retrieval_query = " ".join(topic for topic in topics if topic)
     return {
+        "retrieved_evidence": retrieve_relevant_context(retrieval_query, limit=8) if retrieval_query else retrieve_relevant_context("Kenya aggregate signals", limit=8),
         "historical": _select_relevant(memory["historical_signal_memory"], topics),
         "outcomes": _select_relevant(memory["outcome_learning_memory"], topics),
         "geospatial": _select_relevant(memory["geospatial_signal_memory"], topics),

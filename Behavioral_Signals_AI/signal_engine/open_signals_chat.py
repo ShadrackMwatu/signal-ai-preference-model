@@ -7,6 +7,7 @@ from typing import Any
 
 from Behavioral_Signals_AI.ai_platform.context_builder import build_open_signals_context
 from Behavioral_Signals_AI.chat.intents import detect_open_signals_intent
+from Behavioral_Signals_AI.data_ingestion.retrieval_index import retrieve_relevant_context
 from Behavioral_Signals_AI.geography.county_matcher import detect_county_from_text, signal_matches_location
 from Behavioral_Signals_AI.geography.location_options import LOCATION_OPTIONS
 from Behavioral_Signals_AI.llm.llm_client import complete_json
@@ -453,12 +454,25 @@ def _grounded_rule_based_answer(question: str, signals: list[dict[str, Any]], lo
         emphasis = _risk_sentence(top)
     else:
         emphasis = _meaning_sentence(top)
+    evidence_note = _retrieved_evidence_note(question, location, category)
+    if evidence_note:
+        emphasis = f"{emphasis} {evidence_note}"
     if question_location and session_context and session_context.get("last_county") and session_context.get("last_county") != question_location:
         emphasis = f"Compared with the previous county context ({session_context['last_county']}), {question_location} is now the active county context. {emphasis}"
     elif _is_followup_question(question) and session_context and session_context.get("last_signal"):
         emphasis = f"This follows the earlier signal context ({session_context['last_signal']}). {emphasis}"
     return _format_grounded_answer(top, emphasis, location, category, urgency)
 
+
+
+def _retrieved_evidence_note(question: str, location: str, category: str) -> str:
+    evidence = retrieve_relevant_context(question, location, category, limit=2)
+    if not evidence:
+        return ""
+    top = evidence[0]
+    source = top.get("source_name") or top.get("source_type") or "retrieved aggregate evidence"
+    summary = str(top.get("summary") or top.get("topic") or "")[:180]
+    return f"Retrieved aggregate evidence from {source} adds context: {summary}."
 
 def _select_relevant_signal(question: str, signals: list[dict[str, Any]]) -> dict[str, Any]:
     words = {word for word in re.findall(r"[a-zA-Z]{4,}", question.lower()) if word not in {"what", "show", "signals", "signal", "about", "which", "should"}}

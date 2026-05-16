@@ -41,5 +41,6 @@ def summarize_context_for_llm(context: dict[str, Any]) -> dict[str, Any]:
             "behavioral_count": len(memory.get("behavioral", []) or []),
             "evaluation_metrics": memory.get("evaluation_metrics", {}),
         },
+        "retrieved_evidence": list(context.get("retrieved_evidence", []) or [])[:5],
         "privacy_boundary": context.get("privacy_boundary"),
     })

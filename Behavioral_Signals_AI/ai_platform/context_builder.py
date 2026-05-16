@@ -5,6 +5,7 @@ from __future__ import annotations
 from typing import Any
 
 from Behavioral_Signals_AI.ai_platform.retrieval_engine import retrieve_platform_context
+from Behavioral_Signals_AI.data_ingestion.retrieval_index import retrieve_relevant_context
 from Behavioral_Signals_AI.ai_platform.safety_layer import sanitize_context
 
 SAFE_SIGNAL_FIELDS = [
@@ -44,6 +45,7 @@ def build_open_signals_context(
 ) -> dict[str, Any]:
     retrieved = retrieve_platform_context(location, category, urgency)
     signals = [_safe_signal(signal) for signal in retrieved.get("signals", [])[:8]]
+    retrieved_evidence = retrieve_relevant_context(message, location, category, limit=5)
     context = {
         "question": str(message or "")[:500],
         "intent": dict(intent or {}),
@@ -52,6 +54,7 @@ def build_open_signals_context(
         "recent_history_summary": _history_summary(history),
         "aggregate_live_signals": signals,
         "memory_context": retrieved.get("memory", {}),
+        "retrieved_evidence": retrieved_evidence,
         "grounding_notes": [
             "latest live signal cache",
             "historical signal memory",
@@ -60,6 +63,7 @@ def build_open_signals_context(
             "behavioral intelligence memory",
             "category learning memory",
             "evaluation metrics when available",
+            "ingested public aggregate records retrieval index",
         ],
         "privacy_boundary": "aggregate_anonymized_public_or_user_authorized_only",
     }

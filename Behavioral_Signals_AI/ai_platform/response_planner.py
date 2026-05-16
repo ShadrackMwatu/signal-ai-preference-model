@@ -40,9 +40,10 @@ def deterministic_response(mode: str, context: dict[str, Any]) -> str:
     if mode == "clarification":
         return CLARIFICATION
     signals = context.get("aggregate_live_signals") or []
-    top = signals[0] if signals else {}
+    evidence = context.get("retrieved_evidence") or []
+    top = signals[0] if signals else _signal_from_evidence(evidence[0]) if evidence else {}
     if not top:
-        return "I do not have enough aggregate signal context yet. Try asking about Kenya-wide signals, a county, risks, or opportunities."
+        return "I do not have enough current aggregate evidence for that yet."
     return _format_signal_answer(top, mode)
 
 
@@ -66,3 +67,18 @@ def _format_signal_answer(signal: dict[str, Any], mode: str) -> str:
         f"- **{focus}**\n"
         f"- **Recommended action:** {action}"
     )
+
+
+def _signal_from_evidence(record: dict[str, Any]) -> dict[str, Any]:
+    return {
+        "signal_topic": record.get("topic"),
+        "signal_category": record.get("category"),
+        "county_name": record.get("county_name") or record.get("location"),
+        "geographic_scope": record.get("location"),
+        "confidence_score": record.get("confidence"),
+        "interpretation": record.get("summary"),
+        "recommended_action": "Validate this retrieved aggregate evidence against live signals, history, and outcome learning.",
+        "opportunity_level": "Moderate",
+        "unmet_demand_likelihood": "Medium",
+        "urgency": "Medium",
+    }
