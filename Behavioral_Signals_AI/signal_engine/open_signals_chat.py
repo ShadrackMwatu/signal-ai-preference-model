@@ -6,6 +6,7 @@ import re
 from typing import Any
 
 from Behavioral_Signals_AI.geography.county_matcher import detect_county_from_text, signal_matches_location
+from Behavioral_Signals_AI.geography.location_options import LOCATION_OPTIONS
 from Behavioral_Signals_AI.llm.llm_client import complete_json
 from Behavioral_Signals_AI.signal_engine.category_learning import category_matches_signal, get_category_options
 from Behavioral_Signals_AI.signal_engine.signal_cache import get_cached_or_fallback_signals
@@ -62,18 +63,22 @@ def answer_open_signals_prompt(message: str, history: list[Any] | None, location
     if _has_private_request(cleaned):
         return PRIVATE_DATA_RESPONSE
 
-    effective_location = _location_from_question(cleaned) or location or "Kenya"
-    effective_category = _category_from_question(cleaned) or category or "All"
+    session_context = _conversation_context(history)
+    question_location = _location_from_question(cleaned)
+    question_category = _category_from_question(cleaned)
+    effective_location = question_location or _context_location_for_followup(cleaned, session_context) or location or "Kenya"
+    effective_category = question_category or _context_category_for_followup(cleaned, session_context) or category or "All"
     effective_urgency = urgency or "All"
 
     signals = _filtered_ranked_signals(effective_location, effective_category, effective_urgency)
     if not signals:
         return _no_signal_answer(effective_location, effective_category, effective_urgency)
 
-    fallback_answer = _grounded_rule_based_answer(cleaned, signals, effective_location, effective_category, effective_urgency)
+    fallback_answer = _grounded_rule_based_answer(cleaned, signals, effective_location, effective_category, effective_urgency, session_context, question_location, question_category)
     payload = {
         "question": cleaned,
         "filters": {"location": effective_location, "category": effective_category, "urgency": effective_urgency},
+        "session_context": session_context,
         "required_answer_fields": [
             "strongest relevant signal",
             "what it means",
@@ -105,6 +110,53 @@ def respond_open_signals_chat(message: str, history: list[Any] | None, location:
 
 
 
+
+def _conversation_context(history: list[Any] | None) -> dict[str, str]:
+    """Extract temporary session context from visible chat history only."""
+    context = {"last_county": "", "last_category": "", "last_signal": ""}
+    for content in _history_text_items(history):
+        safe = _strip_private_terms(content)
+        county = _location_from_question(safe)
+        if county and county not in {"Global", "Kenya"}:
+            context["last_county"] = county
+        category = _category_from_question(safe)
+        if category:
+            context["last_category"] = category
+        match = re.search(r"Strongest relevant signal:\*\*\s*([^\n(]+)", safe, re.IGNORECASE)
+        if match:
+            context["last_signal"] = match.group(1).strip(" :.-")[:120]
+    return context
+
+
+def _history_text_items(history: list[Any] | None) -> list[str]:
+    items: list[str] = []
+    for item in list(history or [])[-8:]:
+        if isinstance(item, dict):
+            items.append(str(item.get("content") or ""))
+        elif isinstance(item, (tuple, list)):
+            items.extend(str(part or "") for part in item[:2])
+        else:
+            items.append(str(item or ""))
+    return items
+
+
+def _context_location_for_followup(question: str, context: dict[str, str]) -> str:
+    if _is_followup_question(question):
+        return context.get("last_county", "")
+    return ""
+
+
+def _context_category_for_followup(question: str, context: dict[str, str]) -> str:
+    if _is_followup_question(question):
+        return context.get("last_category", "")
+    return ""
+
+
+def _is_followup_question(question: str) -> bool:
+    q = _normalize(question)
+    return bool(re.search(r"\b(that|this|it|there|same|also|why|what about|how about|opportunity|policy|policymakers|rising)\b", q))
+
+
 def _filtered_ranked_signals(location: str, category: str, urgency: str) -> list[dict[str, Any]]:
     payload = get_cached_or_fallback_signals()
     signals = [signal for signal in payload.get("signals", []) if isinstance(signal, dict)]
@@ -120,7 +172,7 @@ def _filtered_ranked_signals(location: str, category: str, urgency: str) -> list
     return rank_signals_for_display(filtered or signals)
 
 
-def _grounded_rule_based_answer(question: str, signals: list[dict[str, Any]], location: str, category: str, urgency: str) -> str:
+def _grounded_rule_based_answer(question: str, signals: list[dict[str, Any]], location: str, category: str, urgency: str, session_context: dict[str, str] | None = None, question_location: str = "", question_category: str = "") -> str:
     top = _select_relevant_signal(question, signals)
     q = question.lower()
     if "opportun" in q or "market" in q or "business" in q:
@@ -131,6 +183,10 @@ def _grounded_rule_based_answer(question: str, signals: list[dict[str, Any]], lo
         emphasis = _risk_sentence(top)
     else:
         emphasis = _meaning_sentence(top)
+    if question_location and session_context and session_context.get("last_county") and session_context.get("last_county") != question_location:
+        emphasis = f"Compared with the previous county context ({session_context['last_county']}), {question_location} is now the active county context. {emphasis}"
+    elif _is_followup_question(question) and session_context and session_context.get("last_signal"):
+        emphasis = f"This follows the earlier signal context ({session_context['last_signal']}). {emphasis}"
     return _format_grounded_answer(top, emphasis, location, category, urgency)
 
 
@@ -214,10 +270,15 @@ def _location_from_question(question: str) -> str:
     county = detected.get("county_name", "")
     if county and county != "Kenya-wide":
         return county
-    q = question.lower()
-    if "global" in q:
+    normalized_question = _normalize(question)
+    for option in LOCATION_OPTIONS:
+        if option in {"Global", "Kenya"}:
+            continue
+        if _normalize(option) in normalized_question:
+            return option
+    if "global" in normalized_question:
         return "Global"
-    if "kenya" in q or "national" in q:
+    if "kenya" in normalized_question or "national" in normalized_question:
         return "Kenya"
     return ""
 

@@ -107,6 +107,37 @@ def test_question_category_prioritizes_matching_category(tmp_path, monkeypatch) 
     assert "water and sanitation" in answer
 
 
+
+def test_followup_remembers_county_and_switches_context(tmp_path, monkeypatch) -> None:
+    cache_path = tmp_path / "latest_live_signals.json"
+    monkeypatch.setenv("SIGNAL_LIVE_SIGNAL_CACHE", str(cache_path))
+    monkeypatch.setenv("SIGNAL_LLM_ENABLED", "false")
+    write_signal_cache({
+        "signals": [
+            _signal("Nakuru water access stress", "water and sanitation", "Nakuru", 86),
+            _signal("Makueni water access stress", "water and sanitation", "Makueni", 84),
+        ]
+    }, cache_path)
+
+    history, _ = respond_open_signals_chat("What is happening in Nakuru?", [], "Kenya", "All", "All")
+    answer = answer_open_signals_prompt("What about Makueni?", history, "Kenya", "All", "All")
+
+    assert "Makueni water access stress" in answer
+    assert "previous county context (Nakuru)" in answer
+
+
+def test_followup_uses_previous_signal_context(tmp_path, monkeypatch) -> None:
+    cache_path = tmp_path / "latest_live_signals.json"
+    monkeypatch.setenv("SIGNAL_LIVE_SIGNAL_CACHE", str(cache_path))
+    monkeypatch.setenv("SIGNAL_LLM_ENABLED", "false")
+    write_signal_cache({"signals": [_signal("Nakuru water access stress", "water and sanitation", "Nakuru", 86)]}, cache_path)
+
+    history, _ = respond_open_signals_chat("What is happening in Nakuru?", [], "Kenya", "All", "All")
+    answer = answer_open_signals_prompt("Why is that rising?", history, "Kenya", "All", "All")
+
+    assert "Nakuru water access stress" in answer
+    assert "earlier signal context" in answer
+
 def test_missing_llm_key_does_not_crash(tmp_path, monkeypatch) -> None:
     cache_path = tmp_path / "latest_live_signals.json"
     monkeypatch.setenv("SIGNAL_LIVE_SIGNAL_CACHE", str(cache_path))
