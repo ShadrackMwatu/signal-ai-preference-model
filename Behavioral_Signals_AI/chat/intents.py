@@ -93,6 +93,8 @@ def detect_open_signals_intent(message: str) -> OpenSignalsIntent:
     lowered = text.lower()
     if not lowered:
         return {"intent": "unclear_query", "confidence": 0.95}
+    if lowered in {"who", "why", "meaning", "mean", "means", "how", "where"} or lowered.startswith("what about"):
+        return {"intent": "short_followup", "confidence": 0.78}
     if _matches(lowered, GREETING_PATTERNS):
         return {"intent": "greeting", "confidence": 0.98}
     if _matches(lowered, FAREWELL_PATTERNS):

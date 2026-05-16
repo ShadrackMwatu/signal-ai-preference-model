@@ -139,6 +139,57 @@ def test_vague_followup_uses_session_context(tmp_path, monkeypatch) -> None:
     assert "Nakuru water access stress" in answer
 
 
+
+def test_short_who_after_greeting_returns_identity() -> None:
+    history, _ = respond_open_signals_chat("hi", [], "Kenya", "All", "All")
+    answer = answer_open_signals_prompt("who", history, "Kenya", "All", "All")
+
+    assert "I'm Open Signals" in answer
+    assert "privacy-preserving" in answer
+    assert "Strongest relevant signal" not in answer
+
+
+def test_short_why_after_signal_explains_reason(tmp_path, monkeypatch) -> None:
+    cache_path = tmp_path / "latest_live_signals.json"
+    monkeypatch.setenv("SIGNAL_LIVE_SIGNAL_CACHE", str(cache_path))
+    monkeypatch.setenv("SIGNAL_LLM_ENABLED", "false")
+    signal = _signal("Nairobi affordability pressure", "cost of living", "Nairobi", 91)
+    signal["confidence_reasoning"] = "source agreement and recurrence"
+    write_signal_cache({"signals": [signal]}, cache_path)
+
+    history, _ = respond_open_signals_chat("show Nairobi signals", [], "Kenya", "All", "All")
+    answer = answer_open_signals_prompt("why", history, "Kenya", "All", "All")
+
+    assert "Strongest relevant signal" in answer
+    assert "Nairobi affordability pressure" in answer
+    assert "This signal matters because" in answer
+
+
+def test_short_meaning_after_signal_explains_economic_meaning(tmp_path, monkeypatch) -> None:
+    cache_path = tmp_path / "latest_live_signals.json"
+    monkeypatch.setenv("SIGNAL_LIVE_SIGNAL_CACHE", str(cache_path))
+    monkeypatch.setenv("SIGNAL_LLM_ENABLED", "false")
+    write_signal_cache({"signals": [_signal("Kenya market opportunity", "trade and business", "Kenya-wide", 82)]}, cache_path)
+
+    history, _ = respond_open_signals_chat("show strongest signal", [], "Kenya", "All", "All")
+    answer = answer_open_signals_prompt("meaning", history, "Kenya", "All", "All")
+
+    assert "Strongest relevant signal" in answer
+    assert "Economically" in answer
+    assert "policy" in answer.lower()
+
+
+def test_short_why_without_prior_signal_asks_better_clarification() -> None:
+    answer = answer_open_signals_prompt("why", [], "Kenya", "All", "All")
+
+    assert answer == "Do you mean who I am, why a signal matters, or the meaning of a specific signal?"
+
+
+def test_short_meaning_without_prior_signal_asks_better_clarification() -> None:
+    answer = answer_open_signals_prompt("meaning", [], "Kenya", "All", "All")
+
+    assert answer == "Do you mean who I am, why a signal matters, or the meaning of a specific signal?"
+
 def test_signal_query_still_triggers_analysis(tmp_path, monkeypatch) -> None:
     cache_path = tmp_path / "latest_live_signals.json"
     monkeypatch.setenv("SIGNAL_LIVE_SIGNAL_CACHE", str(cache_path))

@@ -7,6 +7,7 @@ from typing import Any
 
 from Behavioral_Signals_AI.ai_platform.context_builder import build_open_signals_context
 from Behavioral_Signals_AI.chat.intents import detect_open_signals_intent
+from Behavioral_Signals_AI.chat.reference_resolver import resolve_short_followup
 from Behavioral_Signals_AI.data_ingestion.retrieval_index import retrieve_relevant_context
 from Behavioral_Signals_AI.geography.county_matcher import detect_county_from_text, signal_matches_location
 from Behavioral_Signals_AI.geography.location_options import LOCATION_OPTIONS
@@ -64,12 +65,17 @@ def answer_open_signals_prompt(message: str, history: list[Any] | None, location
         return PRIVATE_DATA_RESPONSE
 
     detected_intent = detect_open_signals_intent(cleaned)
+    session_context = _conversation_context(history)
+    resolved_followup = resolve_short_followup(cleaned, history, session_context)
+    if resolved_followup.get("resolved"):
+        detected_intent = {"intent": str(resolved_followup["intent"]), "confidence": float(resolved_followup.get("confidence", 0.8))}
+    elif detected_intent["intent"] == "short_followup":
+        return _short_followup_clarification(cleaned)
     if detected_intent["intent"] != "unclear_query":
         conversational = _conversational_response(detected_intent["intent"], cleaned)
         if conversational:
             return conversational
 
-    session_context = _conversation_context(history)
     question_location = _location_from_question(cleaned)
     question_category = _category_from_question(cleaned)
     if _needs_clarification(cleaned, detected_intent["intent"], session_context, question_location, question_category):
@@ -89,9 +95,10 @@ def answer_open_signals_prompt(message: str, history: list[Any] | None, location
     if not signals:
         return _no_signal_answer(effective_location, effective_category, effective_urgency)
 
-    fallback_answer = _grounded_rule_based_answer(cleaned, signals, effective_location, effective_category, effective_urgency, session_context, question_location, question_category)
+    reasoning_question = _resolved_reasoning_question(cleaned, detected_intent["intent"])
+    fallback_answer = _grounded_rule_based_answer(reasoning_question, signals, effective_location, effective_category, effective_urgency, session_context, question_location, question_category)
     payload = build_open_signals_llm_payload(
-        cleaned,
+        reasoning_question,
         signals,
         {"location": effective_location, "category": effective_category, "urgency": effective_urgency},
         session_context,
@@ -201,7 +208,7 @@ def _conversational_response(intent: str, message: str) -> str:
         )
     if intent == "identity_query":
         return (
-            "I'm Open Signals - a privacy-preserving behavioral intelligence system focused on emerging "
+            "I'm Open Signals - a privacy-preserving behavioral intelligence assistant focused on emerging "
             "aggregate signals, risks, opportunities, and demand patterns across Kenya."
         )
     if intent == "capability_query":
@@ -257,6 +264,7 @@ def _has_session_context(session_context: dict[str, str]) -> bool:
         session_context.get("last_county")
         or session_context.get("last_category")
         or session_context.get("last_signal")
+        or session_context.get("last_signal_topic")
     )
 
 
@@ -284,9 +292,23 @@ def _is_vague_prompt(question: str) -> bool:
 def _clarification_prompt() -> str:
     return "Do you want me to explain the strongest current signal, a specific county, or a market opportunity?"
 
+
+def _short_followup_clarification(message: str) -> str:
+    lowered = _normalize(message)
+    if lowered in {"who", "why", "meaning", "mean", "means", "how", "where"}:
+        return "Do you mean who I am, why a signal matters, or the meaning of a specific signal?"
+    return _clarification_prompt()
+
 def _conversation_context(history: list[Any] | None) -> dict[str, str]:
     """Extract temporary session context from visible chat history only."""
-    context = {"last_county": "", "last_category": "", "last_signal": ""}
+    context = {
+        "last_county": "",
+        "last_category": "",
+        "last_signal": "",
+        "last_signal_topic": "",
+        "last_intent": "",
+        "last_answer_type": "",
+    }
     for content in _history_text_items(history):
         safe = _strip_private_terms(content)
         county = _location_from_question(safe)
@@ -298,6 +320,11 @@ def _conversation_context(history: list[Any] | None) -> dict[str, str]:
         match = re.search(r"Strongest relevant signal:\*\*\s*([^\n(]+)", safe, re.IGNORECASE)
         if match:
             context["last_signal"] = match.group(1).strip(" :.-")[:120]
+            context["last_signal_topic"] = context["last_signal"]
+            context["last_answer_type"] = "signal_answer"
+        if "Hello. I'm Open Signals" in safe or "privacy-preserving behavioral intelligence" in safe:
+            context["last_intent"] = "greeting" if "Hello. I'm Open Signals" in safe else "identity_query"
+            context["last_answer_type"] = "conversational"
     return context
 
 
@@ -455,10 +482,22 @@ def _locations_from_question(question: str) -> list[str]:
     return counties
 
 
+
+def _resolved_reasoning_question(question: str, intent: str) -> str:
+    if intent == "explain_reason":
+        return "explain_reason why is this signal important"
+    if intent == "explain_meaning":
+        return "explain_meaning economic meaning"
+    if intent == "explain_mechanism":
+        return "explain_mechanism how does this signal work"
+    if intent == "explain_geography":
+        return "explain_geography where is this signal relevant"
+    return question
+
 def _grounded_rule_based_answer(question: str, signals: list[dict[str, Any]], location: str, category: str, urgency: str, session_context: dict[str, str] | None = None, question_location: str = "", question_category: str = "") -> str:
     top = _select_relevant_signal(question, signals)
     q = question.lower()
-    if "why" in q or "important" in q or "confidence" in q or "affected" in q:
+    if "why" in q or "important" in q or "confidence" in q or "affected" in q or "explain_reason" in q:
         emphasis = _explainability_sentence(top)
     elif "opportun" in q or "market" in q or "business" in q or "sector" in q:
         emphasis = _opportunity_sentence(top)
@@ -466,6 +505,12 @@ def _grounded_rule_based_answer(question: str, signals: list[dict[str, Any]], lo
         emphasis = _policy_sentence(top)
     elif "risk" in q or "stress" in q:
         emphasis = _risk_sentence(top)
+    elif "meaning" in q or "explain_meaning" in q:
+        emphasis = _economic_meaning_sentence(top)
+    elif "explain_mechanism" in q or q.strip() == "how":
+        emphasis = _mechanism_sentence(top)
+    elif "explain_geography" in q or q.strip() == "where":
+        emphasis = _geography_sentence(top)
     else:
         emphasis = _meaning_sentence(top)
     evidence_note = _retrieved_evidence_note(question, location, category)
@@ -531,6 +576,30 @@ def _meaning_sentence(signal: dict[str, Any]) -> str:
         f"{signal.get('momentum', 'Stable').lower()} momentum and {signal.get('forecast_direction', 'Stable').lower()} forecast direction."
     )
 
+
+
+def _economic_meaning_sentence(signal: dict[str, Any]) -> str:
+    return (
+        f"Economically, {signal.get('signal_topic', 'this signal')} suggests a possible shift in aggregate demand, "
+        f"affordability pressure, service stress, or market opportunity in {signal.get('county_name') or signal.get('geographic_scope') or 'Kenya'}. "
+        f"For policy, it is a cue to monitor whether the pattern persists, spreads, or becomes validated by public aggregate evidence."
+    )
+
+
+def _mechanism_sentence(signal: dict[str, Any]) -> str:
+    return (
+        f"This signal becomes important when aggregate evidence reinforces itself through persistence, source agreement, "
+        f"momentum, county spread, historical recurrence, and outcome validation. Current trajectory is "
+        f"{signal.get('trajectory_label') or _trajectory_label(signal)} with {signal.get('confidence_score', 'unknown')}% confidence."
+    )
+
+
+def _geography_sentence(signal: dict[str, Any]) -> str:
+    return (
+        f"The current geographic scope is {signal.get('county_name') or signal.get('geographic_scope') or 'Kenya-wide'}. "
+        f"Spread risk is {signal.get('spread_risk', 'Low')}, and county relevance should be interpreted only from aggregate, "
+        f"public, or user-authorized evidence."
+    )
 
 def _opportunity_sentence(signal: dict[str, Any]) -> str:
     return (

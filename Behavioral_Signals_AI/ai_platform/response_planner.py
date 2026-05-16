@@ -32,7 +32,7 @@ def deterministic_response(mode: str, context: dict[str, Any]) -> str:
     if mode == "greeting":
         return "Hello. I'm Open Signals - I monitor emerging aggregate behavioral signals, market pressure, risks, and opportunities across Kenya."
     if mode == "identity":
-        return "I'm Open Signals - a privacy-preserving behavioral economic intelligence analyst for aggregate demand, risks, opportunities, and county trends in Kenya."
+        return "I'm Open Signals - a privacy-preserving behavioral economic intelligence assistant for aggregate demand, risks, opportunities, and county trends in Kenya."
     if mode == "capability":
         return "I can help analyze county-level signals, affordability pressure, market opportunities, economic stress, policy concerns, and evolving behavioral trends using aggregate intelligence."
     if mode == "privacy_refusal":
