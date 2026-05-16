@@ -70,6 +70,11 @@ def answer_open_signals_prompt(message: str, history: list[Any] | None, location
     effective_category = question_category or _context_category_for_followup(cleaned, session_context) or category or "All"
     effective_urgency = urgency or "All"
 
+    if _is_comparison_question(cleaned):
+        return _comparison_answer(cleaned, effective_category, effective_urgency, session_context)
+    if _is_time_question(cleaned):
+        return _time_aware_answer(cleaned, effective_location, effective_category, effective_urgency)
+
     signals = _filtered_ranked_signals(effective_location, effective_category, effective_urgency)
     if not signals:
         return _no_signal_answer(effective_location, effective_category, effective_urgency)
@@ -172,10 +177,109 @@ def _filtered_ranked_signals(location: str, category: str, urgency: str) -> list
     return rank_signals_for_display(filtered or signals)
 
 
+
+def _is_comparison_question(question: str) -> bool:
+    q = _normalize(question)
+    return any(term in q for term in ["compare", "different from", "difference", "stronger", "which county", "versus", " vs "])
+
+
+def _is_time_question(question: str) -> bool:
+    q = _normalize(question)
+    return any(term in q for term in ["changed recently", "what changed", "rising fastest", "persisted", "longest", "recent", "fastest", "trajectory"])
+
+
+def _comparison_answer(question: str, category: str, urgency: str, session_context: dict[str, str]) -> str:
+    counties = _locations_from_question(question)
+    if len(counties) == 1 and session_context.get("last_county") and session_context["last_county"] != counties[0]:
+        counties.insert(0, session_context["last_county"])
+    base_signals = _filtered_ranked_signals("Kenya", category or "All", urgency or "All")
+    if len(counties) < 2:
+        ranked = _top_county_signals(base_signals)
+    else:
+        ranked = []
+        for county in counties[:3]:
+            county_signals = [signal for signal in base_signals if signal_matches_location(signal, county)]
+            if county_signals:
+                ranked.append((county, rank_signals_for_display(county_signals)[0]))
+    if not ranked:
+        return _no_signal_answer("Kenya", category or "All", urgency or "All")
+    strongest_county, strongest = max(ranked, key=lambda item: _signal_score(item[1]))
+    summary = f"**Short answer:** {strongest_county} currently shows the stronger signal in this comparison: {_topic(strongest)}."
+    lines = [summary, "", "**County comparison:**"]
+    for county, signal in ranked[:4]:
+        lines.append(
+            f"- **{county}:** {_topic(signal)}; confidence {_confidence(signal)}%; spread risk {signal.get('spread_risk', 'Moderate')}; trajectory {_trajectory_label(signal)}. {_risk_or_opportunity(signal)}"
+        )
+    lines.extend([
+        "",
+        f"**Interpretation:** The comparison is based on aggregate signal strength, urgency, confidence, momentum, spread risk, and persistence indicators. {strongest_county} should be watched first if this pattern continues.",
+    ])
+    return "\n".join(lines)
+
+
+def _time_aware_answer(question: str, location: str, category: str, urgency: str) -> str:
+    signals = _filtered_ranked_signals(location or "Kenya", category or "All", urgency or "All")
+    if not signals:
+        return _no_signal_answer(location or "Kenya", category or "All", urgency or "All")
+    q = _normalize(question)
+    if "persist" in q or "longest" in q:
+        selected = sorted(signals, key=lambda signal: _safe_number(signal.get("persistence_score") or signal.get("appearance_count") or signal.get("confidence_score")), reverse=True)[:3]
+        mode = "persistent"
+    elif "fastest" in q or "rising" in q or "changed" in q:
+        selected = sorted(signals, key=lambda signal: (_trajectory_score(signal), _signal_score(signal)), reverse=True)[:3]
+        mode = "rising fastest"
+    else:
+        selected = signals[:3]
+        mode = "most active"
+    top = selected[0]
+    lines = [
+        f"**Short answer:** The {mode} signal is {_topic(top)} in {_scope(top)}; it appears {_trajectory_label(top)} with {_confidence(top)}% confidence.",
+        "",
+        "**What changed:**",
+    ]
+    for signal in selected:
+        lines.append(
+            f"- **{_topic(signal)}:** {_trajectory_label(signal)}; momentum {signal.get('momentum', 'Stable')}; forecast {signal.get('forecast_direction', 'Stable')}; validation {signal.get('validation_status', 'unvalidated')}.")
+    lines.extend([
+        "",
+        "**Why it matters:** Time-aware ranking uses persistence, ranking movement, outcome learning notes, historical pattern matches, and current adaptive scores when available.",
+    ])
+    return "\n".join(lines)
+
+
+def _top_county_signals(signals: list[dict[str, Any]]) -> list[tuple[str, dict[str, Any]]]:
+    by_county: dict[str, list[dict[str, Any]]] = {}
+    for signal in signals:
+        county = str(signal.get("county_name") or signal.get("geographic_scope") or "Kenya-wide")
+        if county in {"", "Kenya-wide", "Global"}:
+            continue
+        by_county.setdefault(county, []).append(signal)
+    ranked: list[tuple[str, dict[str, Any]]] = []
+    for county, county_signals in by_county.items():
+        ranked.append((county, rank_signals_for_display(county_signals)[0]))
+    return sorted(ranked, key=lambda item: _signal_score(item[1]), reverse=True)[:4]
+
+
+def _locations_from_question(question: str) -> list[str]:
+    normalized_question = _normalize(question)
+    counties = []
+    for option in LOCATION_OPTIONS:
+        if option in {"Global", "Kenya"}:
+            continue
+        if _normalize(option) in normalized_question:
+            counties.append(option)
+    detected = _location_from_question(question)
+    if detected and detected not in {"Global", "Kenya"} and detected not in counties:
+        counties.append(detected)
+    return counties
+
+
 def _grounded_rule_based_answer(question: str, signals: list[dict[str, Any]], location: str, category: str, urgency: str, session_context: dict[str, str] | None = None, question_location: str = "", question_category: str = "") -> str:
     top = _select_relevant_signal(question, signals)
     q = question.lower()
-    if "opportun" in q or "market" in q or "business" in q:
+    if "why" in q or "important" in q or "confidence" in q or "affected" in q:
+        emphasis = _explainability_sentence(top)
+    elif "opportun" in q or "market" in q or "business" in q or "sector" in q:
         emphasis = _opportunity_sentence(top)
     elif "policy" in q or "policymaker" in q or "monitor" in q:
         emphasis = _policy_sentence(top)
@@ -255,6 +359,80 @@ def _risk_sentence(signal: dict[str, Any]) -> str:
         f"Current urgency is {signal.get('urgency', 'Medium')} and spread risk is {signal.get('spread_risk', 'Low')}."
     )
 
+
+
+def _explainability_sentence(signal: dict[str, Any]) -> str:
+    reasons = [
+        f"trajectory is {_trajectory_label(signal)}",
+        f"spread risk is {signal.get('spread_risk', 'Moderate')}",
+        f"momentum is {signal.get('momentum', 'Stable')}",
+    ]
+    if signal.get("confidence_reasoning"):
+        reasons.append(str(signal.get("confidence_reasoning")))
+    if signal.get("historical_pattern_match"):
+        reasons.append(f"historical memory notes {signal.get('historical_pattern_match')}")
+    if signal.get("outcome_learning_note"):
+        reasons.append(f"outcome learning says {signal.get('outcome_learning_note')}")
+    if signal.get("source_summary"):
+        reasons.append(f"source agreement context: {signal.get('source_summary')}")
+    return "This signal matters because " + "; ".join(reasons[:5]) + "."
+
+
+def _topic(signal: dict[str, Any]) -> str:
+    return str(signal.get("signal_topic") or "current aggregate signal")
+
+
+def _scope(signal: dict[str, Any]) -> str:
+    return str(signal.get("county_name") or signal.get("geographic_scope") or "Kenya-wide")
+
+
+def _confidence(signal: dict[str, Any]) -> str:
+    value = signal.get("confidence_score", "unknown")
+    if isinstance(value, (int, float)):
+        return str(round(float(value), 1)).rstrip("0").rstrip(".")
+    return str(value)
+
+
+def _risk_or_opportunity(signal: dict[str, Any]) -> str:
+    return f"opportunity {signal.get('opportunity_level', 'Moderate')}, unmet demand {signal.get('unmet_demand_likelihood', 'Medium')}, urgency {signal.get('urgency', 'Medium')}"
+
+
+def _trajectory_label(signal: dict[str, Any]) -> str:
+    momentum = _normalize(signal.get("momentum", ""))
+    forecast = _normalize(signal.get("forecast_direction", ""))
+    urgency = _normalize(signal.get("urgency", ""))
+    confidence = _safe_number(signal.get("confidence_score"))
+    adaptive = _safe_number(signal.get("behavioral_intelligence_score") or signal.get("priority_score"))
+    if "breakout" in momentum or "accelerat" in momentum:
+        return "accelerating"
+    if "rising" in momentum or "rising" in forecast:
+        return "strengthening" if confidence >= 70 or adaptive >= 70 else "emerging"
+    if "fall" in momentum or "declin" in forecast:
+        return "weakening"
+    if "high" in urgency and confidence >= 70:
+        return "persistent"
+    return "stabilizing"
+
+
+def _trajectory_score(signal: dict[str, Any]) -> float:
+    label = _trajectory_label(signal)
+    weights = {"accelerating": 5, "strengthening": 4, "emerging": 3, "persistent": 3, "stabilizing": 2, "weakening": 1}
+    return weights.get(label, 2) + _safe_number(signal.get("confidence_score")) / 100
+
+
+def _signal_score(signal: dict[str, Any]) -> float:
+    return max(
+        _safe_number(signal.get("priority_score")),
+        _safe_number(signal.get("behavioral_intelligence_score")),
+        _safe_number(signal.get("confidence_score")),
+    )
+
+
+def _safe_number(value: Any) -> float:
+    try:
+        return float(value or 0)
+    except (TypeError, ValueError):
+        return 0.0
 
 def _risk_label(signal: dict[str, Any]) -> str:
     risk_parts = [

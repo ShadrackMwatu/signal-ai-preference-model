@@ -152,6 +152,59 @@ def test_missing_llm_key_does_not_crash(tmp_path, monkeypatch) -> None:
     assert "Recommended action" in answer
 
 
+
+def test_comparative_reasoning_between_counties(tmp_path, monkeypatch) -> None:
+    cache_path = tmp_path / "latest_live_signals.json"
+    monkeypatch.setenv("SIGNAL_LIVE_SIGNAL_CACHE", str(cache_path))
+    monkeypatch.setenv("SIGNAL_LLM_ENABLED", "false")
+    write_signal_cache({
+        "signals": [
+            _signal("Nairobi affordability pressure", "cost of living", "Nairobi", 91),
+            _signal("Makueni water access stress", "water and sanitation", "Makueni", 74),
+        ]
+    }, cache_path)
+
+    answer = answer_open_signals_prompt("Compare Nairobi and Makueni", [], "Kenya", "All", "All")
+
+    assert "Short answer" in answer
+    assert "County comparison" in answer
+    assert "Nairobi" in answer
+    assert "Makueni" in answer
+    assert "spread risk" in answer
+
+
+def test_time_aware_reasoning_uses_trajectory_language(tmp_path, monkeypatch) -> None:
+    cache_path = tmp_path / "latest_live_signals.json"
+    monkeypatch.setenv("SIGNAL_LIVE_SIGNAL_CACHE", str(cache_path))
+    monkeypatch.setenv("SIGNAL_LLM_ENABLED", "false")
+    fast = _signal("Kisumu transport pressure", "transport", "Kisumu", 88)
+    fast["momentum"] = "Rising"
+    fast["forecast_direction"] = "Rising"
+    persistent = _signal("Nakuru food affordability", "cost of living", "Nakuru", 82)
+    persistent["persistence_score"] = 95
+    write_signal_cache({"signals": [fast, persistent]}, cache_path)
+
+    answer = answer_open_signals_prompt("What is rising fastest?", [], "Kenya", "All", "All")
+
+    assert "Short answer" in answer
+    assert any(word in answer.lower() for word in ["strengthening", "emerging", "accelerating"])
+    assert "What changed" in answer
+
+
+def test_explainability_references_evidence_drivers(tmp_path, monkeypatch) -> None:
+    cache_path = tmp_path / "latest_live_signals.json"
+    monkeypatch.setenv("SIGNAL_LIVE_SIGNAL_CACHE", str(cache_path))
+    monkeypatch.setenv("SIGNAL_LLM_ENABLED", "false")
+    signal = _signal("Nakuru water access stress", "water and sanitation", "Nakuru", 86)
+    signal["confidence_reasoning"] = "multi-source confirmation and county recurrence"
+    write_signal_cache({"signals": [signal]}, cache_path)
+
+    answer = answer_open_signals_prompt("Why is confidence high?", [], "Kenya", "All", "All")
+
+    assert "This signal matters because" in answer
+    assert "multi-source confirmation" in answer
+    assert "spread risk" in answer
+
 def test_private_fields_are_blocked(tmp_path, monkeypatch) -> None:
     cache_path = tmp_path / "latest_live_signals.json"
     monkeypatch.setenv("SIGNAL_LIVE_SIGNAL_CACHE", str(cache_path))
