@@ -15,7 +15,10 @@ def test_chatbox_renders_and_privacy_notice_box_removed() -> None:
     assert "open_signals_chatbot" in APP_TEXT
     assert "open_signals_send_button" in APP_TEXT
     assert 'placeholder="Get signals"' in APP_TEXT
-    assert "open-signals-prompt-input" in APP_TEXT
+    assert "open-signals-chat-container" in APP_TEXT
+    assert "open-signals-chat-history" in APP_TEXT
+    assert "open-signals-chat-input-row" in APP_TEXT
+    assert "open-signals-chat-input" in APP_TEXT
     assert "signal-privacy-note" not in APP_TEXT
     assert "Open Signals answers are based on aggregate" in APP_TEXT
 
