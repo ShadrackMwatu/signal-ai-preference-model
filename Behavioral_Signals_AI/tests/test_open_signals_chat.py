@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from pathlib import Path
 
+from Behavioral_Signals_AI.chat.intents import detect_open_signals_intent
 from Behavioral_Signals_AI.geography.location_options import LOCATION_OPTIONS
 from Behavioral_Signals_AI.signal_engine.open_signals_chat import (
     PRIVATE_DATA_RESPONSE,
@@ -68,6 +69,48 @@ def test_open_signals_public_ui_hides_legacy_raw_fields() -> None:
     for forbidden in ["likes", "comments", "shares", "searches", "predict demand"]:
         assert forbidden not in ui
 
+
+
+def test_conversational_intent_detection_handles_greetings_and_help() -> None:
+    assert detect_open_signals_intent("hi")["intent"] == "greeting"
+    assert detect_open_signals_intent("hello")["intent"] == "greeting"
+    assert detect_open_signals_intent("how are you?")["intent"] == "small_talk"
+    assert detect_open_signals_intent("what can you do?")["intent"] == "help"
+    assert detect_open_signals_intent("show signals in Nairobi")["intent"] == "signal_query"
+    assert detect_open_signals_intent("compare Nakuru and Makueni")["intent"] == "comparison_query"
+
+
+def test_greeting_and_small_talk_do_not_trigger_signal_analysis() -> None:
+    hi = answer_open_signals_prompt("hi", [], "Kenya", "All", "All")
+    hello = answer_open_signals_prompt("hello", [], "Kenya", "All", "All")
+    how = answer_open_signals_prompt("how are you?", [], "Kenya", "All", "All")
+    capabilities = answer_open_signals_prompt("what can you do?", [], "Kenya", "All", "All")
+
+    assert "Hello. I'm Open Signals" in hi
+    assert "Hello. I'm Open Signals" in hello
+    assert "I'm ready to help" in how
+    assert "I help interpret aggregate signals" in capabilities
+    for answer in [hi, hello, how, capabilities]:
+        assert "Strongest relevant signal" not in answer
+
+
+def test_unclear_prompt_requests_clarification() -> None:
+    answer = answer_open_signals_prompt("blue table", [], "Kenya", "All", "All")
+
+    assert "Could you clarify" in answer
+    assert "Strongest relevant signal" not in answer
+
+
+def test_signal_query_still_triggers_analysis(tmp_path, monkeypatch) -> None:
+    cache_path = tmp_path / "latest_live_signals.json"
+    monkeypatch.setenv("SIGNAL_LIVE_SIGNAL_CACHE", str(cache_path))
+    monkeypatch.setenv("SIGNAL_LLM_ENABLED", "false")
+    write_signal_cache({"signals": [_signal("Nairobi affordability pressure", "cost of living", "Nairobi", 91)]}, cache_path)
+
+    answer = answer_open_signals_prompt("show signals in Nairobi", [], "Kenya", "All", "All")
+
+    assert "Strongest relevant signal" in answer
+    assert "Nairobi affordability pressure" in answer
 
 def test_location_options_include_global_kenya_and_all_counties() -> None:
     assert len(LOCATION_OPTIONS) == 49

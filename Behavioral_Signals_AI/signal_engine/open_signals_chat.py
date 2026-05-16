@@ -5,6 +5,7 @@ from __future__ import annotations
 import re
 from typing import Any
 
+from Behavioral_Signals_AI.chat.intents import detect_open_signals_intent
 from Behavioral_Signals_AI.geography.county_matcher import detect_county_from_text, signal_matches_location
 from Behavioral_Signals_AI.geography.location_options import LOCATION_OPTIONS
 from Behavioral_Signals_AI.llm.llm_client import complete_json
@@ -63,6 +64,11 @@ def answer_open_signals_prompt(message: str, history: list[Any] | None, location
     if _has_private_request(cleaned):
         return PRIVATE_DATA_RESPONSE
 
+    detected_intent = detect_open_signals_intent(cleaned)
+    conversational = _conversational_response(detected_intent["intent"], cleaned)
+    if conversational:
+        return conversational
+
     session_context = _conversation_context(history)
     question_location = _location_from_question(cleaned)
     question_category = _category_from_question(cleaned)
@@ -70,7 +76,9 @@ def answer_open_signals_prompt(message: str, history: list[Any] | None, location
     effective_category = question_category or _context_category_for_followup(cleaned, session_context) or category or "All"
     effective_urgency = urgency or "All"
 
-    if _is_comparison_question(cleaned):
+    if detected_intent["intent"] == "unclear_query":
+        return "Could you clarify what signal, county, sector, or issue you would like to explore?"
+    if detected_intent["intent"] == "comparison_query" or _is_comparison_question(cleaned):
         return _comparison_answer(cleaned, effective_category, effective_urgency, session_context)
     if _is_time_question(cleaned):
         return _time_aware_answer(cleaned, effective_location, effective_category, effective_urgency)
@@ -115,6 +123,31 @@ def respond_open_signals_chat(message: str, history: list[Any] | None, location:
 
 
 
+
+
+def _conversational_response(intent: str, message: str) -> str:
+    """Return a natural non-analytical response for conversational prompts."""
+    if intent == "greeting":
+        return (
+            "Hello. I'm Open Signals - I monitor emerging aggregate behavioral signals, market pressure, risks, "
+            "and opportunities across Kenya. What would you like to explore?"
+        )
+    if intent == "farewell":
+        return "Goodbye. I’ll be here when you want to explore Kenya signals, risks, opportunities, or county trends."
+    if intent == "gratitude":
+        return "You're welcome. Ask me about a county, sector, risk, opportunity, or emerging demand signal whenever you're ready."
+    if intent == "help":
+        return (
+            "I help interpret aggregate signals related to demand, affordability pressure, economic stress, "
+            "opportunities, policy concerns, and county-level trends. You can ask things like 'show signals in Nairobi', "
+            "'compare Nakuru and Makueni', or 'what should policymakers monitor?'"
+        )
+    if intent == "small_talk":
+        lowered = _normalize(message)
+        if "who are you" in lowered:
+            return "I'm Open Signals, a privacy-preserving analyst for aggregate demand, risk, and opportunity intelligence in Kenya."
+        return "I'm ready to help. I can interpret emerging aggregate signals, county trends, market opportunities, and policy risks."
+    return ""
 
 def _conversation_context(history: list[Any] | None) -> dict[str, str]:
     """Extract temporary session context from visible chat history only."""
