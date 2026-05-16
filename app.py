@@ -5,6 +5,7 @@ from __future__ import annotations
 from Signal_CGE.dashboard.baseline_dashboard import baseline_dashboard_markdown
 import json
 import os
+import re
 from datetime import UTC, datetime
 from html import escape
 from pathlib import Path
@@ -31,7 +32,7 @@ for _mpl_candidate in [
 import gradio as gr
 from Behavioral_Signals_AI.geography.location_options import LOCATION_OPTIONS
 from Behavioral_Signals_AI.signal_engine.category_learning import get_category_options
-from Behavioral_Signals_AI.signal_engine.open_signals_chat import respond_open_signals_chat
+from Behavioral_Signals_AI.signal_engine.open_signals_chat import answer_open_signals_prompt
 
 
 from app_routes.behavioral_route import run_behavioral_signal_prediction
@@ -452,59 +453,71 @@ SIGNAL_DASHBOARD_CSS = """
     font-size: 12px;
     margin-top: 10px;
 }
-.open-signals-chat-container {
-    border: 1px solid rgba(0, 0, 0, 0.12);
-    border-radius: 18px;
-    padding: 10px 12px;
-    background: var(--background-fill-primary);
+.open-signals-chat-shell {
+    width: 100%;
+    max-width: 100%;
     margin: 6px 0 8px;
-}
-.open-signals-chat-container > div {
     border: none !important;
     background: transparent !important;
     box-shadow: none !important;
 }
-.open-signals-chat-history {
-    min-height: 0;
-    max-height: 260px;
-    overflow-y: auto;
+.open-signals-chat-shell > div {
+    border: none !important;
+    background: transparent !important;
+    box-shadow: none !important;
+    padding: 0 !important;
+}
+.open-signals-messages {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    margin-bottom: 12px;
     border: none !important;
     background: transparent !important;
     box-shadow: none !important;
 }
-.open-signals-chat-history label,
-.open-signals-chat-history .label-wrap,
-.open-signals-chat-history .icon-button,
-.open-signals-chat-history button[aria-label],
-.open-signals-chat-history .copy_code_button,
-.open-signals-chat-history .show-api {
+.open-signals-messages:empty {
     display: none !important;
 }
-.open-signals-chat-history .wrap,
-.open-signals-chat-history .bubble-wrap,
-.open-signals-chat-history .chatbot,
-.open-signals-chat-history .messages,
-.open-signals-chat-history [data-testid="bot"],
-.open-signals-chat-history [data-testid="user"] {
-    border: none !important;
-    background: transparent !important;
-    box-shadow: none !important;
+.open-signals-user-msg {
+    align-self: flex-end;
+    max-width: 80%;
+    padding: 10px 14px;
+    border-radius: 18px;
+    background: #eef2ff;
+    color: #172554;
+    line-height: 1.45;
 }
-
-.open-signals-chat-input-row {
+.open-signals-assistant-msg {
+    align-self: flex-start;
+    max-width: 90%;
+    padding: 10px 14px;
+    border-radius: 18px;
+    background: #f8fafc;
+    color: #0f172a;
+    line-height: 1.5;
+}
+.open-signals-assistant-msg p,
+.open-signals-user-msg p {
+    margin: 0 0 8px;
+}
+.open-signals-assistant-msg p:last-child,
+.open-signals-user-msg p:last-child {
+    margin-bottom: 0;
+}
+.open-signals-input-row {
     display: flex;
     gap: 10px;
     align-items: center;
-    margin-top: 4px;
 }
-.open-signals-chat-input textarea,
-.open-signals-chat-input input {
+.open-signals-input textarea,
+.open-signals-input input {
     border-radius: 999px !important;
-    min-height: 42px !important;
+    min-height: 48px !important;
     border: 1px solid rgba(148, 163, 184, 0.45) !important;
     box-shadow: none !important;
-    padding-left: 16px !important;
-    padding-right: 16px !important;
+    padding-left: 18px !important;
+    padding-right: 18px !important;
 }
 .open-signals-send {
     min-width: 76px !important;
@@ -513,10 +526,9 @@ SIGNAL_DASHBOARD_CSS = """
 .open-signals-send .lg,
 .open-signals-send .md {
     border-radius: 999px !important;
-    min-height: 42px !important;
+    min-height: 48px !important;
     font-weight: 800 !important;
-}
-.signal-emerging {
+}.signal-emerging {
     border: 1px solid rgba(148, 163, 184, 0.28);
     border-radius: 14px;
     padding: 14px 16px;
@@ -1222,11 +1234,38 @@ def _utc_timestamp() -> str:
 
 
 
-def respond_open_signals_chat_ui(message: str, history: list[Any] | None, location: str, category: str, urgency: str) -> tuple[Any, str]:
-    """Reveal the conversation only after the user submits a real prompt."""
-    updated_history, cleared = respond_open_signals_chat(message, history, location, category, urgency)
-    return gr.update(value=updated_history, visible=bool(updated_history)), cleared
+def render_open_signals_messages(history: list[dict[str, str]] | None) -> str:
+    """Render temporary Open Signals chat history as lightweight HTML bubbles."""
+    if not history:
+        return ""
+    parts = ["<div class='open-signals-messages'>"]
+    for message in list(history or [])[-8:]:
+        role = str(message.get("role") or "assistant")
+        content = _format_open_signals_message(str(message.get("content") or ""))
+        css_class = "open-signals-user-msg" if role == "user" else "open-signals-assistant-msg"
+        parts.append(f"<div class='{css_class}'>{content}</div>")
+    parts.append("</div>")
+    return "".join(parts)
 
+
+def submit_open_signals_prompt(message: str, history: list[dict[str, str]] | None, location: str, category: str, urgency: str) -> tuple[str, list[dict[str, str]], str]:
+    """Append a user prompt and Open Signals answer, then render the conversation."""
+    cleaned = str(message or "").strip()
+    current_history = list(history or [])
+    if not cleaned:
+        return render_open_signals_messages(current_history), current_history, ""
+    answer = answer_open_signals_prompt(cleaned, current_history, location, category, urgency)
+    updated_history = (current_history + [{"role": "user", "content": cleaned}, {"role": "assistant", "content": answer}])[-8:]
+    return render_open_signals_messages(updated_history), updated_history, ""
+
+
+def _format_open_signals_message(text: str) -> str:
+    safe = escape(str(text or ""))
+    safe = re.sub(r"\*\*(.+?)\*\*", r"<strong>\1</strong>", safe)
+    paragraphs = [part.strip() for part in safe.split("\n\n") if part.strip()]
+    if not paragraphs:
+        return ""
+    return "".join(f"<p>{paragraph.replace(chr(10), '<br>')}</p>" for paragraph in paragraphs)
 
 def get_kenya_live_signals_for_ui(location_filter: str = "Kenya", category_filter: str = "All", urgency_filter: str = "All") -> tuple[str, str, str, str]:
     """Return Kenya-aware signal feed, emerging signal HTML, and interpretation."""
@@ -1643,23 +1682,17 @@ with gr.Blocks(title="Signal AI Dashboard", css=SIGNAL_DASHBOARD_CSS) as demo:
             "<p class='behavioral-live-note'>Live signal intelligence is updating continuously. Rankings adjust as stronger collective signals emerge.</p>"
         )
         gr.Markdown("### Ask Open Signals")
-        with gr.Group(elem_classes=["open-signals-chat-container"]):
-            open_signals_chatbot = gr.Chatbot(
-                label="Ask Open Signals",
-                height=180,
-                type="messages",
-                show_label=False,
-                elem_classes=["open-signals-chat-history"],
-            )
-
-            with gr.Row(elem_classes=["open-signals-chat-input-row"]):
+        open_signals_chat_state = gr.State([])
+        with gr.Group(elem_classes=["open-signals-chat-shell"]):
+            open_signals_messages = gr.HTML(value="", show_label=False, elem_classes=["open-signals-messages"])
+            with gr.Row(elem_classes=["open-signals-input-row"]):
                 open_signals_chat_input = gr.Textbox(
                     label="Ask Open Signals",
                     placeholder="Get signals",
                     lines=1,
                     scale=8,
                     container=False,
-                    elem_classes=["open-signals-chat-input"],
+                    elem_classes=["open-signals-input"],
                 )
                 open_signals_send_button = gr.Button("Send", scale=1, elem_classes=["open-signals-send"])
         gr.Markdown("Open Signals answers are based on aggregate, anonymized, public, or user-authorized signal intelligence.")
@@ -1684,15 +1717,15 @@ with gr.Blocks(title="Signal AI Dashboard", css=SIGNAL_DASHBOARD_CSS) as demo:
         feed_inputs = [location_filter, category_filter, urgency_filter]
         feed_outputs = [signal_feed_html, emerging_signals_html, signal_interpretation, historical_learning_markdown]
         open_signals_chat_input.submit(
-            fn=respond_open_signals_chat_ui,
-            inputs=[open_signals_chat_input, open_signals_chatbot, location_filter, category_filter, urgency_filter],
-            outputs=[open_signals_chatbot, open_signals_chat_input],
+            fn=submit_open_signals_prompt,
+            inputs=[open_signals_chat_input, open_signals_chat_state, location_filter, category_filter, urgency_filter],
+            outputs=[open_signals_messages, open_signals_chat_state, open_signals_chat_input],
             show_api=False,
         )
         open_signals_send_button.click(
-            fn=respond_open_signals_chat_ui,
-            inputs=[open_signals_chat_input, open_signals_chatbot, location_filter, category_filter, urgency_filter],
-            outputs=[open_signals_chatbot, open_signals_chat_input],
+            fn=submit_open_signals_prompt,
+            inputs=[open_signals_chat_input, open_signals_chat_state, location_filter, category_filter, urgency_filter],
+            outputs=[open_signals_messages, open_signals_chat_state, open_signals_chat_input],
             show_api=False,
         )
 

@@ -15,24 +15,51 @@ from Behavioral_Signals_AI.signal_engine.signal_cache import write_signal_cache
 APP_TEXT = Path("app.py").read_text(encoding="utf-8")
 
 
-def test_chatbox_renders_as_one_unified_panel_and_privacy_notice_box_removed() -> None:
+def test_chatbox_renders_as_custom_prompt_ui_without_blank_panel() -> None:
     ui = _open_signals_ui_block()
     assert "Ask Open Signals" in ui
-    assert "open_signals_chatbot" in ui
+    assert "open_signals_chat_state" in ui
+    assert "open_signals_messages" in ui
     assert "open_signals_send_button" in ui
     assert 'placeholder="Get signals"' in ui
-    assert ui.count('elem_classes=["open-signals-chat-container"]') == 1
-    assert "open-signals-chat-history" in ui
-    assert "visible=False" in ui
-    assert "height=180" in ui
+    assert 'gr.Chatbot' not in ui
+    assert "open_signals_chatbot" not in ui
+    assert "open-signals-chat-container" not in ui
+    assert "open-signals-chat-history" not in ui
+    assert "open-signals-chat-shell" in ui
+    assert "open-signals-messages" in ui
+    assert "open-signals-input-row" in ui
+    assert "open-signals-input" in ui
     assert "open-signals-chip-row" not in ui
     assert "Strongest relevant signal" not in ui
-    assert "respond_open_signals_chat_ui" in APP_TEXT
-    assert "open-signals-chat-input-row" in ui
-    assert "open-signals-chat-input" in ui
+    assert "submit_open_signals_prompt" in APP_TEXT
     assert "signal-privacy-note" not in APP_TEXT
     assert "Open Signals answers are based on aggregate" in APP_TEXT
 
+
+def test_empty_history_renders_no_blank_chat_panel() -> None:
+    from app import render_open_signals_messages
+
+    assert render_open_signals_messages([]) == ""
+    assert render_open_signals_messages(None) == ""
+
+
+def test_prompt_submission_renders_user_and_assistant_messages(tmp_path, monkeypatch) -> None:
+    from app import submit_open_signals_prompt
+
+    cache_path = tmp_path / "latest_live_signals.json"
+    monkeypatch.setenv("SIGNAL_LIVE_SIGNAL_CACHE", str(cache_path))
+    monkeypatch.setenv("SIGNAL_LLM_ENABLED", "false")
+    write_signal_cache({"signals": [_signal("Kenya market opportunity", "trade and business", "Kenya-wide", 82)]}, cache_path)
+
+    html, history, cleared = submit_open_signals_prompt("Get strongest signal", [], "Kenya", "All", "All")
+
+    assert cleared == ""
+    assert len(history) == 2
+    assert "open-signals-user-msg" in html
+    assert "open-signals-assistant-msg" in html
+    assert "Get strongest signal" in html
+    assert "Strongest relevant signal" in html
 
 def test_open_signals_public_ui_hides_legacy_raw_fields() -> None:
     ui = _open_signals_ui_block().lower()
