@@ -23,8 +23,11 @@ def test_chatbox_renders_as_one_unified_panel_and_privacy_notice_box_removed() -
     assert 'placeholder="Get signals"' in ui
     assert ui.count('elem_classes=["open-signals-chat-container"]') == 1
     assert "open-signals-chat-history" in ui
+    assert "visible=False" in ui
+    assert "height=180" in ui
     assert "open-signals-chip-row" not in ui
     assert "Strongest relevant signal" not in ui
+    assert "respond_open_signals_chat_ui" in APP_TEXT
     assert "open-signals-chat-input-row" in ui
     assert "open-signals-chat-input" in ui
     assert "signal-privacy-note" not in APP_TEXT

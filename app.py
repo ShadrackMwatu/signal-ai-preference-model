@@ -399,7 +399,7 @@ SIGNAL_DASHBOARD_CSS = """
 }
 .signal-card {
     border-radius: 14px;
-    padding: 14px;
+    padding: 10px 12px;
     margin-bottom: 12px;
     background: rgba(255, 255, 255, 0.88);
     border: 1px solid rgba(148, 163, 184, 0.35);
@@ -455,9 +455,9 @@ SIGNAL_DASHBOARD_CSS = """
 .open-signals-chat-container {
     border: 1px solid rgba(0, 0, 0, 0.12);
     border-radius: 18px;
-    padding: 14px;
+    padding: 10px 12px;
     background: var(--background-fill-primary);
-    margin: 8px 0 8px;
+    margin: 6px 0 8px;
 }
 .open-signals-chat-container > div {
     border: none !important;
@@ -466,7 +466,7 @@ SIGNAL_DASHBOARD_CSS = """
 }
 .open-signals-chat-history {
     min-height: 0;
-    max-height: 160px;
+    max-height: 260px;
     overflow-y: auto;
     border: none !important;
     background: transparent !important;
@@ -495,7 +495,7 @@ SIGNAL_DASHBOARD_CSS = """
     display: flex;
     gap: 10px;
     align-items: center;
-    margin-top: 12px;
+    margin-top: 4px;
 }
 .open-signals-chat-input textarea,
 .open-signals-chat-input input {
@@ -1221,6 +1221,13 @@ def _utc_timestamp() -> str:
 
 
 
+
+def respond_open_signals_chat_ui(message: str, history: list[Any] | None, location: str, category: str, urgency: str) -> tuple[Any, str]:
+    """Reveal the conversation only after the user submits a real prompt."""
+    updated_history, cleared = respond_open_signals_chat(message, history, location, category, urgency)
+    return gr.update(value=updated_history, visible=bool(updated_history)), cleared
+
+
 def get_kenya_live_signals_for_ui(location_filter: str = "Kenya", category_filter: str = "All", urgency_filter: str = "All") -> tuple[str, str, str, str]:
     """Return Kenya-aware signal feed, emerging signal HTML, and interpretation."""
     return _engine_get_kenya_live_signals_for_ui(location_filter or "Kenya", category_filter or "All", urgency_filter or "All")
@@ -1639,7 +1646,7 @@ with gr.Blocks(title="Signal AI Dashboard", css=SIGNAL_DASHBOARD_CSS) as demo:
         with gr.Group(elem_classes=["open-signals-chat-container"]):
             open_signals_chatbot = gr.Chatbot(
                 label="Ask Open Signals",
-                height=80,
+                height=180,
                 type="messages",
                 show_label=False,
                 elem_classes=["open-signals-chat-history"],
@@ -1677,13 +1684,13 @@ with gr.Blocks(title="Signal AI Dashboard", css=SIGNAL_DASHBOARD_CSS) as demo:
         feed_inputs = [location_filter, category_filter, urgency_filter]
         feed_outputs = [signal_feed_html, emerging_signals_html, signal_interpretation, historical_learning_markdown]
         open_signals_chat_input.submit(
-            fn=respond_open_signals_chat,
+            fn=respond_open_signals_chat_ui,
             inputs=[open_signals_chat_input, open_signals_chatbot, location_filter, category_filter, urgency_filter],
             outputs=[open_signals_chatbot, open_signals_chat_input],
             show_api=False,
         )
         open_signals_send_button.click(
-            fn=respond_open_signals_chat,
+            fn=respond_open_signals_chat_ui,
             inputs=[open_signals_chat_input, open_signals_chatbot, location_filter, category_filter, urgency_filter],
             outputs=[open_signals_chatbot, open_signals_chat_input],
             show_api=False,
