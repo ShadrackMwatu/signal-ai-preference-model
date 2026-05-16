@@ -5,6 +5,7 @@ from __future__ import annotations
 import re
 from typing import Any
 
+from Behavioral_Signals_AI.ai_platform.context_builder import build_open_signals_context
 from Behavioral_Signals_AI.chat.intents import detect_open_signals_intent
 from Behavioral_Signals_AI.geography.county_matcher import detect_county_from_text, signal_matches_location
 from Behavioral_Signals_AI.geography.location_options import LOCATION_OPTIONS
@@ -121,6 +122,15 @@ def build_open_signals_llm_payload(
         "aggregate_live_signals": safe_signals,
         "ml_adaptive_context": _ml_adaptive_context(ranked),
         "retrieval_context": _retrieval_context(ranked),
+        "platform_grounding_context": build_open_signals_context(
+            question,
+            {"intent": intent, "confidence": 1.0},
+            filters.get("location", "Kenya"),
+            filters.get("category", "All"),
+            filters.get("urgency", "All"),
+            session_context,
+            history,
+        ),
         "required_answer_style": [
             "brief direct answer",
             "key signal",
