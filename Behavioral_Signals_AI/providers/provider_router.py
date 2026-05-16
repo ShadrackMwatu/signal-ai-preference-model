@@ -93,19 +93,19 @@ def _provider_keys_for_mode(mode: str) -> list[str]:
 
 def _demo_result(location: str, limit: int, warnings: list[str]) -> AggregateSignalRouteResult:
     raw = [
-        {"signal_name": "maize flour prices", "source": "Demo fallback", "provider_type": "demo", "category": "food_agriculture", "location": location, "volume": 185000, "growth": "rising"},
-        {"signal_name": "jobs in Nairobi", "source": "Demo fallback", "provider_type": "demo", "category": "jobs", "location": location, "volume": 140000, "growth": "rising"},
-        {"signal_name": "cheap smartphones", "source": "Demo fallback", "provider_type": "demo", "category": "technology", "location": location, "volume": 112000, "growth": "rising"},
-        {"signal_name": "hospital near me", "source": "Demo fallback", "provider_type": "demo", "category": "health", "location": location, "volume": 98000, "growth": "steady"},
-        {"signal_name": "fuel prices", "source": "Demo fallback", "provider_type": "demo", "category": "prices", "location": location, "volume": 176000, "growth": "rising"},
-        {"signal_name": "digital lending", "source": "Demo fallback", "provider_type": "demo", "category": "finance", "location": location, "volume": 76000, "growth": "steady"},
+        {"signal_name": "maize flour prices", "source": "Fallback aggregate intelligence", "provider_type": "demo", "category": "food_agriculture", "location": location, "volume": 185000, "growth": "rising"},
+        {"signal_name": "jobs in Nairobi", "source": "Fallback aggregate intelligence", "provider_type": "demo", "category": "jobs", "location": location, "volume": 140000, "growth": "rising"},
+        {"signal_name": "cheap smartphones", "source": "Fallback aggregate intelligence", "provider_type": "demo", "category": "technology", "location": location, "volume": 112000, "growth": "rising"},
+        {"signal_name": "hospital near me", "source": "Fallback aggregate intelligence", "provider_type": "demo", "category": "health", "location": location, "volume": 98000, "growth": "steady"},
+        {"signal_name": "fuel prices", "source": "Fallback aggregate intelligence", "provider_type": "demo", "category": "prices", "location": location, "volume": 176000, "growth": "rising"},
+        {"signal_name": "digital lending", "source": "Fallback aggregate intelligence", "provider_type": "demo", "category": "finance", "location": location, "volume": 76000, "growth": "steady"},
     ][: max(1, int(limit))]
-    signals = normalize_signals(raw, source="Demo fallback", provider_type="demo", location=location)
+    signals = normalize_signals(raw, source="Fallback aggregate intelligence", provider_type="demo", location=location)
     return AggregateSignalRouteResult(
         signals=assert_privacy_safe_signals(signals),
-        source_label="Demo fallback",
+        source_label="Fallback aggregate intelligence",
         is_live=False,
-        mode_badge="Demo fallback",
+        mode_badge="Fallback aggregate intelligence",
         provider_statuses=[{"provider": "demo", "provider_type": "demo", "available": True}],
         warnings=warnings[:3],
     )

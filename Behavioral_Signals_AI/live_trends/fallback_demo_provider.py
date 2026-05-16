@@ -24,7 +24,7 @@ class FallbackDemoTrendProvider:
             mode="demo",
             message="Demo aggregate trend feed is active because no live provider was selected or available.",
         )
-        return TrendProviderResult(records=records, provider=self.provider_name, source_label="Demo fallback", is_live=False, status=status)
+        return TrendProviderResult(records=records, provider=self.provider_name, source_label="Fallback aggregate intelligence", is_live=False, status=status)
 
 
 def get_demo_trends(location: str = "Kenya", limit: int = 10) -> list[dict[str, Any]]:
@@ -65,9 +65,9 @@ def get_demo_trends(location: str = "Kenya", limit: int = 10) -> list[dict[str, 
                 "volume": volume,
                 "location": location,
                 "timestamp": fetched_at,
-                "source": "Demo fallback",
+                "source": "Fallback aggregate intelligence",
                 "is_live": False,
             }
         )
-    normalized = normalize_trend_records(raw_records, platform="Demo fallback", location=location)
+    normalized = normalize_trend_records(raw_records, platform="Fallback aggregate intelligence", location=location)
     return classify_trend_batch(assert_aggregate_privacy(normalized))

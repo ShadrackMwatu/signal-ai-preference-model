@@ -10,7 +10,7 @@ from .x_trends_provider import X_TRENDS_ENDPOINT, XTrendsProvider, load_location
 
 
 def fetch_x_trends(location: str = "Kenya", limit: int = 10) -> list[dict[str, Any]]:
-    """Fetch X trends when configured, otherwise return safe demo aggregate trends."""
+    """Fetch X trends when configured, otherwise return safe fallback aggregate intelligence."""
 
     result = fetch_live_trends(location=location, limit=limit)
     return result.records

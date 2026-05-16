@@ -53,7 +53,7 @@ def test_unchanged_signals_do_not_trigger_full_feed_rebuild(monkeypatch):
     first = kenya_ui.get_kenya_live_signals_for_ui("Kenya", "All", "All")
     second = kenya_ui.get_kenya_live_signals_for_ui("Kenya", "All", "All")
     assert first == second
-    assert "Source intelligence updated: t1" in first[0]
+    assert "Source intelligence last updated: t1" in first[0]
 
 
 def test_material_ranking_changes_trigger_feed_update(monkeypatch):

@@ -74,7 +74,7 @@ def render_live_signal_feed(signals: list[dict[str, Any]], last_updated: str = "
     loop_cards = cards + cards
     status = escape(str(last_updated or "recently"))
     return (
-        f"<div class='signal-feed-status'>Live Kenya signal stream &middot; Source intelligence updated: {status}</div>"
+        f"<div class='signal-feed-status'>Live Kenya signal stream &middot; Source intelligence last updated: {status}</div>"
         f"<div class='signal-feed-container'><div class='signal-feed-inner'>{loop_cards}</div></div>"
     )
 

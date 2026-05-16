@@ -104,6 +104,27 @@ def respond_open_signals_chat(message: str, history: list[Any] | None, location:
     return _trim_chat_history(updated_history), ""
 
 
+
+
+def ask_strongest_signal_now(history: list[Any] | None, location: str, category: str, urgency: str) -> tuple[list[Any], str]:
+    """Submit the strongest-signal prompt from the compact chip UI."""
+    return respond_open_signals_chat("Strongest signal now", history, location, category, urgency)
+
+
+def ask_county_risks(history: list[Any] | None, location: str, category: str, urgency: str) -> tuple[list[Any], str]:
+    """Submit the county-risk prompt from the compact chip UI."""
+    return respond_open_signals_chat("Show county risks", history, location, category, urgency)
+
+
+def ask_opportunities(history: list[Any] | None, location: str, category: str, urgency: str) -> tuple[list[Any], str]:
+    """Submit the opportunity prompt from the compact chip UI."""
+    return respond_open_signals_chat("Show opportunities", history, location, category, urgency)
+
+
+def ask_policy_monitoring(history: list[Any] | None, location: str, category: str, urgency: str) -> tuple[list[Any], str]:
+    """Submit the policy-monitoring prompt from the compact chip UI."""
+    return respond_open_signals_chat("What should policymakers monitor?", history, location, category, urgency)
+
 def _filtered_ranked_signals(location: str, category: str, urgency: str) -> list[dict[str, Any]]:
     payload = get_cached_or_fallback_signals()
     signals = [signal for signal in payload.get("signals", []) if isinstance(signal, dict)]

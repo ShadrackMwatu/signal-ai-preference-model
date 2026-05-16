@@ -4,23 +4,70 @@ from __future__ import annotations
 
 from pathlib import Path
 
-from Behavioral_Signals_AI.signal_engine.open_signals_chat import PRIVATE_DATA_RESPONSE, answer_open_signals_prompt, respond_open_signals_chat
+from Behavioral_Signals_AI.geography.location_options import LOCATION_OPTIONS
+from Behavioral_Signals_AI.signal_engine.open_signals_chat import (
+    PRIVATE_DATA_RESPONSE,
+    answer_open_signals_prompt,
+    ask_county_risks,
+    ask_opportunities,
+    ask_policy_monitoring,
+    ask_strongest_signal_now,
+    respond_open_signals_chat,
+)
 from Behavioral_Signals_AI.signal_engine.signal_cache import write_signal_cache
 
 APP_TEXT = Path("app.py").read_text(encoding="utf-8")
 
 
-def test_chatbox_renders_and_privacy_notice_box_removed() -> None:
-    assert "Ask Open Signals" in APP_TEXT
-    assert "open_signals_chatbot" in APP_TEXT
-    assert "open_signals_send_button" in APP_TEXT
-    assert 'placeholder="Get signals"' in APP_TEXT
-    assert "open-signals-chat-container" in APP_TEXT
-    assert "open-signals-chat-history" in APP_TEXT
-    assert "open-signals-chat-input-row" in APP_TEXT
-    assert "open-signals-chat-input" in APP_TEXT
+def test_chatbox_renders_as_one_unified_panel_and_privacy_notice_box_removed() -> None:
+    ui = _open_signals_ui_block()
+    assert "Ask Open Signals" in ui
+    assert "open_signals_chatbot" in ui
+    assert "open_signals_send_button" in ui
+    assert 'placeholder="Get signals"' in ui
+    assert ui.count('elem_classes=["open-signals-chat-container"]') == 1
+    assert "open-signals-chat-history" in ui
+    assert "open-signals-chip-row" in ui
+    assert "open-signals-chat-input-row" in ui
+    assert "open-signals-chat-input" in ui
     assert "signal-privacy-note" not in APP_TEXT
     assert "Open Signals answers are based on aggregate" in APP_TEXT
+
+
+def test_prompt_chips_render_and_submit(tmp_path, monkeypatch) -> None:
+    cache_path = tmp_path / "latest_live_signals.json"
+    monkeypatch.setenv("SIGNAL_LIVE_SIGNAL_CACHE", str(cache_path))
+    monkeypatch.setenv("SIGNAL_LLM_ENABLED", "false")
+    write_signal_cache({"signals": [_signal("Kenya market opportunity", "trade and business", "Kenya-wide", 82)]}, cache_path)
+
+    for chip_text, fn in [
+        ("Strongest signal now", ask_strongest_signal_now),
+        ("Show county risks", ask_county_risks),
+        ("Show opportunities", ask_opportunities),
+        ("What should policymakers monitor?", ask_policy_monitoring),
+    ]:
+        assert chip_text in APP_TEXT
+        history, cleared = fn([], "Kenya", "All", "All")
+        assert cleared == ""
+        assert history[-2]["content"] == chip_text
+        assert "Strongest relevant signal" in history[-1]["content"]
+
+
+def test_open_signals_public_ui_hides_legacy_raw_fields() -> None:
+    ui = _open_signals_ui_block().lower()
+    assert "fallback aggregate intelligence" not in ui
+    assert "demo fallback" not in ui
+    for forbidden in ["likes", "comments", "shares", "searches", "predict demand"]:
+        assert forbidden not in ui
+
+
+def test_location_options_include_global_kenya_and_all_counties() -> None:
+    assert len(LOCATION_OPTIONS) == 49
+    assert LOCATION_OPTIONS[0] == "Global"
+    assert LOCATION_OPTIONS[1] == "Kenya"
+    assert len(set(LOCATION_OPTIONS)) == len(LOCATION_OPTIONS)
+    for county in ["Mombasa", "Nairobi", "Nakuru", "Makueni", "Uasin Gishu"]:
+        assert county in LOCATION_OPTIONS
 
 
 def test_prompt_submission_returns_answer_above_input(tmp_path, monkeypatch) -> None:
@@ -103,6 +150,12 @@ def test_private_fields_are_blocked(tmp_path, monkeypatch) -> None:
 
     assert answer == PRIVATE_DATA_RESPONSE
 
+
+
+def _open_signals_ui_block() -> str:
+    start = APP_TEXT.index('with gr.Tab("Behavioral Signals AI")')
+    end = APP_TEXT.index('with gr.Tab("Signal CGE")')
+    return APP_TEXT[start:end]
 
 def _signal(topic: str, category: str, scope: str, score: float) -> dict[str, object]:
     return {

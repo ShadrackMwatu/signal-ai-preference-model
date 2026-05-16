@@ -14,7 +14,7 @@ def test_fallback_provider_without_credentials_returns_standard_records():
     with patch.dict(os.environ, {"SIGNAL_TRENDS_MODE": "auto", "X_BEARER_TOKEN": "", "SERPAPI_API_KEY": "", "GOOGLE_TRENDS_API_KEY": "", "APIFY_API_TOKEN": ""}, clear=False):
         result = fetch_live_trends(location="Kenya", limit=3)
 
-    assert result.source_label == "Demo fallback"
+    assert result.source_label == "Fallback aggregate intelligence"
     assert result.records
     assert len(result.records) == 3
     record = result.records[0]
@@ -72,7 +72,7 @@ def test_dashboard_live_trend_output_shape():
     html = build_live_trend_html(trends_frame)
     assert "Live Trend Intelligence" in html
     assert "active trends" in html
-    assert "Demo fallback" in html
+    assert "Fallback aggregate intelligence" in html
     assert "Signal Strength" in html
     assert "Demand Relevance" in html
 

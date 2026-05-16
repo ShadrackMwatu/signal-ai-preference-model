@@ -28,7 +28,7 @@ def test_provider_router_falls_back_without_credentials():
     with patch.dict(os.environ, env, clear=False):
         result = fetch_aggregate_signals("Kenya", 4)
 
-    assert result.mode_badge == "Demo fallback"
+    assert result.mode_badge == "Fallback aggregate intelligence"
     assert result.signals
     assert all(signal["privacy_level"] == "aggregate_public" for signal in result.signals)
 
@@ -58,9 +58,9 @@ def test_live_trend_dashboard_adapter_uses_provider_router():
     with patch.dict(os.environ, {"SIGNAL_TRENDS_MODE": "demo"}, clear=False):
         result = fetch_live_trends("Kenya", 3)
 
-    assert result.source_label == "Demo fallback"
+    assert result.source_label == "Fallback aggregate intelligence"
     assert result.records
-    assert result.records[0]["mode_badge"] == "Demo fallback"
+    assert result.records[0]["mode_badge"] == "Fallback aggregate intelligence"
     assert result.records[0]["privacy_level"] == "aggregate_public"
 
 

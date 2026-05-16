@@ -31,7 +31,13 @@ for _mpl_candidate in [
 import gradio as gr
 from Behavioral_Signals_AI.geography.location_options import LOCATION_OPTIONS
 from Behavioral_Signals_AI.signal_engine.category_learning import get_category_options
-from Behavioral_Signals_AI.signal_engine.open_signals_chat import respond_open_signals_chat
+from Behavioral_Signals_AI.signal_engine.open_signals_chat import (
+    ask_county_risks,
+    ask_opportunities,
+    ask_policy_monitoring,
+    ask_strongest_signal_now,
+    respond_open_signals_chat,
+)
 
 from app_routes.behavioral_route import run_behavioral_signal_prediction
 from app_routes.signal_cge_route import (
@@ -464,18 +470,49 @@ SIGNAL_DASHBOARD_CSS = """
     box-shadow: none !important;
 }
 .open-signals-chat-history {
-    min-height: 120px;
-    max-height: 260px;
+    min-height: 92px;
+    max-height: 220px;
     overflow-y: auto;
     border: none !important;
     background: transparent !important;
     box-shadow: none !important;
 }
+.open-signals-chat-history label,
+.open-signals-chat-history .label-wrap,
+.open-signals-chat-history .icon-button,
+.open-signals-chat-history button[aria-label],
+.open-signals-chat-history .copy_code_button,
+.open-signals-chat-history .show-api {
+    display: none !important;
+}
 .open-signals-chat-history .wrap,
 .open-signals-chat-history .bubble-wrap,
+.open-signals-chat-history .chatbot,
+.open-signals-chat-history .messages,
 .open-signals-chat-history [data-testid="bot"],
 .open-signals-chat-history [data-testid="user"] {
+    border: none !important;
     background: transparent !important;
+    box-shadow: none !important;
+}
+.open-signals-chip-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-top: 8px;
+}
+.open-signals-chip button,
+.open-signals-chip .lg,
+.open-signals-chip .md,
+.open-signals-chip .sm {
+    border-radius: 999px !important;
+    min-height: 30px !important;
+    padding: 4px 12px !important;
+    font-size: 12px !important;
+    font-weight: 700 !important;
+    border: 1px solid rgba(148, 163, 184, 0.38) !important;
+    background: rgba(248, 250, 252, 0.78) !important;
+    color: #334155 !important;
 }
 .open-signals-chat-input-row {
     display: flex;
@@ -1431,7 +1468,7 @@ def refresh_live_trends(location: str, trend_limit: float) -> tuple[pd.DataFrame
         fallback_note = f"Source: {provider_label}. {getattr(getattr(provider_result, 'status', None), 'message', '')}"
     except Exception as exc:
         records = get_demo_trends(location=location if location in {"Kenya", "Nairobi", "Global"} else "Kenya", limit=int(trend_limit))
-        fallback_note = f"Live API unavailable — displaying demo aggregate trends. Details: {exc}"
+        fallback_note = f"Live API unavailable — displaying fallback aggregate intelligence. Details: {exc}"
 
     analyses = analyze_trend_batch(records)
     raw_frame = pd.DataFrame(records)
@@ -1461,7 +1498,7 @@ def _behavioral_section_intro() -> str:
     )
 
 
-def _fallback_live_trend_html(message: str = "Live API unavailable — displaying demo aggregate trends.") -> str:
+def _fallback_live_trend_html(message: str = "Live API unavailable — displaying fallback aggregate intelligence.") -> str:
     return f"<div class='signal-trend-shell'><h3>Live Trend Intelligence</h3><p>{escape(message)}</p></div>"
 
 
@@ -1625,11 +1662,16 @@ with gr.Blocks(title="Signal AI Dashboard", css=SIGNAL_DASHBOARD_CSS) as demo:
         with gr.Group(elem_classes=["open-signals-chat-container"]):
             open_signals_chatbot = gr.Chatbot(
                 label="Ask Open Signals",
-                height=170,
+                height=140,
                 type="messages",
                 show_label=False,
                 elem_classes=["open-signals-chat-history"],
             )
+            with gr.Row(elem_classes=["open-signals-chip-row"]):
+                strongest_signal_chip = gr.Button("Strongest signal now", elem_classes=["open-signals-chip"])
+                county_risks_chip = gr.Button("Show county risks", elem_classes=["open-signals-chip"])
+                opportunities_chip = gr.Button("Show opportunities", elem_classes=["open-signals-chip"])
+                policy_monitoring_chip = gr.Button("What should policymakers monitor?", elem_classes=["open-signals-chip"])
             with gr.Row(elem_classes=["open-signals-chat-input-row"]):
                 open_signals_chat_input = gr.Textbox(
                     label="Ask Open Signals",
@@ -1670,6 +1712,30 @@ with gr.Blocks(title="Signal AI Dashboard", css=SIGNAL_DASHBOARD_CSS) as demo:
         open_signals_send_button.click(
             fn=respond_open_signals_chat,
             inputs=[open_signals_chat_input, open_signals_chatbot, location_filter, category_filter, urgency_filter],
+            outputs=[open_signals_chatbot, open_signals_chat_input],
+            show_api=False,
+        )
+        strongest_signal_chip.click(
+            fn=ask_strongest_signal_now,
+            inputs=[open_signals_chatbot, location_filter, category_filter, urgency_filter],
+            outputs=[open_signals_chatbot, open_signals_chat_input],
+            show_api=False,
+        )
+        county_risks_chip.click(
+            fn=ask_county_risks,
+            inputs=[open_signals_chatbot, location_filter, category_filter, urgency_filter],
+            outputs=[open_signals_chatbot, open_signals_chat_input],
+            show_api=False,
+        )
+        opportunities_chip.click(
+            fn=ask_opportunities,
+            inputs=[open_signals_chatbot, location_filter, category_filter, urgency_filter],
+            outputs=[open_signals_chatbot, open_signals_chat_input],
+            show_api=False,
+        )
+        policy_monitoring_chip.click(
+            fn=ask_policy_monitoring,
+            inputs=[open_signals_chatbot, location_filter, category_filter, urgency_filter],
             outputs=[open_signals_chatbot, open_signals_chat_input],
             show_api=False,
         )

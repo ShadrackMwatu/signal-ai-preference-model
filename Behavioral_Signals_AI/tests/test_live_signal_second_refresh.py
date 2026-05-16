@@ -45,7 +45,7 @@ def test_latest_live_signal_cache_is_used_when_available(tmp_path, monkeypatch):
 
     feed, emerging, interpretation, historical = get_kenya_live_signals_for_ui("Kenya", "All", "All")
     assert "cached maize affordability signal" in feed
-    assert "Source intelligence updated: 2026-05-15T10:00:00+03:00" in feed
+    assert "Source intelligence last updated: 2026-05-15T10:00:00+03:00" in feed
     assert feed.strip()
     assert emerging.strip()
     assert interpretation.strip()
