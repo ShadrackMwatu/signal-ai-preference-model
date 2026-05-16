@@ -46,6 +46,18 @@ ALLOWED_SIGNAL_FIELDS = {
     "forecast_direction",
     "predicted_direction",
     "privacy_level",
+    "ml_adaptive_context",
+    "historical_learning_note",
+    "source_validation",
+    "source_reliability",
+    "accuracy_confidence",
+    "persistence_score",
+    "behavioral_intelligence_score",
+    "priority_score",
+    "confidence_reasoning",
+    "geospatial_insight",
+    "county_code",
+    "county_name",
 }
 
 

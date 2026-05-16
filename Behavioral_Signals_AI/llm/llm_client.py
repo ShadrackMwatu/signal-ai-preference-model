@@ -17,10 +17,11 @@ def llm_config() -> dict[str, Any]:
     enabled = os.getenv("SIGNAL_LLM_ENABLED", "false").strip().lower() in {"1", "true", "yes", "on"}
     return {
         "enabled": enabled,
-        "provider": os.getenv("SIGNAL_LLM_PROVIDER", "local").strip().lower() or "local",
+        "provider": (os.getenv("SIGNAL_LLM_PROVIDER", "local").strip().lower() or "local").replace("-", "_"),
         "api_key": os.getenv("SIGNAL_LLM_API_KEY", "").strip(),
         "model": os.getenv("SIGNAL_LLM_MODEL", "gpt-4o-mini").strip() or "gpt-4o-mini",
         "endpoint": os.getenv("SIGNAL_LLM_ENDPOINT", "https://api.openai.com/v1/chat/completions").strip(),
+        "max_tokens": int(os.getenv("SIGNAL_LLM_MAX_TOKENS", "700") or "700"),
     }
 
 
@@ -60,6 +61,7 @@ def _openai_compatible_json(system_prompt: str, payload: dict[str, Any], fallbac
             {"role": "user", "content": json.dumps(payload, ensure_ascii=True)},
         ],
         "temperature": 0.2,
+        "max_tokens": config.get("max_tokens", 700),
     }
     request = urllib.request.Request(
         config["endpoint"],

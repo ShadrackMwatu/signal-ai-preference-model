@@ -9,6 +9,8 @@ from Behavioral_Signals_AI.chat.intents import detect_open_signals_intent
 from Behavioral_Signals_AI.geography.county_matcher import detect_county_from_text, signal_matches_location
 from Behavioral_Signals_AI.geography.location_options import LOCATION_OPTIONS
 from Behavioral_Signals_AI.llm.llm_client import complete_json
+from Behavioral_Signals_AI.llm.open_signals_system_prompt import OPEN_SIGNALS_SYSTEM_PROMPT
+from Behavioral_Signals_AI.llm.safety_guardrails import contains_private_fields, sanitize_llm_signals
 from Behavioral_Signals_AI.signal_engine.category_learning import category_matches_signal, get_category_options
 from Behavioral_Signals_AI.signal_engine.signal_cache import get_cached_or_fallback_signals
 from Behavioral_Signals_AI.ui.feed_diff_engine import rank_signals_for_display
@@ -24,13 +26,7 @@ FORBIDDEN_PROMPT_PATTERNS = [
     re.compile(r"\b(?:\+?254|0)?7\d{8}\b"),
 ]
 
-CHAT_SYSTEM_PROMPT = (
-    "You are Open Signals. Answer only from aggregate, anonymized, public, or user-authorized signal intelligence. "
-    "Do not reveal raw searches, raw likes, raw comments, raw shares, personal identities, device IDs, exact personal locations, "
-    "private movement traces, or individual profiles. Be concise and focus on demand, risks, opportunities, counties, and policy implications. "
-    "Every answer must include strongest relevant signal, what it means, confidence level, county or scope, opportunity or risk, and recommended action. "
-    "Return JSON with one field: answer."
-)
+CHAT_SYSTEM_PROMPT = OPEN_SIGNALS_SYSTEM_PROMPT
 
 SAFE_FIELDS = [
     "signal_topic",
@@ -88,25 +84,81 @@ def answer_open_signals_prompt(message: str, history: list[Any] | None, location
         return _no_signal_answer(effective_location, effective_category, effective_urgency)
 
     fallback_answer = _grounded_rule_based_answer(cleaned, signals, effective_location, effective_category, effective_urgency, session_context, question_location, question_category)
-    payload = {
-        "question": cleaned,
-        "filters": {"location": effective_location, "category": effective_category, "urgency": effective_urgency},
-        "session_context": session_context,
-        "required_answer_fields": [
-            "strongest relevant signal",
-            "what it means",
-            "confidence level",
-            "county or scope",
-            "opportunity or risk",
-            "recommended action",
-        ],
-        "signals": [_safe_signal(signal) for signal in signals[:6]],
-        "history_turns": _safe_history(history),
-        "privacy_boundary": "aggregate_interpreted_signals_only",
-    }
+    payload = build_open_signals_llm_payload(
+        cleaned,
+        signals,
+        {"location": effective_location, "category": effective_category, "urgency": effective_urgency},
+        session_context,
+        history,
+        detected_intent["intent"],
+    )
     result = complete_json(CHAT_SYSTEM_PROMPT, payload, fallback={"answer": fallback_answer})
     answer = str(result.get("answer") or fallback_answer).strip()
     return _ensure_grounded_answer(_strip_private_terms(answer), signals[0], effective_location) or fallback_answer
+
+
+
+def build_open_signals_llm_payload(
+    question: str,
+    signals: list[dict[str, Any]],
+    filters: dict[str, str],
+    session_context: dict[str, str] | None,
+    history: list[Any] | None,
+    intent: str,
+) -> dict[str, Any]:
+    """Build a privacy-safe, aggregate-only context package for optional LLM reasoning."""
+    ranked = rank_signals_for_display([signal for signal in signals if isinstance(signal, dict)])[:6]
+    safe_signals = sanitize_llm_signals([_safe_signal(signal) for signal in ranked], limit=6)
+    payload = {
+        "question": str(question or "")[:500],
+        "intent": intent,
+        "filters": dict(filters or {}),
+        "session_context": dict(session_context or {}),
+        "history_turns": _safe_history(history),
+        "aggregate_live_signals": safe_signals,
+        "ml_adaptive_context": _ml_adaptive_context(ranked),
+        "retrieval_context": _retrieval_context(ranked),
+        "required_answer_style": [
+            "brief direct answer",
+            "key signal",
+            "what it means",
+            "opportunity or risk",
+            "recommended action",
+        ],
+        "privacy_boundary": "aggregate_anonymized_public_or_user_authorized_only",
+    }
+    if contains_private_fields(payload):
+        raise ValueError("LLM payload contains private fields")
+    return payload
+
+
+def _ml_adaptive_context(signals: list[dict[str, Any]]) -> dict[str, Any]:
+    if not signals:
+        return {"ranking_basis": "no current signals"}
+    top = signals[0]
+    return {
+        "ranking_basis": "adaptive ranking from priority, confidence, momentum, spread risk, persistence, source validation, and outcome learning when available",
+        "top_signal": _topic(top),
+        "top_signal_score": _signal_score(top),
+        "top_trajectory": _trajectory_label(top),
+        "top_confidence": top.get("confidence_score"),
+        "top_spread_risk": top.get("spread_risk"),
+    }
+
+
+def _retrieval_context(signals: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    context = []
+    for signal in signals[:6]:
+        context.append({
+            "signal_topic": signal.get("signal_topic"),
+            "county_or_scope": signal.get("county_name") or signal.get("geographic_scope"),
+            "historical_learning_note": signal.get("historical_pattern_match"),
+            "outcome_learning_note": signal.get("outcome_learning_note"),
+            "geospatial_insight": signal.get("geospatial_insight"),
+            "source_validation": signal.get("validation_status") or signal.get("source_summary"),
+            "confidence_reasoning": signal.get("confidence_reasoning"),
+        })
+    return context
 
 
 def respond_open_signals_chat(message: str, history: list[Any] | None, location: str, category: str, urgency: str) -> tuple[list[Any], str]:
@@ -133,7 +185,7 @@ def _conversational_response(intent: str, message: str) -> str:
             "and opportunities across Kenya. What would you like to explore?"
         )
     if intent == "farewell":
-        return "Goodbye. I’ll be here when you want to explore Kenya signals, risks, opportunities, or county trends."
+        return "Goodbye. I will be here when you want to explore Kenya signals, risks, opportunities, or county trends."
     if intent == "gratitude":
         return "You're welcome. Ask me about a county, sector, risk, opportunity, or emerging demand signal whenever you're ready."
     if intent == "help":
@@ -148,6 +200,7 @@ def _conversational_response(intent: str, message: str) -> str:
             return "I'm Open Signals, a privacy-preserving analyst for aggregate demand, risk, and opportunity intelligence in Kenya."
         return "I'm ready to help. I can interpret emerging aggregate signals, county trends, market opportunities, and policy risks."
     return ""
+
 
 def _conversation_context(history: list[Any] | None) -> dict[str, str]:
     """Extract temporary session context from visible chat history only."""

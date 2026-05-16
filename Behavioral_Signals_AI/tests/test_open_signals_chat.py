@@ -6,9 +6,11 @@ from pathlib import Path
 
 from Behavioral_Signals_AI.chat.intents import detect_open_signals_intent
 from Behavioral_Signals_AI.geography.location_options import LOCATION_OPTIONS
+from Behavioral_Signals_AI.llm.safety_guardrails import contains_private_fields
 from Behavioral_Signals_AI.signal_engine.open_signals_chat import (
     PRIVATE_DATA_RESPONSE,
     answer_open_signals_prompt,
+    build_open_signals_llm_payload,
     respond_open_signals_chat,
 )
 from Behavioral_Signals_AI.signal_engine.signal_cache import write_signal_cache
@@ -207,6 +209,37 @@ def test_followup_uses_previous_signal_context(tmp_path, monkeypatch) -> None:
 
     assert "Nakuru water access stress" in answer
     assert "earlier signal context" in answer
+
+
+def test_llm_grounding_payload_excludes_private_fields(tmp_path, monkeypatch) -> None:
+    cache_path = tmp_path / "latest_live_signals.json"
+    monkeypatch.setenv("SIGNAL_LIVE_SIGNAL_CACHE", str(cache_path))
+    signal = _signal("Nairobi affordability pressure", "cost of living", "Nairobi", 91)
+    signal.update({
+        "user_id": "person-1",
+        "email": "person@example.com",
+        "phone": "+254700000000",
+        "exact_location": "private coordinates",
+        "device_id": "device-1",
+        "confidence_reasoning": "source agreement and recurrence",
+    })
+
+    payload = build_open_signals_llm_payload(
+        "show signals in Nairobi",
+        [signal],
+        {"location": "Nairobi", "category": "All", "urgency": "All"},
+        {"last_county": "", "last_category": "", "last_signal": ""},
+        [],
+        "signal_query",
+    )
+
+    payload_text = str(payload)
+    assert not contains_private_fields(payload)
+    for private_value in ["person-1", "person@example.com", "+254700000000", "private coordinates", "device-1"]:
+        assert private_value not in payload_text
+    assert "aggregate_live_signals" in payload
+    assert "ml_adaptive_context" in payload
+    assert "retrieval_context" in payload
 
 def test_missing_llm_key_does_not_crash(tmp_path, monkeypatch) -> None:
     cache_path = tmp_path / "latest_live_signals.json"
