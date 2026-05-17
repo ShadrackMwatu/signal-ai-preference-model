@@ -190,6 +190,61 @@ def test_short_meaning_without_prior_signal_asks_better_clarification() -> None:
 
     assert answer == "Do you mean who I am, why a signal matters, or the meaning of a specific signal?"
 
+
+def test_brief_prompt_returns_short_answer(tmp_path, monkeypatch) -> None:
+    cache_path = tmp_path / "latest_live_signals.json"
+    monkeypatch.setenv("SIGNAL_LIVE_SIGNAL_CACHE", str(cache_path))
+    monkeypatch.setenv("SIGNAL_LLM_ENABLED", "false")
+    write_signal_cache({"signals": [_signal("Nairobi affordability pressure", "cost of living", "Nairobi", 91)]}, cache_path)
+
+    answer = answer_open_signals_prompt("briefly summarize Nairobi signals", [], "Kenya", "All", "All")
+
+    assert answer.startswith("**Summary:**")
+    assert "Strongest relevant signal" not in answer
+    assert "Recommended action:" in answer
+
+
+def test_explain_prompt_returns_structured_explanation(tmp_path, monkeypatch) -> None:
+    cache_path = tmp_path / "latest_live_signals.json"
+    monkeypatch.setenv("SIGNAL_LIVE_SIGNAL_CACHE", str(cache_path))
+    monkeypatch.setenv("SIGNAL_LLM_ENABLED", "false")
+    signal = _signal("Nakuru water access stress", "water and sanitation", "Nakuru", 86)
+    signal["confidence_reasoning"] = "persistent county-level recurrence and source agreement"
+    write_signal_cache({"signals": [signal]}, cache_path)
+
+    answer = answer_open_signals_prompt("explain why Nakuru water stress matters", [], "Kenya", "All", "All")
+
+    assert "Strongest relevant signal" in answer
+    assert "This signal matters because" in answer
+    assert "Confidence level" in answer
+
+
+def test_policy_prompt_is_policy_focused(tmp_path, monkeypatch) -> None:
+    cache_path = tmp_path / "latest_live_signals.json"
+    monkeypatch.setenv("SIGNAL_LIVE_SIGNAL_CACHE", str(cache_path))
+    monkeypatch.setenv("SIGNAL_LLM_ENABLED", "false")
+    write_signal_cache({"signals": [_signal("Kenya food price pressure", "cost of living", "Kenya-wide", 88)]}, cache_path)
+
+    answer = answer_open_signals_prompt("policy summary for food price pressure", [], "Kenya", "All", "All")
+
+    assert "Policy signal" in answer
+    assert "Recommended public action" in answer
+    assert "What to monitor" in answer
+
+
+def test_business_prompt_is_opportunity_focused(tmp_path, monkeypatch) -> None:
+    cache_path = tmp_path / "latest_live_signals.json"
+    monkeypatch.setenv("SIGNAL_LIVE_SIGNAL_CACHE", str(cache_path))
+    monkeypatch.setenv("SIGNAL_LLM_ENABLED", "false")
+    write_signal_cache({"signals": [_signal("Retail demand expansion", "trade and business", "Kenya-wide", 84)]}, cache_path)
+
+    answer = answer_open_signals_prompt("business opportunity in retail demand", [], "Kenya", "All", "All")
+
+    assert "Market opportunity signal" in answer
+    assert "Recommended business action" in answer
+    assert "Market read" in answer
+
+
 def test_signal_query_still_triggers_analysis(tmp_path, monkeypatch) -> None:
     cache_path = tmp_path / "latest_live_signals.json"
     monkeypatch.setenv("SIGNAL_LIVE_SIGNAL_CACHE", str(cache_path))

@@ -95,8 +95,19 @@ def answer_open_signals_prompt(message: str, history: list[Any] | None, location
     if not signals:
         return _no_signal_answer(effective_location, effective_category, effective_urgency)
 
+    answer_profile = _answer_profile(cleaned, detected_intent["intent"])
     reasoning_question = _resolved_reasoning_question(cleaned, detected_intent["intent"])
-    fallback_answer = _grounded_rule_based_answer(reasoning_question, signals, effective_location, effective_category, effective_urgency, session_context, question_location, question_category)
+    fallback_answer = _grounded_rule_based_answer(
+        reasoning_question,
+        signals,
+        effective_location,
+        effective_category,
+        effective_urgency,
+        session_context,
+        question_location,
+        question_category,
+        answer_profile,
+    )
     payload = build_open_signals_llm_payload(
         reasoning_question,
         signals,
@@ -104,10 +115,11 @@ def answer_open_signals_prompt(message: str, history: list[Any] | None, location
         session_context,
         history,
         detected_intent["intent"],
+        answer_profile,
     )
     result = complete_json(CHAT_SYSTEM_PROMPT, payload, fallback={"answer": fallback_answer})
     answer = str(result.get("answer") or fallback_answer).strip()
-    return _ensure_grounded_answer(_strip_private_terms(answer), signals[0], effective_location) or fallback_answer
+    return _ensure_grounded_answer(_strip_private_terms(answer), signals[0], effective_location, answer_profile) or fallback_answer
 
 
 
@@ -118,6 +130,7 @@ def build_open_signals_llm_payload(
     session_context: dict[str, str] | None,
     history: list[Any] | None,
     intent: str,
+    answer_profile: dict[str, str] | None = None,
 ) -> dict[str, Any]:
     """Build a privacy-safe, aggregate-only context package for optional LLM reasoning."""
     ranked = rank_signals_for_display([signal for signal in signals if isinstance(signal, dict)])[:6]
@@ -140,13 +153,8 @@ def build_open_signals_llm_payload(
             session_context,
             history,
         ),
-        "required_answer_style": [
-            "brief direct answer",
-            "key signal",
-            "what it means",
-            "opportunity or risk",
-            "recommended action",
-        ],
+        "answer_profile": dict(answer_profile or _answer_profile(question, intent)),
+        "required_answer_style": _required_answer_style(answer_profile or _answer_profile(question, intent)),
         "privacy_boundary": "aggregate_anonymized_public_or_user_authorized_only",
     }
     if contains_private_fields(payload):
@@ -494,10 +502,47 @@ def _resolved_reasoning_question(question: str, intent: str) -> str:
         return "explain_geography where is this signal relevant"
     return question
 
-def _grounded_rule_based_answer(question: str, signals: list[dict[str, Any]], location: str, category: str, urgency: str, session_context: dict[str, str] | None = None, question_location: str = "", question_category: str = "") -> str:
+def _answer_profile(question: str, intent: str = "") -> dict[str, str]:
+    q = _normalize(question)
+    if re.search(r"\b(briefly|brief|short|summary|summarize|quickly|concise)\b", q):
+        depth = "short"
+    elif re.search(r"\b(explain|why|in detail|details|detailed|deep dive)\b", q) or intent in {"explain_reason", "explain_meaning", "explain_mechanism", "explain_geography"}:
+        depth = "structured"
+    else:
+        depth = "default"
+
+    if re.search(r"\b(policy|policymaker|policymakers|government|public sector|monitor)\b", q):
+        focus = "policy"
+    elif re.search(r"\b(business|opportunity|market|investment|investor|enterprise|sme|retail)\b", q):
+        focus = "opportunity"
+    else:
+        focus = "general"
+    return {"depth": depth, "focus": focus}
+
+
+def _required_answer_style(answer_profile: dict[str, str]) -> list[str]:
+    depth = answer_profile.get("depth", "default")
+    focus = answer_profile.get("focus", "general")
+    if focus == "policy":
+        return ["brief direct answer", "policy relevance", "risk to monitor", "recommended public action"]
+    if focus == "opportunity":
+        return ["brief direct answer", "market opportunity", "affected sector", "recommended business action"]
+    if depth == "short":
+        return ["short conversational answer", "strongest signal", "meaning", "recommended action"]
+    if depth == "structured":
+        return ["short summary", "why it matters", "evidence basis", "opportunity or risk", "recommended action"]
+    return ["brief direct answer", "key signal", "what it means", "opportunity or risk", "recommended action"]
+
+
+def _grounded_rule_based_answer(question: str, signals: list[dict[str, Any]], location: str, category: str, urgency: str, session_context: dict[str, str] | None = None, question_location: str = "", question_category: str = "", answer_profile: dict[str, str] | None = None) -> str:
     top = _select_relevant_signal(question, signals)
     q = question.lower()
-    if "why" in q or "important" in q or "confidence" in q or "affected" in q or "explain_reason" in q:
+    profile = answer_profile or _answer_profile(question)
+    if profile.get("focus") == "policy":
+        emphasis = _policy_sentence(top)
+    elif profile.get("focus") == "opportunity":
+        emphasis = _opportunity_sentence(top)
+    elif "why" in q or "important" in q or "confidence" in q or "affected" in q or "explain_reason" in q:
         emphasis = _explainability_sentence(top)
     elif "opportun" in q or "market" in q or "business" in q or "sector" in q:
         emphasis = _opportunity_sentence(top)
@@ -520,7 +565,7 @@ def _grounded_rule_based_answer(question: str, signals: list[dict[str, Any]], lo
         emphasis = f"Compared with the previous county context ({session_context['last_county']}), {question_location} is now the active county context. {emphasis}"
     elif _is_followup_question(question) and session_context and session_context.get("last_signal"):
         emphasis = f"This follows the earlier signal context ({session_context['last_signal']}). {emphasis}"
-    return _format_grounded_answer(top, emphasis, location, category, urgency)
+    return _format_grounded_answer(top, emphasis, location, category, urgency, profile)
 
 
 
@@ -548,7 +593,7 @@ def _select_relevant_signal(question: str, signals: list[dict[str, Any]]) -> dic
     return best
 
 
-def _format_grounded_answer(signal: dict[str, Any], emphasis: str, location: str, category: str, urgency: str) -> str:
+def _format_grounded_answer(signal: dict[str, Any], emphasis: str, location: str, category: str, urgency: str, answer_profile: dict[str, str] | None = None) -> str:
     topic = str(signal.get("signal_topic") or "current aggregate signal")
     signal_category = str(signal.get("signal_category") or category or "other")
     confidence = str(signal.get("confidence_score", "unknown"))
@@ -557,6 +602,29 @@ def _format_grounded_answer(signal: dict[str, Any], emphasis: str, location: str
     urgency_value = str(signal.get("urgency", urgency or "Medium"))
     risk = _risk_label(signal)
     action = str(signal.get("recommended_action") or signal.get("monitoring_recommendation") or "Monitor persistence, source confirmation, county spread, and outcome validation.")
+    profile = answer_profile or {"depth": "default", "focus": "general"}
+    focus = profile.get("focus", "general")
+    if focus == "policy":
+        return (
+            f"**Policy signal:** {topic} ({signal_category}).\n\n"
+            f"**Policy meaning:** {emphasis}\n\n"
+            f"**Confidence and scope:** {confidence}% confidence; scope is {scope}.\n\n"
+            f"**What to monitor:** urgency is {urgency_value}, spread risk is {risk}, and related signals should be checked for persistence and outcome validation.\n\n"
+            f"**Recommended public action:** {action}"
+        )
+    if focus == "opportunity":
+        return (
+            f"**Market opportunity signal:** {topic} ({signal_category}).\n\n"
+            f"**Opportunity meaning:** {emphasis}\n\n"
+            f"**Confidence and scope:** {confidence}% confidence; scope is {scope}.\n\n"
+            f"**Market read:** opportunity is {opportunity}, urgency is {urgency_value}, and risk signal is {risk}.\n\n"
+            f"**Recommended business action:** {action}"
+        )
+    if profile.get("depth") == "short":
+        return (
+            f"**Summary:** {topic} is the strongest relevant signal for {scope}. "
+            f"{emphasis} Confidence is {confidence}%. Recommended action: {action}"
+        )
     return (
         f"**Strongest relevant signal:** {topic} ({signal_category}).\n\n"
         f"**What it means:** {emphasis}\n\n"
@@ -747,11 +815,18 @@ def _category_from_question(question: str) -> str:
     return ""
 
 
-def _ensure_grounded_answer(answer: str, signal: dict[str, Any], location: str) -> str:
+def _ensure_grounded_answer(answer: str, signal: dict[str, Any], location: str, answer_profile: dict[str, str] | None = None) -> str:
+    profile = answer_profile or {"depth": "default", "focus": "general"}
+    if profile.get("depth") == "short" and "summary" in answer.lower():
+        return answer
+    if profile.get("focus") == "policy" and "policy" in answer.lower() and "recommended" in answer.lower():
+        return answer
+    if profile.get("focus") == "opportunity" and ("opportunity" in answer.lower() or "market" in answer.lower()) and "recommended" in answer.lower():
+        return answer
     required_markers = ["Strongest relevant signal", "What it means", "Confidence level", "County/scope", "Opportunity or risk", "Recommended action"]
     if all(marker.lower() in answer.lower() for marker in required_markers):
         return answer
-    return _format_grounded_answer(signal, answer or _meaning_sentence(signal), location, str(signal.get("signal_category", "All")), str(signal.get("urgency", "All")))
+    return _format_grounded_answer(signal, answer or _meaning_sentence(signal), location, str(signal.get("signal_category", "All")), str(signal.get("urgency", "All")), profile)
 
 
 def _no_signal_answer(location: str, category: str, urgency: str) -> str:
