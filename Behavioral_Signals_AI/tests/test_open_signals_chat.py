@@ -12,6 +12,8 @@ from Behavioral_Signals_AI.chat.conversation_learning import (
 )
 from Behavioral_Signals_AI.chat.hybrid_conversation_orchestrator import build_response_plan
 from Behavioral_Signals_AI.chat.intents import detect_open_signals_intent
+from Behavioral_Signals_AI.chat.retrieval_grounding import retrieve_relevant_signals
+from Behavioral_Signals_AI.chat.semantic_query_analyzer import analyze_open_signals_query, resolve_county_entity
 from Behavioral_Signals_AI.geography.location_options import LOCATION_OPTIONS
 from Behavioral_Signals_AI.llm.safety_guardrails import contains_private_fields
 from Behavioral_Signals_AI.signal_engine.open_signals_chat import (
@@ -94,6 +96,22 @@ def test_conversational_intent_detection_handles_greetings_and_help() -> None:
     assert detect_open_signals_intent("explain signals")["intent"] == "capability_query"
     assert detect_open_signals_intent("show signals in Nairobi")["intent"] == "signal_query"
     assert detect_open_signals_intent("compare Nakuru and Makueni")["intent"] == "comparison_query"
+
+
+def test_semantic_query_analyzer_resolves_county_and_analytical_intent() -> None:
+    analysis = analyze_open_signals_query("What is happening in Kwale right now?")
+
+    assert analysis["county"] == "Kwale"
+    assert analysis["analytical"] is True
+    assert analysis["intent"] == "analytical"
+    assert analysis["time_focus"] == "current"
+    assert analysis["confidence"] >= 0.75
+
+
+def test_fuzzy_county_matching_handles_county_suffix() -> None:
+    assert resolve_county_entity("kwale right now") == "Kwale"
+    assert resolve_county_entity("Kwale County") == "Kwale"
+    assert resolve_county_entity("what is happening in makueni") == "Makueni"
 
 
 def test_greeting_and_small_talk_do_not_trigger_signal_analysis() -> None:
@@ -352,6 +370,105 @@ def test_signal_query_still_triggers_analysis(tmp_path, monkeypatch) -> None:
 
     assert "Strongest relevant signal" in answer
     assert "Nairobi affordability pressure" in answer
+
+
+def test_county_happening_query_uses_analytical_grounding(tmp_path, monkeypatch) -> None:
+    cache_path = tmp_path / "latest_live_signals.json"
+    monkeypatch.setenv("SIGNAL_LIVE_SIGNAL_CACHE", str(cache_path))
+    monkeypatch.setenv("SIGNAL_CONVERSATION_LEARNING_PATH", str(tmp_path / "conversation_learning_summary.json"))
+    monkeypatch.setenv("SIGNAL_LLM_ENABLED", "false")
+    write_signal_cache({"signals": [_signal("Kwale coastal transport demand", "transport", "Kwale", 87)]}, cache_path)
+
+    answer = answer_open_signals_prompt("What is happening in Kwale right now?", [], "Kenya", "All", "All")
+
+    assert "Strongest relevant signal" in answer
+    assert "Kwale coastal transport demand" in answer
+    assert "Kwale" in answer
+    assert "Do you want" not in answer
+    assert "I may not have enough context" not in answer
+
+
+def test_rising_nairobi_query_prioritizes_county_signal(tmp_path, monkeypatch) -> None:
+    cache_path = tmp_path / "latest_live_signals.json"
+    monkeypatch.setenv("SIGNAL_LIVE_SIGNAL_CACHE", str(cache_path))
+    monkeypatch.setenv("SIGNAL_CONVERSATION_LEARNING_PATH", str(tmp_path / "conversation_learning_summary.json"))
+    monkeypatch.setenv("SIGNAL_LLM_ENABLED", "false")
+    write_signal_cache({
+        "signals": [
+            _signal("Kenya retail demand", "trade and business", "Kenya-wide", 95),
+            _signal("Nairobi transport pressure", "transport", "Nairobi", 82),
+        ]
+    }, cache_path)
+
+    answer = answer_open_signals_prompt("What is rising in Nairobi?", [], "Kenya", "All", "All")
+
+    assert "Nairobi transport pressure" in answer
+    assert "Strongest relevant signal" in answer
+    assert "Do you want" not in answer
+
+
+def test_turkana_emerging_risk_query_routes_to_analysis(tmp_path, monkeypatch) -> None:
+    cache_path = tmp_path / "latest_live_signals.json"
+    monkeypatch.setenv("SIGNAL_LIVE_SIGNAL_CACHE", str(cache_path))
+    monkeypatch.setenv("SIGNAL_CONVERSATION_LEARNING_PATH", str(tmp_path / "conversation_learning_summary.json"))
+    monkeypatch.setenv("SIGNAL_LLM_ENABLED", "false")
+    signal = _signal("Turkana water access risk", "water and sanitation", "Turkana", 84)
+    signal["urgency"] = "High"
+    write_signal_cache({"signals": [signal]}, cache_path)
+
+    answer = answer_open_signals_prompt("What risks are emerging in Turkana?", [], "Kenya", "All", "All")
+
+    assert "Turkana water access risk" in answer
+    assert "risk" in answer.lower()
+    assert "Strongest relevant signal" in answer
+    assert "Do you want" not in answer
+
+
+def test_kisumu_opportunity_query_uses_business_mode(tmp_path, monkeypatch) -> None:
+    cache_path = tmp_path / "latest_live_signals.json"
+    monkeypatch.setenv("SIGNAL_LIVE_SIGNAL_CACHE", str(cache_path))
+    monkeypatch.setenv("SIGNAL_CONVERSATION_LEARNING_PATH", str(tmp_path / "conversation_learning_summary.json"))
+    monkeypatch.setenv("SIGNAL_LLM_ENABLED", "false")
+    write_signal_cache({"signals": [_signal("Kisumu retail opportunity", "trade and business", "Kisumu", 83)]}, cache_path)
+
+    answer = answer_open_signals_prompt("Show opportunities in Kisumu", [], "Kenya", "All", "All")
+
+    assert "Market opportunity signal" in answer
+    assert "Kisumu retail opportunity" in answer
+    assert "Recommended business action" in answer
+
+
+def test_retrieval_grounding_ranks_county_relevance(tmp_path, monkeypatch) -> None:
+    cache_path = tmp_path / "latest_live_signals.json"
+    monkeypatch.setenv("SIGNAL_LIVE_SIGNAL_CACHE", str(cache_path))
+    write_signal_cache({
+        "signals": [
+            _signal("Kenya retail demand", "trade and business", "Kenya-wide", 95),
+            _signal("Kwale coastal transport demand", "transport", "Kwale", 80),
+        ]
+    }, cache_path)
+
+    signals = retrieve_relevant_signals("Kwale", "All", "current", {}, limit=2)
+
+    assert signals[0]["signal_topic"] == "Kwale coastal transport demand"
+
+
+def test_followup_why_uses_kwale_county_context(tmp_path, monkeypatch) -> None:
+    cache_path = tmp_path / "latest_live_signals.json"
+    monkeypatch.setenv("SIGNAL_LIVE_SIGNAL_CACHE", str(cache_path))
+    monkeypatch.setenv("SIGNAL_CONVERSATION_LEARNING_PATH", str(tmp_path / "conversation_learning_summary.json"))
+    monkeypatch.setenv("SIGNAL_LLM_ENABLED", "false")
+    signal = _signal("Kwale coastal transport demand", "transport", "Kwale", 87)
+    signal["confidence_reasoning"] = "county relevance, rising momentum, and source agreement"
+    write_signal_cache({"signals": [signal]}, cache_path)
+
+    history, _ = respond_open_signals_chat("What is happening in Kwale?", [], "Kenya", "All", "All")
+    answer = answer_open_signals_prompt("Why?", history, "Kenya", "All", "All")
+
+    assert "Kwale coastal transport demand" in answer
+    assert "This signal matters because" in answer
+    assert "county relevance" in answer
+
 
 def test_location_options_include_global_kenya_and_all_counties() -> None:
     assert len(LOCATION_OPTIONS) == 49

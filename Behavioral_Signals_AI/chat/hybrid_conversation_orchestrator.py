@@ -8,7 +8,9 @@ from typing import Any, Callable
 from Behavioral_Signals_AI.chat.intents import detect_open_signals_intent
 from Behavioral_Signals_AI.chat.persona import choose_tone, persona_context
 from Behavioral_Signals_AI.chat.reference_resolver import resolve_short_followup
+from Behavioral_Signals_AI.chat.retrieval_grounding import retrieve_relevant_signals
 from Behavioral_Signals_AI.chat.response_synthesizer import PRIVATE_DATA_RESPONSE, synthesize_response
+from Behavioral_Signals_AI.chat.semantic_query_analyzer import analyze_open_signals_query, resolve_county_entity
 from Behavioral_Signals_AI.data_ingestion.privacy_filter import assert_no_private_fields
 from Behavioral_Signals_AI.data_ingestion.retrieval_index import retrieve_relevant_context
 
@@ -29,7 +31,14 @@ def answer_with_hybrid_orchestrator(
         return PRIVATE_DATA_RESPONSE
     if plan["response_mode"] in {"greeting", "identity", "capability", "small_talk", "gratitude", "farewell", "clarification"}:
         return synthesize_response(plan)
-    fallback = fallback_handler(message, history, location, category, urgency)
+    effective_filters = plan.get("filters", {})
+    fallback = fallback_handler(
+        message,
+        history,
+        str(effective_filters.get("location") or location),
+        str(effective_filters.get("category") or category),
+        urgency,
+    )
     plan["fallback_answer_summary"] = _compact_text(fallback)
     return synthesize_response(plan, fallback)
 
@@ -44,27 +53,41 @@ def build_response_plan(
     """Create an internal, non-user-visible response plan. No chain-of-thought is exposed."""
     prompt = str(message or "").strip()
     session_context = infer_session_context(history)
+    semantic = analyze_open_signals_query(prompt)
     detected = detect_open_signals_intent(prompt)
     resolved = resolve_short_followup(prompt, history, session_context)
     if resolved.get("resolved"):
         detected = {"intent": str(resolved.get("intent")), "confidence": float(resolved.get("confidence", 0.8))}
+    elif semantic["analytical"] and semantic["county"]:
+        detected = {"intent": "signal_query", "confidence": max(float(detected.get("confidence", 0.0)), float(semantic["confidence"]))}
     privacy_risk = _privacy_risk(prompt)
-    tone = choose_tone(prompt, detected["intent"], session_context)
-    mode = _response_mode(prompt, detected["intent"], tone, session_context)
+    tone = _semantic_tone(prompt, detected["intent"], session_context, semantic)
+    mode = _response_mode(prompt, detected["intent"], tone, session_context, semantic)
     needs_clarification = mode == "clarification"
-    retrieved = [] if privacy_risk else retrieve_relevant_context(prompt, location or "Kenya", category or "All", limit=5)
+    effective_location = str(semantic.get("county") or location or "Kenya")
+    effective_category = str(semantic.get("category") or category or "All")
+    retrieved = [] if privacy_risk else retrieve_relevant_context(prompt, effective_location, effective_category, limit=5)
+    grounded_signals = [] if privacy_risk else retrieve_relevant_signals(
+        str(semantic.get("county") or ""),
+        effective_category,
+        str(semantic.get("time_focus") or ""),
+        session_context,
+        limit=5,
+    )
     return {
         "intent": detected["intent"],
         "intent_confidence": detected.get("confidence", 0.0),
         "context_used": _context_used(session_context),
-        "evidence_used": _evidence_summary(retrieved),
+        "evidence_used": _evidence_summary(retrieved, grounded_signals),
         "response_mode": mode,
         "tone": tone,
         "needs_clarification": needs_clarification,
         "privacy_risk": privacy_risk,
         "session_context": session_context,
         "retrieved_evidence": retrieved,
-        "filters": {"location": location, "category": category, "urgency": urgency},
+        "grounded_signals": grounded_signals,
+        "semantic_query": semantic,
+        "filters": {"location": effective_location, "category": effective_category, "urgency": urgency},
         "persona": persona_context(),
         "user_prompt": prompt,
     }
@@ -107,8 +130,15 @@ def infer_session_context(history: list[Any] | None) -> dict[str, str]:
     return context
 
 
-def _response_mode(prompt: str, intent: str, tone: str, session_context: dict[str, str]) -> str:
+def _response_mode(prompt: str, intent: str, tone: str, session_context: dict[str, str], semantic: dict[str, Any] | None = None) -> str:
     text = _normalize(prompt)
+    semantic = semantic or {}
+    if semantic.get("analytical") and semantic.get("county"):
+        if semantic.get("intent") == "policy":
+            return "policy_answer"
+        if semantic.get("intent") == "business":
+            return "business_opportunity_answer"
+        return "analytical_answer"
     if intent == "greeting":
         return "greeting"
     if intent == "identity_query":
@@ -126,6 +156,14 @@ def _response_mode(prompt: str, intent: str, tone: str, session_context: dict[st
     if tone == "business":
         return "business_opportunity_answer"
     return "analytical_answer"
+
+
+def _semantic_tone(prompt: str, intent: str, session_context: dict[str, str], semantic: dict[str, Any]) -> str:
+    if semantic.get("intent") == "policy":
+        return "policy"
+    if semantic.get("intent") == "business":
+        return "business"
+    return choose_tone(prompt, intent, session_context)
 
 
 def _privacy_risk(prompt: str) -> bool:
@@ -155,10 +193,12 @@ def _context_used(session_context: dict[str, str]) -> str:
     return "; ".join(used) or "no prior signal context"
 
 
-def _evidence_summary(records: list[dict[str, Any]]) -> str:
-    if not records:
-        return "no retrieved aggregate evidence"
+def _evidence_summary(records: list[dict[str, Any]], grounded_signals: list[dict[str, Any]] | None = None) -> str:
     labels = []
+    for signal in list(grounded_signals or [])[:2]:
+        labels.append(str(signal.get("signal_topic") or signal.get("source_summary") or "live signal cache")[:80])
+    if not records and not labels:
+        return "no retrieved aggregate evidence"
     for record in records[:3]:
         labels.append(str(record.get("source_name") or record.get("source_type") or record.get("topic") or "aggregate evidence")[:80])
     return ", ".join(labels)
@@ -177,10 +217,7 @@ def _history_text_items(history: list[Any] | None) -> list[str]:
 
 
 def _county_from_text(text: str) -> str:
-    for county in ["Nairobi", "Nakuru", "Makueni", "Mombasa", "Kisumu", "Kiambu", "Machakos"]:
-        if county.lower() in str(text or "").lower():
-            return county
-    return ""
+    return resolve_county_entity(text)
 
 
 def _category_from_text(text: str) -> str:
