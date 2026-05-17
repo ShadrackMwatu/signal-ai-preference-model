@@ -216,6 +216,8 @@ def test_capability_answers_vary_across_session() -> None:
     assert first != second
     assert "Strongest relevant signal" not in first
     assert "Strongest relevant signal" not in second
+    assert "Evidence basis:" not in first
+    assert "Evidence basis:" not in second
 
 
 def test_brief_prompt_returns_short_answer(tmp_path, monkeypatch) -> None:
@@ -443,6 +445,7 @@ def test_comparative_reasoning_between_counties(tmp_path, monkeypatch) -> None:
     assert "Nairobi" in answer
     assert "Makueni" in answer
     assert "spread risk" in answer
+    assert "Evidence basis" in answer
 
 
 def test_time_aware_reasoning_uses_trajectory_language(tmp_path, monkeypatch) -> None:
@@ -515,8 +518,8 @@ def test_fallback_answers_say_evidence_is_limited(tmp_path, monkeypatch) -> None
     answer = answer_open_signals_prompt("show strongest signal", [], "Kenya", "All", "All")
 
     assert "Evidence basis" in answer
-    assert "fallback aggregate intelligence" in answer
-    assert "Evidence is limited" in answer
+    assert "fallback aggregate intelligence only" in answer
+    assert "Confidence should be treated cautiously" in answer
     assert "Validation: unvalidated" in answer
 
 

@@ -504,6 +504,8 @@ def _comparison_answer(question: str, category: str, urgency: str, session_conte
         )
     lines.extend([
         "",
+        f"**Evidence basis:** {_evidence_basis_sentence(strongest)}",
+        "",
         f"**Interpretation:** The comparison is based on aggregate signal strength, urgency, confidence, momentum, spread risk, and persistence indicators. {strongest_county} should be watched first if this pattern continues.",
     ])
     return "\n".join(lines)
@@ -542,6 +544,8 @@ def _time_aware_answer(question: str, location: str, category: str, urgency: str
         lines.append(
             f"- **{_topic(signal)}:** {signal.get('trajectory_label') or _trajectory_label(signal)}; momentum {signal.get('momentum', 'Stable')}; forecast {signal.get('forecast_direction', 'Stable')}; validation {signal.get('validation_status', 'unvalidated')}.")
     lines.extend([
+        "",
+        f"**Evidence basis:** {_evidence_basis_sentence(top)}",
         "",
         "**Why it matters:** Time-aware ranking uses persistence, ranking movement, outcome learning notes, historical pattern matches, and current adaptive scores when available.",
     ])
@@ -776,13 +780,14 @@ def _geography_sentence(signal: dict[str, Any]) -> str:
 
 def _evidence_basis_sentence(signal: dict[str, Any]) -> str:
     source_summary = str(signal.get("source_summary") or "aggregate interpreted sources")
-    evidence_types = _evidence_types(signal)
     validation = _validation_label(signal)
-    limited_note = " Evidence is limited because the current cache is using fallback aggregate intelligence." if _is_limited_evidence(signal) else ""
-    return (
-        f"{source_summary}; based on {', '.join(evidence_types)}. "
-        f"Validation: {validation}.{limited_note}"
-    )
+    confidence = signal.get("confidence_score")
+    confidence_note = f" Confidence: {confidence}%." if confidence not in {None, ""} else ""
+    if _is_limited_evidence(signal):
+        return f"fallback aggregate intelligence only. Validation: {validation}.{confidence_note} Confidence should be treated cautiously."
+    evidence_types = _evidence_types(signal)
+    source_note = f" Source: {source_summary}." if source_summary else ""
+    return f"{' + '.join(evidence_types)}. Validation: {validation}.{confidence_note}{source_note}"
 
 
 def _evidence_types(signal: dict[str, Any]) -> list[str]:
