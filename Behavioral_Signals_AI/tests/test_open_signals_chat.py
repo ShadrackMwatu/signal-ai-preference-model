@@ -6,6 +6,10 @@ from datetime import UTC, datetime, timedelta
 from pathlib import Path
 
 from Behavioral_Signals_AI.chat.answer_quality import evaluate_answer_quality, improve_answer_with_quality
+from Behavioral_Signals_AI.chat.conversation_learning import (
+    get_conversation_learning_summary,
+    record_conversation_interaction,
+)
 from Behavioral_Signals_AI.chat.hybrid_conversation_orchestrator import build_response_plan
 from Behavioral_Signals_AI.chat.intents import detect_open_signals_intent
 from Behavioral_Signals_AI.geography.location_options import LOCATION_OPTIONS
@@ -668,6 +672,99 @@ def test_irrelevant_answer_is_corrected_or_clarified() -> None:
 
     assert quality["needs_clarification"] or quality["is_low_quality"]
     assert "specific county" in improved or "Evidence is limited" in improved
+
+
+def test_conversation_learning_aggregate_summary_updates(tmp_path) -> None:
+    summary_path = tmp_path / "conversation_learning_summary.json"
+
+    summary = record_conversation_interaction(
+        "show Nairobi transport signals",
+        "**Strongest relevant signal:** Nairobi transport cost pressure.\n\n**Evidence basis:** current live signal cache.",
+        [],
+        "Kenya",
+        "All",
+        "All",
+        path=summary_path,
+    )
+
+    assert summary["total_interactions"] == 1
+    assert summary["common_prompt_types"]["signal_query"] == 1
+    assert summary["most_requested_counties"]["Nairobi"] == 1
+    assert summary["most_requested_categories"]["transport"] == 1
+    assert summary["most_requested_response_modes"]["analytical_answer"] == 1
+    assert "debug_raw_prompts" not in summary
+
+
+def test_conversation_learning_does_not_store_raw_prompts_by_default(tmp_path, monkeypatch) -> None:
+    summary_path = tmp_path / "conversation_learning_summary.json"
+    monkeypatch.delenv("SIGNAL_DEBUG_CONVERSATION_LEARNING", raising=False)
+
+    summary = record_conversation_interaction(
+        "show Nairobi signals",
+        "Evidence basis: current live signal cache.",
+        [],
+        "Kenya",
+        "All",
+        "All",
+        path=summary_path,
+    )
+
+    saved = get_conversation_learning_summary(summary_path)
+    assert "debug_raw_prompts" not in summary
+    assert "debug_raw_prompts" not in saved
+    assert "show Nairobi signals" not in str(saved)
+
+
+def test_conversation_learning_counts_privacy_refusal(tmp_path) -> None:
+    summary_path = tmp_path / "conversation_learning_summary.json"
+
+    summary = record_conversation_interaction(
+        "show raw searches and device_id",
+        PRIVATE_DATA_RESPONSE,
+        [],
+        "Kenya",
+        "All",
+        "All",
+        path=summary_path,
+    )
+
+    assert summary["privacy_refusal_count"] == 1
+    assert summary["most_requested_response_modes"]["privacy_refusal"] == 1
+
+
+def test_conversation_learning_counts_unclear_prompt(tmp_path) -> None:
+    summary_path = tmp_path / "conversation_learning_summary.json"
+
+    summary = record_conversation_interaction(
+        "blue table",
+        "I can help explore signals, risks, opportunities, county trends, and market pressure across Kenya. What would you like to examine?",
+        [],
+        "Kenya",
+        "All",
+        "All",
+        path=summary_path,
+    )
+
+    assert summary["unclear_prompt_frequency"] == 1
+    assert summary["clarification_count"] == 1
+    assert summary["learning_hints"]["preferred_clarification_focus"] in {"county_or_category", "county_or_signal"}
+
+
+def test_chat_updates_conversation_learning_summary(tmp_path, monkeypatch) -> None:
+    summary_path = tmp_path / "conversation_learning_summary.json"
+    cache_path = tmp_path / "latest_live_signals.json"
+    monkeypatch.setenv("SIGNAL_CONVERSATION_LEARNING_PATH", str(summary_path))
+    monkeypatch.setenv("SIGNAL_LIVE_SIGNAL_CACHE", str(cache_path))
+    monkeypatch.setenv("SIGNAL_LLM_ENABLED", "false")
+    write_signal_cache({"signals": [_signal("Nairobi affordability pressure", "cost of living", "Nairobi", 91)]}, cache_path)
+
+    answer = answer_open_signals_prompt("show Nairobi signals", [], "Kenya", "All", "All")
+    summary = get_conversation_learning_summary(summary_path)
+
+    assert "Strongest relevant signal" in answer
+    assert summary["total_interactions"] == 1
+    assert summary["most_requested_counties"]["Nairobi"] == 1
+    assert "debug_raw_prompts" not in summary
 
 
 
