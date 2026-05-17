@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from datetime import UTC, datetime, timedelta
 from pathlib import Path
 
 from Behavioral_Signals_AI.chat.intents import detect_open_signals_intent
@@ -589,6 +590,50 @@ def test_fallback_answers_say_evidence_is_limited(tmp_path, monkeypatch) -> None
     assert "fallback aggregate intelligence only" in answer
     assert "Confidence should be treated cautiously" in answer
     assert "Validation: unvalidated" in answer
+
+
+def test_fresh_signal_answer_says_recently_updated(tmp_path, monkeypatch) -> None:
+    cache_path = tmp_path / "latest_live_signals.json"
+    monkeypatch.setenv("SIGNAL_LIVE_SIGNAL_CACHE", str(cache_path))
+    monkeypatch.setenv("SIGNAL_LLM_ENABLED", "false")
+    signal = _signal("Nairobi transport cost pressure", "transport", "Nairobi", 88)
+    signal["last_updated"] = (datetime.now(UTC) - timedelta(hours=12)).isoformat()
+    write_signal_cache({"status": "live_or_near_live", "last_updated": signal["last_updated"], "signals": [signal]}, cache_path)
+
+    answer = answer_open_signals_prompt("show Nairobi transport signals", [], "Kenya", "All", "All")
+
+    assert "Evidence basis" in answer
+    assert "recently updated aggregate signals" in answer
+
+
+def test_stale_signal_answer_uses_cautious_language(tmp_path, monkeypatch) -> None:
+    cache_path = tmp_path / "latest_live_signals.json"
+    monkeypatch.setenv("SIGNAL_LIVE_SIGNAL_CACHE", str(cache_path))
+    monkeypatch.setenv("SIGNAL_LLM_ENABLED", "false")
+    signal = _signal("Nakuru food affordability", "food and agriculture", "Nakuru", 86)
+    signal["last_updated"] = (datetime.now(UTC) - timedelta(days=5)).isoformat()
+    write_signal_cache({"status": "live_or_near_live", "last_updated": signal["last_updated"], "signals": [signal]}, cache_path)
+
+    answer = answer_open_signals_prompt("show Nakuru food signals", [], "Kenya", "All", "All")
+
+    assert "Source data appears stale" in answer
+    assert "treat this as indicative" in answer
+
+
+def test_are_you_sure_returns_confidence_explanation(tmp_path, monkeypatch) -> None:
+    cache_path = tmp_path / "latest_live_signals.json"
+    monkeypatch.setenv("SIGNAL_LIVE_SIGNAL_CACHE", str(cache_path))
+    monkeypatch.setenv("SIGNAL_LLM_ENABLED", "false")
+    signal = _signal("Kenya food affordability pressure", "cost of living", "Kenya-wide", 84)
+    signal["last_updated"] = datetime.now(UTC).isoformat()
+    write_signal_cache({"status": "live_or_near_live", "last_updated": signal["last_updated"], "signals": [signal]}, cache_path)
+
+    answer = answer_open_signals_prompt("are you sure?", [], "Kenya", "All", "All")
+
+    assert "Freshness check" in answer
+    assert "Confidence:" in answer
+    assert "Evidence basis" in answer
+    assert "validation" in answer.lower()
 
 
 def test_private_fields_are_blocked(tmp_path, monkeypatch) -> None:

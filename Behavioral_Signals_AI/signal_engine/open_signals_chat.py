@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import re
+from datetime import UTC, datetime
 from typing import Any
 
 from Behavioral_Signals_AI.ai_platform.context_builder import build_open_signals_context
@@ -53,6 +54,7 @@ SAFE_FIELDS = [
     "validation_status",
     "geospatial_insight",
     "confidence_reasoning",
+    "last_updated",
 ]
 
 
@@ -84,7 +86,7 @@ def answer_open_signals_prompt(message: str, history: list[Any] | None, location
     effective_category = question_category or _context_category_for_followup(cleaned, session_context) or category or "All"
     effective_urgency = urgency or "All"
 
-    if detected_intent["intent"] == "unclear_query" and not _has_session_context(session_context):
+    if detected_intent["intent"] == "unclear_query" and not _has_session_context(session_context) and not _is_freshness_question(cleaned):
         return _clarification_prompt()
     if detected_intent["intent"] == "comparison_query" or _is_comparison_question(cleaned):
         return _comparison_answer(cleaned, effective_category, effective_urgency, session_context)
@@ -94,6 +96,8 @@ def answer_open_signals_prompt(message: str, history: list[Any] | None, location
     signals = _filtered_ranked_signals(effective_location, effective_category, effective_urgency)
     if not signals:
         return _no_signal_answer(effective_location, effective_category, effective_urgency)
+    if _is_freshness_question(cleaned):
+        return _freshness_confidence_answer(signals[0], effective_location)
 
     answer_profile = _answer_profile(cleaned, detected_intent["intent"])
     reasoning_question = _resolved_reasoning_question(cleaned, detected_intent["intent"])
@@ -285,6 +289,8 @@ def _needs_clarification(
 ) -> bool:
     """Ask a clarifying question for vague prompts unless context makes the reference clear."""
     if question_location or question_category:
+        return False
+    if _is_freshness_question(question):
         return False
     has_context = _has_session_context(session_context)
     if _is_vague_prompt(question):
@@ -533,6 +539,7 @@ def _is_followup_question(question: str) -> bool:
 def _filtered_ranked_signals(location: str, category: str, urgency: str) -> list[dict[str, Any]]:
     payload = get_cached_or_fallback_signals()
     cache_status = str(payload.get("status") or "unknown")
+    cache_last_updated = str(payload.get("last_updated") or "")
     signals = [signal for signal in payload.get("signals", []) if isinstance(signal, dict)]
     filtered: list[dict[str, Any]] = []
     for signal in signals:
@@ -542,10 +549,10 @@ def _filtered_ranked_signals(location: str, category: str, urgency: str) -> list
             continue
         if location not in {"", "All", "Kenya", "Global"} and not signal_matches_location(signal, location):
             continue
-        filtered.append(dict(signal, _cache_status=cache_status))
+        filtered.append(dict(signal, _cache_status=cache_status, _cache_last_updated=cache_last_updated))
     if filtered:
         return rank_signals_for_display(filtered)
-    return rank_signals_for_display([dict(signal, _cache_status=cache_status) for signal in signals])
+    return rank_signals_for_display([dict(signal, _cache_status=cache_status, _cache_last_updated=cache_last_updated) for signal in signals])
 
 
 
@@ -560,6 +567,21 @@ def _is_time_question(question: str) -> bool:
         "changed recently", "what changed", "rising fastest", "persisted", "persistent", "longest",
         "recent", "fastest", "trajectory", "accelerating", "weakened", "weakening", "spreading fastest",
         "spread fastest", "newly emerged", "new emerged", "emerged", "fading",
+    ])
+
+
+def _is_freshness_question(question: str) -> bool:
+    q = _normalize(question)
+    return any(term in q for term in [
+        "is this current",
+        "how fresh",
+        "when was this updated",
+        "when updated",
+        "are you sure",
+        "how sure",
+        "source freshness",
+        "is the evidence current",
+        "latest evidence",
     ])
 
 
@@ -866,11 +888,84 @@ def _evidence_basis_sentence(signal: dict[str, Any]) -> str:
     validation = _validation_label(signal)
     confidence = signal.get("confidence_score")
     confidence_note = f" Confidence: {confidence}%." if confidence not in {None, ""} else ""
+    freshness = _source_freshness(signal)
+    freshness_note = _freshness_note(freshness)
     if _is_limited_evidence(signal):
-        return f"fallback aggregate intelligence only. Validation: {validation}.{confidence_note} Confidence should be treated cautiously."
+        return f"fallback aggregate intelligence only. {freshness_note} Validation: {validation}.{confidence_note} Confidence should be treated cautiously."
     evidence_types = _evidence_types(signal)
     source_note = f" Source: {source_summary}." if source_summary else ""
-    return f"{' + '.join(evidence_types)}. Validation: {validation}.{confidence_note}{source_note}"
+    return f"{' + '.join(evidence_types)}. {freshness_note} Validation: {validation}.{confidence_note}{source_note}"
+
+
+def _freshness_confidence_answer(signal: dict[str, Any], location: str) -> str:
+    freshness = _source_freshness(signal)
+    confidence = signal.get("confidence_score", "unknown")
+    validation = _validation_label(signal)
+    timestamp = _source_timestamp(signal)
+    topic = _topic(signal)
+    timestamp_note = f" Last updated: {timestamp}." if timestamp else ""
+    caution = _freshness_caution(freshness)
+    return (
+        f"**Freshness check:** {topic} for {location or _scope(signal)} is classified as **{freshness}** evidence."
+        f"{timestamp_note}\n\n"
+        f"**Confidence:** {confidence}% confidence; validation is {validation}. {caution}\n\n"
+        f"**Evidence basis:** {_evidence_basis_sentence(signal)}"
+    )
+
+
+def _source_freshness(signal: dict[str, Any]) -> str:
+    if _is_limited_evidence(signal):
+        return "fallback/sample-only"
+    timestamp = _source_timestamp(signal)
+    if not timestamp:
+        return "insufficient evidence"
+    parsed = _parse_timestamp(timestamp)
+    if not parsed:
+        return "insufficient evidence"
+    age_hours = (datetime.now(UTC) - parsed).total_seconds() / 3600
+    if age_hours <= 6:
+        return "fresh"
+    if age_hours <= 48:
+        return "recently updated"
+    return "stale"
+
+
+def _source_timestamp(signal: dict[str, Any]) -> str:
+    return str(signal.get("last_updated") or signal.get("_cache_last_updated") or "")
+
+
+def _parse_timestamp(value: str) -> datetime | None:
+    raw = str(value or "").strip()
+    if not raw:
+        return None
+    try:
+        normalized = raw.replace("Z", "+00:00")
+        parsed = datetime.fromisoformat(normalized)
+    except ValueError:
+        return None
+    if parsed.tzinfo is None:
+        return parsed.replace(tzinfo=UTC)
+    return parsed.astimezone(UTC)
+
+
+def _freshness_note(freshness: str) -> str:
+    if freshness == "fresh":
+        return "This is based on fresh aggregate signals."
+    if freshness == "recently updated":
+        return "This is based on recently updated aggregate signals."
+    if freshness == "stale":
+        return "Source data appears stale, so treat this as indicative and keep monitoring."
+    if freshness == "fallback/sample-only":
+        return "Evidence is limited and relies mainly on fallback aggregate intelligence."
+    return "Freshness is uncertain because current source timestamps are insufficient."
+
+
+def _freshness_caution(freshness: str) -> str:
+    if freshness in {"stale", "fallback/sample-only", "insufficient evidence"}:
+        return "I would avoid treating this as confirmed; monitor for newer aggregate evidence."
+    if freshness == "recently updated":
+        return "This is reasonably current, but it should still be tracked for persistence."
+    return "This is current enough for a near-term read, subject to continued source validation."
 
 
 def _evidence_types(signal: dict[str, Any]) -> list[str]:
