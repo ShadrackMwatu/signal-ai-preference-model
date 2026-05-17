@@ -72,7 +72,7 @@ def answer_open_signals_prompt(message: str, history: list[Any] | None, location
     elif detected_intent["intent"] == "short_followup":
         return _short_followup_clarification(cleaned)
     if detected_intent["intent"] != "unclear_query":
-        conversational = _conversational_response(detected_intent["intent"], cleaned)
+        conversational = _conversational_response(detected_intent["intent"], cleaned, session_context)
         if conversational:
             return conversational
 
@@ -207,14 +207,28 @@ def respond_open_signals_chat(message: str, history: list[Any] | None, location:
 
 
 
-def _conversational_response(intent: str, message: str) -> str:
+def _conversational_response(intent: str, message: str, session_context: dict[str, str] | None = None) -> str:
     """Return a natural non-analytical response for conversational prompts."""
+    context = session_context or {}
     if intent == "greeting":
-        return (
-            "Hello. I'm Open Signals - I monitor emerging aggregate behavioral signals, market pressure, risks, "
-            "and opportunities across Kenya. What would you like to explore?"
-        )
+        if context.get("introduced_identity"):
+            return _pick_variation([
+                "Hi - what would you like to examine next?",
+                "I'm here. Which county, risk, or opportunity should we look at?",
+                "Sure - tell me the signal, county, or sector you want to explore.",
+            ], context, "greeting_repeat")
+        return _pick_variation([
+            "Hi. I can help analyze emerging signals across Kenya.",
+            "Good morning. What signal or county would you like to examine?",
+            "Hello - what would you like to explore today?",
+        ], context, "greeting")
     if intent == "identity_query":
+        if context.get("introduced_identity"):
+            return _pick_variation([
+                "I'm Open Signals. In this chat, I help interpret aggregate Kenya signal intelligence without exposing private data.",
+                "Open Signals is the assistant you are using here - focused on aggregate demand, pressure, risk, and opportunity signals.",
+                "You are speaking with Open Signals, a privacy-preserving signal intelligence assistant for Kenya.",
+            ], context, "identity_repeat")
         return (
             "I'm Open Signals - a privacy-preserving behavioral intelligence assistant focused on emerging "
             "aggregate signals, risks, opportunities, and demand patterns across Kenya."
@@ -222,27 +236,40 @@ def _conversational_response(intent: str, message: str) -> str:
     if intent == "capability_query":
         lowered = _normalize(message)
         if "signal" in lowered:
-            return (
-                "Signals are interpreted aggregate patterns that may point to demand, affordability pressure, "
-                "economic stress, market opportunity, or policy concern. I can help explain those patterns by "
-                "county, category, urgency, and confidence using privacy-preserving aggregate intelligence."
-            )
-        return (
-            "I can help analyze emerging county-level signals, affordability pressure, market opportunities, "
-            "economic stress indicators, and evolving behavioral trends using aggregate intelligence."
-        )
+            return _pick_variation([
+                "Signals are interpreted aggregate patterns that may point to demand, affordability pressure, economic stress, market opportunity, or policy concern.",
+                "Think of signals as privacy-safe clues from aggregate activity: they help reveal pressure, unmet need, opportunity, and county-level change.",
+                "Signals are not personal records. They are interpreted aggregate patterns used to understand risks, demand, and opportunities.",
+            ], context, "signals_capability")
+        return _pick_variation([
+            "I analyze emerging market pressure, affordability trends, and county-level behavioral signals.",
+            "I help interpret aggregate behavioral intelligence and evolving risks or opportunities.",
+            "I can compare counties, explain why a signal matters, summarize opportunities, and outline policy monitoring priorities.",
+        ], context, "capability")
     if intent == "farewell":
-        return "Goodbye. I will be here when you want to explore Kenya signals, risks, opportunities, or county trends."
+        return _pick_variation([
+            "Goodbye. I will be here when you want to explore Kenya signals again.",
+            "Talk soon. When you return, we can pick up risks, opportunities, or county trends.",
+            "Take care. I will be ready whenever you want to examine the signal picture again.",
+        ], context, "farewell")
     if intent == "gratitude":
-        return "You're welcome. Ask me about a county, sector, risk, opportunity, or emerging demand signal whenever you're ready."
+        return _pick_variation([
+            "You're welcome. Ask me about any county, sector, risk, or opportunity whenever you are ready.",
+            "Glad to help. We can look at a specific county or the strongest signal next.",
+            "Anytime. Tell me what signal, pressure, or opportunity you want to explore.",
+        ], context, "gratitude")
     if intent == "help":
-        return (
-            "I help interpret aggregate signals related to demand, affordability pressure, economic stress, "
-            "opportunities, policy concerns, and county-level trends. You can ask things like 'show signals in Nairobi', "
-            "'compare Nakuru and Makueni', or 'what should policymakers monitor?'"
-        )
+        return _pick_variation([
+            "You can ask me to show county signals, compare counties, explain why a signal matters, or summarize policy and market opportunities.",
+            "Try asking about a county, a sector, risks, opportunities, or what policymakers should monitor.",
+            "I can help with signal summaries, county comparisons, evidence basis, policy implications, and business opportunities.",
+        ], context, "help")
     if intent == "small_talk":
-        return "I'm ready to help. I can interpret emerging aggregate signals, county trends, market opportunities, and policy risks."
+        return _pick_variation([
+            "I'm ready to help. What would you like to look at?",
+            "Doing well - and ready to examine the signal picture with you.",
+            "I'm here and watching the aggregate signal landscape. What should we explore?",
+        ], context, "small_talk")
     return ""
 
 
@@ -298,7 +325,11 @@ def _is_vague_prompt(question: str) -> bool:
 
 
 def _clarification_prompt() -> str:
-    return "Do you want me to explain the strongest current signal, a specific county, or a market opportunity?"
+    return _pick_variation([
+        "Do you want me to explain the strongest current signal, a specific county, or a market opportunity?",
+        "Should I focus on the strongest signal, a county, a risk, or an opportunity?",
+        "Tell me whether you want a county view, a market opportunity, or the main signal right now.",
+    ], {}, "clarification")
 
 
 def _short_followup_clarification(message: str) -> str:
@@ -306,6 +337,41 @@ def _short_followup_clarification(message: str) -> str:
     if lowered in {"who", "why", "meaning", "mean", "means", "how", "where"}:
         return "Do you mean who I am, why a signal matters, or the meaning of a specific signal?"
     return _clarification_prompt()
+
+
+def _pick_variation(templates: list[str], session_context: dict[str, str], style_key: str) -> str:
+    if not templates:
+        return ""
+    previous_opening = session_context.get("previous_opening_phrase", "")
+    seed = len(style_key) + len(previous_opening) + len(session_context.get("last_signal", ""))
+    selected = templates[seed % len(templates)]
+    if previous_opening and _opening_phrase(selected) == previous_opening and len(templates) > 1:
+        selected = templates[(seed + 1) % len(templates)]
+    return selected
+
+
+def _opening_phrase(text: str) -> str:
+    cleaned = str(text or "").strip()
+    if not cleaned:
+        return ""
+    first = re.split(r"[.!?\n]", cleaned, maxsplit=1)[0]
+    return _normalize(first)[:80]
+
+
+def _looks_like_greeting_response(text: str) -> bool:
+    lowered = _normalize(text)
+    return any(phrase in lowered for phrase in [
+        "what would you like to explore",
+        "what signal or county would you like",
+        "which county risk or opportunity",
+        "i can help analyze emerging signals",
+    ])
+
+
+def _looks_like_identity_response(text: str) -> bool:
+    lowered = _normalize(text)
+    return "i'm open signals" in lowered or "you are speaking with open signals" in lowered or "open signals is the assistant" in lowered
+
 
 def _conversation_context(history: list[Any] | None) -> dict[str, str]:
     """Extract temporary session context from visible chat history only."""
@@ -316,9 +382,17 @@ def _conversation_context(history: list[Any] | None) -> dict[str, str]:
         "last_signal_topic": "",
         "last_intent": "",
         "last_answer_type": "",
+        "greeted_user": "",
+        "introduced_identity": "",
+        "conversational_tone": "",
+        "previous_response_style": "",
+        "previous_opening_phrase": "",
     }
     for content in _history_text_items(history):
         safe = _strip_private_terms(content)
+        opening = _opening_phrase(safe)
+        if opening:
+            context["previous_opening_phrase"] = opening
         county = _location_from_question(safe)
         if county and county not in {"Global", "Kenya"}:
             context["last_county"] = county
@@ -330,9 +404,17 @@ def _conversation_context(history: list[Any] | None) -> dict[str, str]:
             context["last_signal"] = match.group(1).strip(" :.-")[:120]
             context["last_signal_topic"] = context["last_signal"]
             context["last_answer_type"] = "signal_answer"
-        if "Hello. I'm Open Signals" in safe or "privacy-preserving behavioral intelligence" in safe:
-            context["last_intent"] = "greeting" if "Hello. I'm Open Signals" in safe else "identity_query"
+            context["previous_response_style"] = "analytical"
+        if _looks_like_greeting_response(safe):
+            context["greeted_user"] = "true"
+            context["last_intent"] = "greeting"
             context["last_answer_type"] = "conversational"
+            context["previous_response_style"] = "greeting"
+        if _looks_like_identity_response(safe):
+            context["introduced_identity"] = "true"
+            context["last_intent"] = "identity_query"
+            context["last_answer_type"] = "conversational"
+            context["previous_response_style"] = "identity"
     return context
 
 
@@ -568,7 +650,9 @@ def _grounded_rule_based_answer(question: str, signals: list[dict[str, Any]], lo
         emphasis = f"Compared with the previous county context ({session_context['last_county']}), {question_location} is now the active county context. {emphasis}"
     elif _is_followup_question(question) and session_context and session_context.get("last_signal"):
         emphasis = f"This follows the earlier signal context ({session_context['last_signal']}). {emphasis}"
-    return _format_grounded_answer(top, emphasis, location, category, urgency, profile)
+    answer = _format_grounded_answer(top, emphasis, location, category, urgency, profile)
+    acknowledgement = _analytical_acknowledgement(question, profile, session_context or {})
+    return f"{acknowledgement}\n\n{answer}" if acknowledgement else answer
 
 
 
@@ -640,6 +724,19 @@ def _format_grounded_answer(signal: dict[str, Any], emphasis: str, location: str
         f"**Opportunity or risk:** Opportunity is {opportunity}; urgency is {urgency_value}; risk signal is {risk}.\n\n"
         f"**Recommended action:** {action}"
     )
+
+
+def _analytical_acknowledgement(question: str, answer_profile: dict[str, str], session_context: dict[str, str]) -> str:
+    if answer_profile.get("depth") == "short" or answer_profile.get("focus") in {"policy", "opportunity"}:
+        return ""
+    q = _normalize(question)
+    if any(term in q for term in ["show", "what", "explain", "why", "signal"]):
+        return _pick_variation([
+            "Here is what I am seeing.",
+            "Based on current aggregate signals, this is the read.",
+            "Current evidence suggests the following.",
+        ], session_context, "analytical_ack")
+    return ""
 
 
 def _meaning_sentence(signal: dict[str, Any]) -> str:

@@ -98,13 +98,13 @@ def test_greeting_and_small_talk_do_not_trigger_signal_analysis() -> None:
     ai = answer_open_signals_prompt("are you AI?", [], "Kenya", "All", "All")
     explain = answer_open_signals_prompt("explain signals", [], "Kenya", "All", "All")
 
-    assert "Hello. I'm Open Signals" in hi
-    assert "Hello. I'm Open Signals" in hello
-    assert "I'm ready to help" in how
-    assert "I can help analyze emerging county-level signals" in capabilities
+    assert any(word in hi for word in ["Hello", "Hi", "Good morning"])
+    assert any(word in hello for word in ["Hello", "Hi", "Good morning"])
+    assert any(phrase in how for phrase in ["ready", "Doing well", "I'm here"])
+    assert any(phrase in capabilities for phrase in ["I analyze", "I help", "I can compare"])
     assert "I'm Open Signals" in identity
-    assert "privacy-preserving behavioral intelligence system" in ai
-    assert "Signals are interpreted aggregate patterns" in explain
+    assert "privacy-preserving behavioral intelligence assistant" in ai
+    assert "Signals" in explain and "aggregate" in explain
     for answer in [hi, hello, how, capabilities, identity, ai, explain]:
         assert "Strongest relevant signal" not in answer
 
@@ -117,12 +117,10 @@ def test_unclear_prompt_requests_clarification() -> None:
 
 
 def test_vague_prompts_request_short_clarification() -> None:
-    expected = "Do you want me to explain the strongest current signal, a specific county, or a market opportunity?"
-
     for prompt in ["tell me more", "what about this?", "explain", "show me", "what is happening?"]:
         answer = answer_open_signals_prompt(prompt, [], "Kenya", "All", "All")
 
-        assert answer == expected
+        assert any(phrase in answer for phrase in ["strongest", "county", "opportunity", "market"])
         assert "Strongest relevant signal" not in answer
 
 
@@ -189,6 +187,35 @@ def test_short_meaning_without_prior_signal_asks_better_clarification() -> None:
     answer = answer_open_signals_prompt("meaning", [], "Kenya", "All", "All")
 
     assert answer == "Do you mean who I am, why a signal matters, or the meaning of a specific signal?"
+
+
+def test_greeting_responses_vary_across_session() -> None:
+    first_history, _ = respond_open_signals_chat("good morning", [], "Kenya", "All", "All")
+    first = first_history[-1]["content"]
+    second = answer_open_signals_prompt("good morning", first_history, "Kenya", "All", "All")
+
+    assert first != second
+    assert any(word in first for word in ["Hello", "Hi", "Good morning"])
+    assert any(phrase in second for phrase in ["what would you like", "Which county", "what signal", "explore"])
+
+
+def test_identity_intro_is_not_repeated_after_introduction() -> None:
+    history, _ = respond_open_signals_chat("who are you?", [], "Kenya", "All", "All")
+    first = history[-1]["content"]
+    followup = answer_open_signals_prompt("hi", history, "Kenya", "All", "All")
+
+    assert "I'm Open Signals" in first
+    assert "I'm Open Signals" not in followup
+
+
+def test_capability_answers_vary_across_session() -> None:
+    history, _ = respond_open_signals_chat("what can you do?", [], "Kenya", "All", "All")
+    first = history[-1]["content"]
+    second = answer_open_signals_prompt("what can you do?", history, "Kenya", "All", "All")
+
+    assert first != second
+    assert "Strongest relevant signal" not in first
+    assert "Strongest relevant signal" not in second
 
 
 def test_brief_prompt_returns_short_answer(tmp_path, monkeypatch) -> None:
@@ -472,7 +499,7 @@ def test_evidence_basis_appears_in_analytical_answers(tmp_path, monkeypatch) -> 
 def test_greetings_do_not_include_evidence_basis() -> None:
     answer = answer_open_signals_prompt("hi", [], "Kenya", "All", "All")
 
-    assert "Hello. I'm Open Signals" in answer
+    assert any(word in answer for word in ["Hello", "Hi", "Good morning"])
     assert "Evidence basis" not in answer
 
 
