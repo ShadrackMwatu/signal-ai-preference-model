@@ -26,7 +26,7 @@ TONE_MODES = {"casual", "analytical", "policy", "business", "exploratory", "clar
 def choose_tone(message: str, intent: str, session_context: dict[str, Any] | None = None) -> str:
     """Choose a compact tone mode from user wording and intent."""
     text = " ".join(str(message or "").lower().replace("_", " ").split())
-    if intent in {"greeting", "farewell", "gratitude", "small_talk", "identity_query", "capability_query"}:
+    if intent in {"greeting", "farewell", "gratitude", "small_talk", "identity_query", "capability_query", "affirmation", "wellbeing", "time_date", "creator_origin", "humor", "confusion"}:
         return "casual"
     if intent in {"unclear_query", "short_followup"}:
         return "clarification"

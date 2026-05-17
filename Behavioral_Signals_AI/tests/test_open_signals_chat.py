@@ -14,6 +14,7 @@ from Behavioral_Signals_AI.chat.conversation_learning import (
 )
 from Behavioral_Signals_AI.chat.hybrid_conversation_orchestrator import build_response_plan
 from Behavioral_Signals_AI.chat.intents import detect_open_signals_intent
+from Behavioral_Signals_AI.chat.general_conversation import analyze_general_conversation, generate_general_conversation_response
 from Behavioral_Signals_AI.chat.retrieval_grounding import retrieve_relevant_signals
 from Behavioral_Signals_AI.chat.semantic_query_analyzer import analyze_open_signals_query, resolve_county_entity
 from Behavioral_Signals_AI.geography.location_options import LOCATION_OPTIONS
@@ -101,6 +102,70 @@ def test_conversational_intent_detection_handles_greetings_and_help() -> None:
     assert detect_open_signals_intent("explain signals")["intent"] == "capability_query"
     assert detect_open_signals_intent("show signals in Nairobi")["intent"] == "signal_query"
     assert detect_open_signals_intent("compare Nakuru and Makueni")["intent"] == "comparison_query"
+
+
+def test_general_conversation_analyzer_handles_casual_prompts() -> None:
+    assert analyze_general_conversation("what are you doing?")["intent"] == "capability"
+    assert analyze_general_conversation("today is which day?")["intent"] == "time_date"
+    assert analyze_general_conversation("how are you?")["intent"] == "wellbeing"
+    assert analyze_general_conversation("who made you?")["intent"] == "creator_origin"
+    assert analyze_general_conversation("okay")["intent"] == "affirmation"
+    assert analyze_general_conversation("tell me a joke")["intent"] == "humor"
+
+
+def test_general_conversation_direct_responses_do_not_force_signal_context() -> None:
+    prompts = [
+        "what are you doing?",
+        "today is which day?",
+        "how are you?",
+        "good morning",
+        "thanks",
+        "okay",
+        "tell me a joke",
+        "who made you?",
+    ]
+
+    for prompt in prompts:
+        answer = answer_open_signals_prompt(prompt, [], "Kenya", "All", "All")
+
+        assert "I may not have enough context" not in answer
+        assert "Do you want the strongest current signal" not in answer
+        assert "Strongest relevant signal" not in answer
+
+
+def test_today_question_answers_weekday() -> None:
+    answer = answer_open_signals_prompt("today is which day?", [], "Kenya", "All", "All")
+
+    assert answer.startswith("Today is ")
+    assert any(day in answer for day in ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"])
+
+
+def test_who_made_you_answers_origin_without_analysis() -> None:
+    answer = answer_open_signals_prompt("who made you?", [], "Kenya", "All", "All")
+
+    assert "Open Signals behavioral intelligence platform" in answer
+    assert "Strongest relevant signal" not in answer
+
+
+def test_joke_prompt_gets_humor_response() -> None:
+    answer = answer_open_signals_prompt("tell me a joke", [], "Kenya", "All", "All")
+
+    assert "joke" in answer.lower() or "punchline" in answer.lower()
+    assert "I may not have enough context" not in answer
+
+
+def test_conversational_continuity_stays_casual() -> None:
+    history, _ = respond_open_signals_chat("good morning", [], "Kenya", "All", "All")
+    answer = answer_open_signals_prompt("okay", history, "Kenya", "All", "All")
+
+    assert answer in {"Okay.", "Got it.", "Understood."}
+    assert "Strongest relevant signal" not in answer
+
+
+def test_general_response_variation_helper_is_direct() -> None:
+    response = generate_general_conversation_response("how are you?", {"intent": "wellbeing"}, {})
+
+    assert "doing" in response.lower() or "ready" in response.lower() or "good" in response.lower()
 
 
 def test_semantic_query_analyzer_resolves_county_and_analytical_intent() -> None:

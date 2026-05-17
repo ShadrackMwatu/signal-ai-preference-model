@@ -7,6 +7,7 @@ from typing import Any, Callable
 
 from Behavioral_Signals_AI.chat.intents import detect_open_signals_intent
 from Behavioral_Signals_AI.chat.conversation_learning import conversation_learning_hints
+from Behavioral_Signals_AI.chat.general_conversation import analyze_general_conversation, is_general_conversation
 from Behavioral_Signals_AI.chat.persona import choose_tone, persona_context
 from Behavioral_Signals_AI.chat.reference_resolver import resolve_short_followup
 from Behavioral_Signals_AI.chat.retrieval_grounding import retrieve_relevant_signals
@@ -33,7 +34,7 @@ def answer_with_hybrid_orchestrator(
     plan = build_response_plan(message, history, location, category, urgency)
     if plan["privacy_risk"]:
         return PRIVATE_DATA_RESPONSE
-    if plan["response_mode"] in {"greeting", "identity", "capability", "small_talk", "gratitude", "farewell", "clarification"}:
+    if plan["response_mode"] in {"greeting", "identity", "capability", "small_talk", "gratitude", "farewell", "affirmation", "wellbeing", "time_date", "creator_origin", "humor", "confusion", "general_conversation", "clarification"}:
         return synthesize_response(plan)
     effective_filters = plan.get("filters", {})
     fallback = fallback_handler(
@@ -58,6 +59,7 @@ def build_response_plan(
     prompt = str(message or "").strip()
     session_context = infer_session_context(history)
     learning_hints = conversation_learning_hints()
+    general = analyze_general_conversation(prompt, history)
     semantic = analyze_open_signals_query(prompt)
     detected = detect_open_signals_intent(prompt)
     resolved = resolve_short_followup(prompt, history, session_context)
@@ -66,8 +68,10 @@ def build_response_plan(
     elif semantic["analytical"] and semantic["county"]:
         detected = {"intent": "signal_query", "confidence": max(float(detected.get("confidence", 0.0)), float(semantic["confidence"]))}
     privacy_risk = _privacy_risk(prompt)
-    tone = _semantic_tone(prompt, detected["intent"], session_context, semantic)
-    mode = _response_mode(prompt, detected["intent"], tone, session_context, semantic)
+    if is_general_conversation(general) and not semantic.get("analytical"):
+        detected = {"intent": str(general["intent"]), "confidence": float(general["confidence"])}
+    tone = _semantic_tone(prompt, detected["intent"], session_context, semantic, general)
+    mode = _response_mode(prompt, detected["intent"], tone, session_context, semantic, general)
     needs_clarification = mode == "clarification"
     effective_location = str(semantic.get("county") or location or "Kenya")
     effective_category = str(semantic.get("category") or category or "All")
@@ -104,6 +108,7 @@ def build_response_plan(
         "tool_results": tool_results,
         "available_tools": list_tools(),
         "semantic_query": semantic,
+        "general_conversation": general,
         "filters": {"location": effective_location, "category": effective_category, "urgency": urgency},
         "persona": persona_context(),
         "conversation_learning_hints": learning_hints,
@@ -148,9 +153,12 @@ def infer_session_context(history: list[Any] | None) -> dict[str, str]:
     return context
 
 
-def _response_mode(prompt: str, intent: str, tone: str, session_context: dict[str, str], semantic: dict[str, Any] | None = None) -> str:
+def _response_mode(prompt: str, intent: str, tone: str, session_context: dict[str, str], semantic: dict[str, Any] | None = None, general: dict[str, Any] | None = None) -> str:
     text = _normalize(prompt)
     semantic = semantic or {}
+    general = general or {}
+    if is_general_conversation(general) and not semantic.get("analytical"):
+        return _general_response_mode(str(general.get("intent") or intent))
     if semantic.get("analytical") and semantic.get("county"):
         if semantic.get("intent") == "policy":
             return "policy_answer"
@@ -159,11 +167,11 @@ def _response_mode(prompt: str, intent: str, tone: str, session_context: dict[st
         return "analytical_answer"
     if intent == "greeting":
         return "greeting"
-    if intent == "identity_query":
+    if intent in {"identity_query", "identity"}:
         return "identity"
-    if intent == "capability_query" or intent == "help":
+    if intent in {"capability_query", "capability"} or intent == "help":
         return "capability"
-    if intent in {"small_talk", "gratitude", "farewell"}:
+    if intent in {"small_talk", "gratitude", "farewell", "affirmation", "wellbeing", "time_date", "creator_origin", "humor", "confusion"}:
         return intent
     if _is_vague(text) and not _has_context(session_context):
         return "clarification"
@@ -176,12 +184,23 @@ def _response_mode(prompt: str, intent: str, tone: str, session_context: dict[st
     return "analytical_answer"
 
 
-def _semantic_tone(prompt: str, intent: str, session_context: dict[str, str], semantic: dict[str, Any]) -> str:
+def _semantic_tone(prompt: str, intent: str, session_context: dict[str, str], semantic: dict[str, Any], general: dict[str, Any] | None = None) -> str:
+    if general and is_general_conversation(general) and not semantic.get("analytical"):
+        return str(general.get("tone") or "casual")
     if semantic.get("intent") == "policy":
         return "policy"
     if semantic.get("intent") == "business":
         return "business"
     return choose_tone(prompt, intent, session_context)
+
+
+def _general_response_mode(intent: str) -> str:
+    mapping = {
+        "casual_smalltalk": "general_conversation",
+        "identity": "identity",
+        "capability": "capability",
+    }
+    return mapping.get(intent, intent)
 
 
 def _privacy_risk(prompt: str) -> bool:

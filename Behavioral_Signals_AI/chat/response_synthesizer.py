@@ -6,6 +6,7 @@ import re
 from typing import Any
 
 from Behavioral_Signals_AI.chat.answer_quality import evaluate_answer_quality, improve_answer_with_quality
+from Behavioral_Signals_AI.chat.general_conversation import generate_general_conversation_response
 
 PRIVATE_DATA_RESPONSE = (
     "Open Signals only uses aggregate, anonymized, public, or user-authorized intelligence. "
@@ -20,7 +21,7 @@ def synthesize_response(plan: dict[str, Any], fallback_answer: str = "") -> str:
     if plan.get("needs_clarification"):
         return _clarification(plan)
     fallback = fallback_answer or _deterministic_response(plan)
-    if plan.get("response_mode") in {"greeting", "identity", "capability", "small_talk", "gratitude", "farewell", "clarification"}:
+    if plan.get("response_mode") in {"greeting", "identity", "capability", "small_talk", "gratitude", "farewell", "affirmation", "wellbeing", "time_date", "creator_origin", "humor", "confusion", "general_conversation", "clarification"}:
         return fallback
     from Behavioral_Signals_AI.llm.open_signals_llm_orchestrator import generate_hybrid_open_signals_answer
 
@@ -38,36 +39,21 @@ def _deterministic_response(plan: dict[str, Any]) -> str:
     preferred_styles = hints.get("preferred_styles", {}) if isinstance(hints.get("preferred_styles"), dict) else {}
     preferred = str(preferred_styles.get(str(plan.get("intent") or "")) or "")
     if mode == "greeting":
-        return _pick([
-            "Hello - what would you like to explore today?",
-            "Good morning. I can help you look at current signals, counties, risks, or opportunities.",
-            "Hi. Tell me the county, sector, risk, or market opportunity you want to examine.",
-        ], session, mode)
-    if mode == "small_talk":
+        return generate_general_conversation_response(str(plan.get("user_prompt") or ""), {"intent": "greeting"}, session)
+    if mode in {"small_talk", "general_conversation"}:
         if preferred == "capability_query":
             return "I can help when you are ready - ask me about a county, signal, risk, or opportunity."
-        return _pick([
-            "I'm ready to help. I can look at current aggregate signals whenever you want.",
-            "Doing well - ready to examine a county, sector, risk, or opportunity when you are.",
-            "I'm here and ready to help interpret the signal picture.",
-        ], session, mode)
+        return generate_general_conversation_response(str(plan.get("user_prompt") or ""), plan.get("general_conversation", {"intent": "casual_smalltalk"}), session)
+    if mode in {"wellbeing", "time_date", "creator_origin", "affirmation", "humor", "confusion"}:
+        return generate_general_conversation_response(str(plan.get("user_prompt") or ""), {"intent": mode}, session)
     if mode == "identity":
-        if session.get("introduced_identity"):
-            return _pick([
-                "I'm Open Signals. I help interpret aggregate Kenya signal intelligence without exposing private data.",
-                "You are speaking with Open Signals, a privacy-preserving signal intelligence assistant for Kenya.",
-            ], session, mode)
-        return "I'm Open Signals - a privacy-preserving behavioral intelligence assistant for emerging risks, opportunities, demand patterns, and county trends in Kenya."
+        return generate_general_conversation_response(str(plan.get("user_prompt") or ""), {"intent": "identity"}, session)
     if mode == "capability":
-        return _pick([
-            "I analyze emerging market pressure, affordability trends, and county-level behavioral signals.",
-            "I can compare counties, explain why a signal matters, summarize opportunities, and outline policy monitoring priorities.",
-            "I help interpret aggregate behavioral intelligence and evolving risks or opportunities.",
-        ], session, mode)
+        return generate_general_conversation_response(str(plan.get("user_prompt") or ""), {"intent": "capability"}, session)
     if mode == "gratitude":
-        return "You're welcome. Ask about a county, sector, risk, or opportunity whenever you are ready."
+        return generate_general_conversation_response(str(plan.get("user_prompt") or ""), {"intent": "gratitude"}, session)
     if mode == "farewell":
-        return "Goodbye. I will be here when you want to explore Kenya signals again."
+        return generate_general_conversation_response(str(plan.get("user_prompt") or ""), {"intent": "farewell"}, session)
     if mode == "clarification":
         return _clarification(plan)
     if tone == "policy":

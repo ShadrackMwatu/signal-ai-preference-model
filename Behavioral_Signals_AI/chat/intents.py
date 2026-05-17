@@ -67,6 +67,7 @@ IDENTITY_PATTERNS = [
 CAPABILITY_PATTERNS = [
     r"\bwhat can you do\b",
     r"\bwhat do you do\b",
+    r"\bwhat are you doing\b",
     r"\bcan you help(?: me)?\b",
     r"\bhow do you work\b",
     r"\bwhat can you analyze\b",
@@ -76,6 +77,8 @@ CAPABILITY_PATTERNS = [
     r"\bhow do i use\b",
 ]
 SMALL_TALK_PATTERNS = [r"how are you", r"how are things", r"how is it going"]
+AFFIRMATION_PATTERNS = [r"^ok$", r"^okay$", r"^alright$", r"^got it$", r"^sure$"]
+HUMOR_PATTERNS = [r"\bjoke\b", r"\bmake me laugh\b", r"\bfunny\b"]
 HELP_PATTERNS = [r"^help$", r"^help me$", r"\bhelp with open signals\b"]
 FOLLOW_UP_PATTERNS = [
     r"what about", r"how about", r"why is that", r"why this", r"what does it show",
@@ -104,6 +107,10 @@ def detect_open_signals_intent(message: str) -> OpenSignalsIntent:
         return {"intent": "farewell", "confidence": 0.95}
     if _matches(lowered, GRATITUDE_PATTERNS):
         return {"intent": "gratitude", "confidence": 0.95}
+    if _matches(lowered, AFFIRMATION_PATTERNS):
+        return {"intent": "affirmation", "confidence": 0.94}
+    if _matches(lowered, HUMOR_PATTERNS):
+        return {"intent": "humor", "confidence": 0.9}
     if _matches(lowered, IDENTITY_PATTERNS):
         return {"intent": "identity_query", "confidence": 0.96}
     if _matches(lowered, CAPABILITY_PATTERNS):
