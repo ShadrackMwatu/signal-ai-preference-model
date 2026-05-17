@@ -5,6 +5,7 @@ from __future__ import annotations
 from datetime import UTC, datetime, timedelta
 from pathlib import Path
 
+from Behavioral_Signals_AI.chat.hybrid_conversation_orchestrator import build_response_plan
 from Behavioral_Signals_AI.chat.intents import detect_open_signals_intent
 from Behavioral_Signals_AI.geography.location_options import LOCATION_OPTIONS
 from Behavioral_Signals_AI.llm.safety_guardrails import contains_private_fields
@@ -221,7 +222,7 @@ def test_capability_answers_vary_across_session() -> None:
     assert "Evidence basis:" not in second
 
 
-def test_greeting_can_trigger_proactive_suggestion(tmp_path, monkeypatch) -> None:
+def test_casual_greeting_does_not_force_signal_analysis(tmp_path, monkeypatch) -> None:
     cache_path = tmp_path / "latest_live_signals.json"
     monkeypatch.setenv("SIGNAL_LIVE_SIGNAL_CACHE", str(cache_path))
     monkeypatch.setenv("SIGNAL_LLM_ENABLED", "false")
@@ -232,26 +233,27 @@ def test_greeting_can_trigger_proactive_suggestion(tmp_path, monkeypatch) -> Non
 
     answer = answer_open_signals_prompt("hi", [], "Kenya", "All", "All")
 
-    assert "Nakuru food affordability pressure" in answer
-    assert any(prompt in answer for prompt in ["Would you like", "Should I", "Do you want"])
+    assert "Nakuru food affordability pressure" not in answer
+    assert any(word in answer for word in ["Hello", "Hi", "Good morning"])
     assert "Evidence basis:" not in answer
 
 
-def test_low_confidence_signals_are_excluded_from_proactive_suggestions(tmp_path, monkeypatch) -> None:
+def test_how_are_you_does_not_inject_top_signal(tmp_path, monkeypatch) -> None:
     cache_path = tmp_path / "latest_live_signals.json"
     monkeypatch.setenv("SIGNAL_LIVE_SIGNAL_CACHE", str(cache_path))
     monkeypatch.setenv("SIGNAL_LLM_ENABLED", "false")
     write_signal_cache({
         "status": "live_or_near_live",
-        "signals": [_signal("Weak one-off retail mention", "trade and business", "Kenya-wide", 42)],
+        "signals": [_signal("Nakuru food affordability pressure", "food and agriculture", "Nakuru", 88)],
     }, cache_path)
 
-    answer = answer_open_signals_prompt("hi", [], "Kenya", "All", "All")
+    answer = answer_open_signals_prompt("how are you?", [], "Kenya", "All", "All")
 
-    assert "Weak one-off retail mention" not in answer
+    assert "Nakuru food affordability pressure" not in answer
+    assert "ready" in answer.lower() or "doing well" in answer.lower()
 
 
-def test_proactive_suggestions_avoid_repeating_previous_topic(tmp_path, monkeypatch) -> None:
+def test_repeated_greetings_vary_without_signal_nudge(tmp_path, monkeypatch) -> None:
     cache_path = tmp_path / "latest_live_signals.json"
     monkeypatch.setenv("SIGNAL_LIVE_SIGNAL_CACHE", str(cache_path))
     monkeypatch.setenv("SIGNAL_LLM_ENABLED", "false")
@@ -262,31 +264,23 @@ def test_proactive_suggestions_avoid_repeating_previous_topic(tmp_path, monkeypa
             _signal("Youth jobs momentum", "jobs and labour market", "Kenya-wide", 84),
         ],
     }, cache_path)
-    history = [{"role": "assistant", "content": "**Strongest relevant signal:** Nairobi transport cost pressure (transport)."}]
+    history, _ = respond_open_signals_chat("good morning", [], "Kenya", "All", "All")
 
-    answer = answer_open_signals_prompt("hi", history, "Kenya", "All", "All")
+    answer = answer_open_signals_prompt("good morning", history, "Kenya", "All", "All")
 
-    assert "Youth jobs momentum" in answer
+    assert answer != history[-1]["content"]
+    assert "Youth jobs momentum" not in answer
     assert "Nairobi transport cost pressure" not in answer
 
 
-def test_proactive_recommendations_follow_previous_category(tmp_path, monkeypatch) -> None:
-    cache_path = tmp_path / "latest_live_signals.json"
-    monkeypatch.setenv("SIGNAL_LIVE_SIGNAL_CACHE", str(cache_path))
-    monkeypatch.setenv("SIGNAL_LLM_ENABLED", "false")
-    write_signal_cache({
-        "status": "live_or_near_live",
-        "signals": [
-            _signal("Fertilizer prices Nakuru", "food and agriculture", "Nakuru", 86),
-            _signal("Nairobi transport cost pressure", "transport", "Nairobi", 93),
-        ],
-    }, cache_path)
-    history = [{"role": "assistant", "content": "**Strongest relevant signal:** Maize price pressure (food and agriculture)."}]
+def test_response_plan_object_is_created() -> None:
+    plan = build_response_plan("what should policymakers monitor?", [], "Kenya", "All", "All")
 
-    answer = answer_open_signals_prompt("hi", history, "Kenya", "All", "All")
-
-    assert "Fertilizer prices Nakuru" in answer
-    assert "Nairobi transport cost pressure" not in answer
+    assert plan["intent"]
+    assert plan["response_mode"] == "policy_answer"
+    assert plan["tone"] == "policy"
+    assert "privacy_risk" in plan
+    assert "evidence_used" in plan
 
 
 def test_brief_prompt_returns_short_answer(tmp_path, monkeypatch) -> None:

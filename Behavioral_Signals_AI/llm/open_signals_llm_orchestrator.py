@@ -25,6 +25,32 @@ def generate_open_signals_llm_answer(mode: str, context: dict[str, Any], fallbac
     return complete_json(OPEN_SIGNALS_SYSTEM_PROMPT, sanitize_context(payload), fallback={"answer": fallback_answer})
 
 
+def generate_hybrid_open_signals_answer(plan: dict[str, Any], fallback_answer: str) -> dict[str, Any]:
+    """Generate a concise hybrid chat answer from a privacy-safe response plan."""
+    payload = {
+        "persona": plan.get("persona", {}),
+        "user_prompt": plan.get("user_prompt", ""),
+        "response_plan": {
+            "intent": plan.get("intent"),
+            "response_mode": plan.get("response_mode"),
+            "tone": plan.get("tone"),
+            "context_used": plan.get("context_used"),
+            "evidence_used": plan.get("evidence_used"),
+        },
+        "session_context": plan.get("session_context", {}),
+        "retrieved_aggregate_evidence": list(plan.get("retrieved_evidence", []) or [])[:5],
+        "privacy_rules": [
+            "Use aggregate, anonymized, public, or user-authorized signal intelligence only.",
+            "Do not reveal raw searches, likes, comments, individual mobility, device IDs, exact personal locations, or private data.",
+            "Do not invent unsupported signals.",
+            "Keep the answer concise, natural, and grounded.",
+        ],
+        "fallback_answer": fallback_answer,
+        "required_output": {"answer": "string"},
+    }
+    return complete_json(OPEN_SIGNALS_SYSTEM_PROMPT, sanitize_context(payload), fallback={"answer": fallback_answer})
+
+
 def summarize_context_for_llm(context: dict[str, Any]) -> dict[str, Any]:
     signals = list(context.get("aggregate_live_signals", []) or [])[:5]
     memory = context.get("memory_context", {}) if isinstance(context.get("memory_context"), dict) else {}

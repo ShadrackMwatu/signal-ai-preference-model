@@ -78,6 +78,24 @@ Generic chatbots answer from broad language knowledge. Open Signals answers from
 
 The LLM explains the platform's retrieved intelligence. It does not replace the adaptive ranking and evidence layers.
 
+## Hybrid Conversational Intelligence
+
+Open Signals now uses a hybrid conversation layer so chat behavior is not only prompt-to-template routing. The flow is:
+
+User prompt
+-> intent detection
+-> temporary session context
+-> retrieval of aggregate evidence
+-> response plan
+-> tone and persona selection
+-> optional LLM synthesis
+-> deterministic fallback
+-> privacy-safe answer
+
+Rule systems provide safety, intent routing, clarification behavior, and privacy refusal. ML and adaptive engines rank signals, track persistence, confidence, county spread, historical recurrence, and outcome validation. Memory provides context continuity across the current session without storing personal user data. Retrieval grounds answers in aggregate signal evidence and memory. The LLM, when enabled, handles natural language synthesis and explanation; it must explain the retrieved intelligence, not invent unsupported signals. Privacy guardrails remain the deployment boundary across every mode.
+
+Casual prompts are handled conversationally first. Analytical prompts retrieve and synthesize grounded signal intelligence. Follow-up prompts such as "why" or "what about Nairobi" use the previous session context when available. Vague prompts without context ask a short clarification rather than forcing a signal report.
+
 ## Continuous Improvement
 
 `run_open_signals_learning_cycle()` updates evaluation metrics from current aggregate signals and available memory. The loop is designed to expand into deeper source reliability learning, analyst validation, outcome confirmation, and model calibration.

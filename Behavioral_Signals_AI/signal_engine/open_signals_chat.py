@@ -7,6 +7,7 @@ from datetime import UTC, datetime
 from typing import Any
 
 from Behavioral_Signals_AI.ai_platform.context_builder import build_open_signals_context
+from Behavioral_Signals_AI.chat.hybrid_conversation_orchestrator import answer_with_hybrid_orchestrator
 from Behavioral_Signals_AI.chat.intents import detect_open_signals_intent
 from Behavioral_Signals_AI.chat.reference_resolver import resolve_short_followup
 from Behavioral_Signals_AI.data_ingestion.retrieval_index import retrieve_relevant_context
@@ -59,6 +60,11 @@ SAFE_FIELDS = [
 
 
 def answer_open_signals_prompt(message: str, history: list[Any] | None, location: str, category: str, urgency: str) -> str:
+    """Answer through the hybrid Open Signals conversation orchestrator."""
+    return answer_with_hybrid_orchestrator(message, history, location, category, urgency, _answer_open_signals_prompt_legacy)
+
+
+def _answer_open_signals_prompt_legacy(message: str, history: list[Any] | None, location: str, category: str, urgency: str) -> str:
     """Answer a user question using only current interpreted aggregate signals."""
     cleaned = str(message or "").strip()
     if not cleaned:
