@@ -5,7 +5,7 @@ from __future__ import annotations
 import re
 from typing import Any
 
-from Behavioral_Signals_AI.llm.open_signals_llm_orchestrator import generate_hybrid_open_signals_answer
+from Behavioral_Signals_AI.chat.answer_quality import evaluate_answer_quality, improve_answer_with_quality
 
 PRIVATE_DATA_RESPONSE = (
     "Open Signals only uses aggregate, anonymized, public, or user-authorized intelligence. "
@@ -22,8 +22,12 @@ def synthesize_response(plan: dict[str, Any], fallback_answer: str = "") -> str:
     fallback = fallback_answer or _deterministic_response(plan)
     if plan.get("response_mode") in {"greeting", "identity", "capability", "small_talk", "gratitude", "farewell", "clarification"}:
         return fallback
+    from Behavioral_Signals_AI.llm.open_signals_llm_orchestrator import generate_hybrid_open_signals_answer
+
     result = generate_hybrid_open_signals_answer(plan, fallback)
-    return str(result.get("answer") or fallback).strip() or fallback
+    answer = str(result.get("answer") or fallback).strip() or fallback
+    quality = evaluate_answer_quality(answer, plan)
+    return improve_answer_with_quality(answer, plan, quality)
 
 
 def _deterministic_response(plan: dict[str, Any]) -> str:

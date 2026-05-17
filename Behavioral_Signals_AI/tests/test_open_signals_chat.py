@@ -5,6 +5,7 @@ from __future__ import annotations
 from datetime import UTC, datetime, timedelta
 from pathlib import Path
 
+from Behavioral_Signals_AI.chat.answer_quality import evaluate_answer_quality, improve_answer_with_quality
 from Behavioral_Signals_AI.chat.hybrid_conversation_orchestrator import build_response_plan
 from Behavioral_Signals_AI.chat.intents import detect_open_signals_intent
 from Behavioral_Signals_AI.geography.location_options import LOCATION_OPTIONS
@@ -641,6 +642,32 @@ def test_private_fields_are_blocked(tmp_path, monkeypatch) -> None:
     assert "Evidence basis" not in answer
     for forbidden in ["raw searches", "raw likes", "device ids"]:
         assert forbidden not in answer.lower()
+
+
+def test_weak_evidence_produces_cautious_answer() -> None:
+    plan = build_response_plan("show current signals in Atlantis", [], "Atlantis", "All", "All")
+    plan["response_mode"] = "analytical_answer"
+    plan["evidence_used"] = "no retrieved aggregate evidence"
+    answer = "This is a strong confirmed signal."
+
+    quality = evaluate_answer_quality(answer, plan)
+    improved = improve_answer_with_quality(answer, plan, quality)
+
+    assert quality["is_low_quality"]
+    assert "Evidence is limited" in improved
+    assert "monitor" in improved.lower()
+
+
+def test_irrelevant_answer_is_corrected_or_clarified() -> None:
+    plan = build_response_plan("show Nairobi transport signals", [], "Kenya", "All", "All")
+    plan["response_mode"] = "analytical_answer"
+    answer = "Bananas are yellow."
+
+    quality = evaluate_answer_quality(answer, plan)
+    improved = improve_answer_with_quality(answer, plan, quality)
+
+    assert quality["needs_clarification"] or quality["is_low_quality"]
+    assert "specific county" in improved or "Evidence is limited" in improved
 
 
 
