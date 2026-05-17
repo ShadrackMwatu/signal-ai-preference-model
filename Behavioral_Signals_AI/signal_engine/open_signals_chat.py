@@ -367,6 +367,7 @@ def _is_followup_question(question: str) -> bool:
 
 def _filtered_ranked_signals(location: str, category: str, urgency: str) -> list[dict[str, Any]]:
     payload = get_cached_or_fallback_signals()
+    cache_status = str(payload.get("status") or "unknown")
     signals = [signal for signal in payload.get("signals", []) if isinstance(signal, dict)]
     filtered: list[dict[str, Any]] = []
     for signal in signals:
@@ -376,8 +377,10 @@ def _filtered_ranked_signals(location: str, category: str, urgency: str) -> list
             continue
         if location not in {"", "All", "Kenya", "Global"} and not signal_matches_location(signal, location):
             continue
-        filtered.append(signal)
-    return rank_signals_for_display(filtered or signals)
+        filtered.append(dict(signal, _cache_status=cache_status))
+    if filtered:
+        return rank_signals_for_display(filtered)
+    return rank_signals_for_display([dict(signal, _cache_status=cache_status) for signal in signals])
 
 
 
@@ -602,12 +605,14 @@ def _format_grounded_answer(signal: dict[str, Any], emphasis: str, location: str
     urgency_value = str(signal.get("urgency", urgency or "Medium"))
     risk = _risk_label(signal)
     action = str(signal.get("recommended_action") or signal.get("monitoring_recommendation") or "Monitor persistence, source confirmation, county spread, and outcome validation.")
+    evidence = _evidence_basis_sentence(signal)
     profile = answer_profile or {"depth": "default", "focus": "general"}
     focus = profile.get("focus", "general")
     if focus == "policy":
         return (
             f"**Policy signal:** {topic} ({signal_category}).\n\n"
             f"**Policy meaning:** {emphasis}\n\n"
+            f"**Evidence basis:** {evidence}\n\n"
             f"**Confidence and scope:** {confidence}% confidence; scope is {scope}.\n\n"
             f"**What to monitor:** urgency is {urgency_value}, spread risk is {risk}, and related signals should be checked for persistence and outcome validation.\n\n"
             f"**Recommended public action:** {action}"
@@ -616,6 +621,7 @@ def _format_grounded_answer(signal: dict[str, Any], emphasis: str, location: str
         return (
             f"**Market opportunity signal:** {topic} ({signal_category}).\n\n"
             f"**Opportunity meaning:** {emphasis}\n\n"
+            f"**Evidence basis:** {evidence}\n\n"
             f"**Confidence and scope:** {confidence}% confidence; scope is {scope}.\n\n"
             f"**Market read:** opportunity is {opportunity}, urgency is {urgency_value}, and risk signal is {risk}.\n\n"
             f"**Recommended business action:** {action}"
@@ -623,11 +629,12 @@ def _format_grounded_answer(signal: dict[str, Any], emphasis: str, location: str
     if profile.get("depth") == "short":
         return (
             f"**Summary:** {topic} is the strongest relevant signal for {scope}. "
-            f"{emphasis} Confidence is {confidence}%. Recommended action: {action}"
+            f"{emphasis} Evidence basis: {evidence} Confidence is {confidence}%. Recommended action: {action}"
         )
     return (
         f"**Strongest relevant signal:** {topic} ({signal_category}).\n\n"
         f"**What it means:** {emphasis}\n\n"
+        f"**Evidence basis:** {evidence}\n\n"
         f"**Confidence level:** {confidence}% based on aggregate interpreted signal evidence, source validation, historical learning, and current ranking.\n\n"
         f"**County/scope:** {scope}.\n\n"
         f"**Opportunity or risk:** Opportunity is {opportunity}; urgency is {urgency_value}; risk signal is {risk}.\n\n"
@@ -668,6 +675,54 @@ def _geography_sentence(signal: dict[str, Any]) -> str:
         f"Spread risk is {signal.get('spread_risk', 'Low')}, and county relevance should be interpreted only from aggregate, "
         f"public, or user-authorized evidence."
     )
+
+
+def _evidence_basis_sentence(signal: dict[str, Any]) -> str:
+    source_summary = str(signal.get("source_summary") or "aggregate interpreted sources")
+    evidence_types = _evidence_types(signal)
+    validation = _validation_label(signal)
+    limited_note = " Evidence is limited because the current cache is using fallback aggregate intelligence." if _is_limited_evidence(signal) else ""
+    return (
+        f"{source_summary}; based on {', '.join(evidence_types)}. "
+        f"Validation: {validation}.{limited_note}"
+    )
+
+
+def _evidence_types(signal: dict[str, Any]) -> list[str]:
+    types: list[str] = []
+    cache_status = str(signal.get("_cache_status") or "").lower()
+    source_summary = str(signal.get("source_summary") or "").lower()
+    if cache_status in {"live_or_near_live", "using_cached_last_success"}:
+        types.append("current live signal cache")
+    elif cache_status in {"sample_aggregate_signal", "initialized_from_sample"} or "sample aggregate" in source_summary:
+        types.append("fallback aggregate intelligence")
+    else:
+        types.append("current signal cache")
+    if signal.get("historical_pattern_match"):
+        types.append("historical recurrence")
+    if signal.get("geospatial_insight") or signal.get("county_name"):
+        types.append("county relevance")
+    if signal.get("outcome_learning_note") or signal.get("accuracy_confidence"):
+        types.append("outcome learning")
+    if signal.get("validation_status"):
+        types.append("source validation")
+    return list(dict.fromkeys(types))
+
+
+def _validation_label(signal: dict[str, Any]) -> str:
+    value = str(signal.get("validation_status") or "").strip().lower().replace("_", " ")
+    if value in {"validated", "partially validated", "partially", "unvalidated"}:
+        return "partially validated" if value == "partially" else value
+    if signal.get("outcome_learning_note") or signal.get("historical_pattern_match"):
+        return "partially validated"
+    return "unvalidated"
+
+
+def _is_limited_evidence(signal: dict[str, Any]) -> bool:
+    cache_status = str(signal.get("_cache_status") or "").lower()
+    source_summary = str(signal.get("source_summary") or "").lower()
+    return cache_status in {"sample_aggregate_signal", "initialized_from_sample", "missing", "unknown"} or "sample aggregate" in source_summary
+
 
 def _opportunity_sentence(signal: dict[str, Any]) -> str:
     return (
@@ -817,13 +872,13 @@ def _category_from_question(question: str) -> str:
 
 def _ensure_grounded_answer(answer: str, signal: dict[str, Any], location: str, answer_profile: dict[str, str] | None = None) -> str:
     profile = answer_profile or {"depth": "default", "focus": "general"}
-    if profile.get("depth") == "short" and "summary" in answer.lower():
+    if profile.get("depth") == "short" and "summary" in answer.lower() and "evidence basis" in answer.lower():
         return answer
-    if profile.get("focus") == "policy" and "policy" in answer.lower() and "recommended" in answer.lower():
+    if profile.get("focus") == "policy" and "policy" in answer.lower() and "recommended" in answer.lower() and "evidence basis" in answer.lower():
         return answer
-    if profile.get("focus") == "opportunity" and ("opportunity" in answer.lower() or "market" in answer.lower()) and "recommended" in answer.lower():
+    if profile.get("focus") == "opportunity" and ("opportunity" in answer.lower() or "market" in answer.lower()) and "recommended" in answer.lower() and "evidence basis" in answer.lower():
         return answer
-    required_markers = ["Strongest relevant signal", "What it means", "Confidence level", "County/scope", "Opportunity or risk", "Recommended action"]
+    required_markers = ["Strongest relevant signal", "What it means", "Evidence basis", "Confidence level", "County/scope", "Opportunity or risk", "Recommended action"]
     if all(marker.lower() in answer.lower() for marker in required_markers):
         return answer
     return _format_grounded_answer(signal, answer or _meaning_sentence(signal), location, str(signal.get("signal_category", "All")), str(signal.get("urgency", "All")), profile)
@@ -832,6 +887,7 @@ def _ensure_grounded_answer(answer: str, signal: dict[str, Any], location: str, 
 def _no_signal_answer(location: str, category: str, urgency: str) -> str:
     return (
         f"No matching aggregate signals are currently available for {location}, {category}, {urgency}.\n\n"
+        "Evidence basis: limited current aggregate evidence for that filter combination; validation is unvalidated.\n\n"
         "Try asking about Kenya-wide signals, opportunities, policy monitoring, or county relevance."
     )
 

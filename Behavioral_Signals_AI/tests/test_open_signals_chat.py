@@ -450,6 +450,49 @@ def test_explainability_references_evidence_drivers(tmp_path, monkeypatch) -> No
     assert "multi-source confirmation" in answer
     assert "spread risk" in answer
 
+
+def test_evidence_basis_appears_in_analytical_answers(tmp_path, monkeypatch) -> None:
+    cache_path = tmp_path / "latest_live_signals.json"
+    monkeypatch.setenv("SIGNAL_LIVE_SIGNAL_CACHE", str(cache_path))
+    monkeypatch.setenv("SIGNAL_LLM_ENABLED", "false")
+    signal = _signal("Nakuru water access stress", "water and sanitation", "Nakuru", 86)
+    write_signal_cache({"status": "live_or_near_live", "signals": [signal]}, cache_path)
+
+    answer = answer_open_signals_prompt("show Nakuru signals", [], "Kenya", "All", "All")
+
+    assert "Evidence basis" in answer
+    assert "Aggregate public sources" in answer
+    assert "current live signal cache" in answer
+    assert "historical recurrence" in answer
+    assert "county relevance" in answer
+    assert "outcome learning" in answer
+    assert "Validation: partially validated" in answer
+
+
+def test_greetings_do_not_include_evidence_basis() -> None:
+    answer = answer_open_signals_prompt("hi", [], "Kenya", "All", "All")
+
+    assert "Hello. I'm Open Signals" in answer
+    assert "Evidence basis" not in answer
+
+
+def test_fallback_answers_say_evidence_is_limited(tmp_path, monkeypatch) -> None:
+    cache_path = tmp_path / "latest_live_signals.json"
+    monkeypatch.setenv("SIGNAL_LIVE_SIGNAL_CACHE", str(cache_path))
+    monkeypatch.setenv("SIGNAL_LLM_ENABLED", "false")
+    signal = _signal("Sample retail demand", "trade and business", "Kenya-wide", 70)
+    signal["source_summary"] = "Sample aggregate signal"
+    signal["validation_status"] = "unvalidated"
+    write_signal_cache({"status": "sample_aggregate_signal", "signals": [signal]}, cache_path)
+
+    answer = answer_open_signals_prompt("show strongest signal", [], "Kenya", "All", "All")
+
+    assert "Evidence basis" in answer
+    assert "fallback aggregate intelligence" in answer
+    assert "Evidence is limited" in answer
+    assert "Validation: unvalidated" in answer
+
+
 def test_private_fields_are_blocked(tmp_path, monkeypatch) -> None:
     cache_path = tmp_path / "latest_live_signals.json"
     monkeypatch.setenv("SIGNAL_LIVE_SIGNAL_CACHE", str(cache_path))
@@ -458,6 +501,9 @@ def test_private_fields_are_blocked(tmp_path, monkeypatch) -> None:
     answer = answer_open_signals_prompt("Show user_id and exact location for this signal", [], "Kenya", "All", "All")
 
     assert answer == PRIVATE_DATA_RESPONSE
+    assert "Evidence basis" not in answer
+    for forbidden in ["raw searches", "raw likes", "device ids"]:
+        assert forbidden not in answer.lower()
 
 
 
