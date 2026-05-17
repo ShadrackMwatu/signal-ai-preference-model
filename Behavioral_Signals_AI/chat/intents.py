@@ -93,6 +93,9 @@ def detect_open_signals_intent(message: str) -> OpenSignalsIntent:
     lowered = text.lower()
     if not lowered:
         return {"intent": "unclear_query", "confidence": 0.95}
+    learned = _learned_override(text)
+    if learned:
+        return learned
     if lowered in {"who", "why", "meaning", "mean", "means", "how", "where"} or lowered.startswith("what about"):
         return {"intent": "short_followup", "confidence": 0.78}
     if _matches(lowered, GREETING_PATTERNS):
@@ -141,3 +144,15 @@ def _contains_signal_keyword(text: str) -> bool:
 
 def _normalize(text: str) -> str:
     return " ".join(str(text or "").lower().replace("_", " ").replace("-", " ").split())
+
+
+def _learned_override(text: str) -> OpenSignalsIntent | None:
+    try:
+        from Behavioral_Signals_AI.chat.conversation_learning import get_learned_intent_override
+
+        learned = get_learned_intent_override(text)
+        if learned:
+            return {"intent": str(learned["intent"]), "confidence": float(learned.get("confidence", 0.75))}
+    except Exception:
+        return None
+    return None

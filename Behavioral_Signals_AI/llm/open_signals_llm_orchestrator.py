@@ -38,6 +38,7 @@ def generate_hybrid_open_signals_answer(plan: dict[str, Any], fallback_answer: s
             "context_used": plan.get("context_used"),
             "evidence_used": plan.get("evidence_used"),
         },
+        "conversation_learning_hints": plan.get("conversation_learning_hints", {}),
         "session_context": plan.get("session_context", {}),
         "retrieved_aggregate_evidence": list(plan.get("retrieved_evidence", []) or [])[:5],
         "available_internal_tools": list_tools(),

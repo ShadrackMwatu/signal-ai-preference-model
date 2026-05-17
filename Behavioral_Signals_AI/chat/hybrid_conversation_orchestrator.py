@@ -6,6 +6,7 @@ import re
 from typing import Any, Callable
 
 from Behavioral_Signals_AI.chat.intents import detect_open_signals_intent
+from Behavioral_Signals_AI.chat.conversation_learning import conversation_learning_hints
 from Behavioral_Signals_AI.chat.persona import choose_tone, persona_context
 from Behavioral_Signals_AI.chat.reference_resolver import resolve_short_followup
 from Behavioral_Signals_AI.chat.retrieval_grounding import retrieve_relevant_signals
@@ -56,6 +57,7 @@ def build_response_plan(
     """Create an internal, non-user-visible response plan. No chain-of-thought is exposed."""
     prompt = str(message or "").strip()
     session_context = infer_session_context(history)
+    learning_hints = conversation_learning_hints()
     semantic = analyze_open_signals_query(prompt)
     detected = detect_open_signals_intent(prompt)
     resolved = resolve_short_followup(prompt, history, session_context)
@@ -104,6 +106,7 @@ def build_response_plan(
         "semantic_query": semantic,
         "filters": {"location": effective_location, "category": effective_category, "urgency": urgency},
         "persona": persona_context(),
+        "conversation_learning_hints": learning_hints,
         "user_prompt": prompt,
     }
 

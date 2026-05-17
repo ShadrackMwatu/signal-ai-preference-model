@@ -8,6 +8,8 @@ from pathlib import Path
 from Behavioral_Signals_AI.chat.answer_quality import evaluate_answer_quality, improve_answer_with_quality
 from Behavioral_Signals_AI.chat.conversation_learning import (
     get_conversation_learning_summary,
+    get_learned_intent_override,
+    normalize_prompt_pattern,
     record_conversation_interaction,
 )
 from Behavioral_Signals_AI.chat.hybrid_conversation_orchestrator import build_response_plan
@@ -887,10 +889,12 @@ def test_conversation_learning_aggregate_summary_updates(tmp_path) -> None:
     )
 
     assert summary["total_interactions"] == 1
+    assert summary["intent_counts"]["signal_query"] == 1
     assert summary["common_prompt_types"]["signal_query"] == 1
     assert summary["most_requested_counties"]["Nairobi"] == 1
     assert summary["most_requested_categories"]["transport"] == 1
     assert summary["most_requested_response_modes"]["analytical_answer"] == 1
+    assert summary["preferred_response_style_by_intent"]["signal_query"]["analytical_answer"] == 1
     assert "debug_raw_prompts" not in summary
 
 
@@ -947,6 +951,68 @@ def test_conversation_learning_counts_unclear_prompt(tmp_path) -> None:
     assert summary["unclear_prompt_frequency"] == 1
     assert summary["clarification_count"] == 1
     assert summary["learning_hints"]["preferred_clarification_focus"] in {"county_or_category", "county_or_signal"}
+
+
+def test_conversation_learning_summary_initializes_safely(tmp_path) -> None:
+    summary = get_conversation_learning_summary(tmp_path / "missing_conversation_learning.json")
+
+    assert summary["schema_version"] == 1
+    assert summary["intent_counts"] == {}
+    assert summary["common_misclassified_phrases"] == {}
+    assert summary["preferred_response_style_by_intent"] == {}
+
+
+def test_conversation_learning_uses_safe_prompt_patterns_not_raw_text(tmp_path) -> None:
+    pattern = normalize_prompt_pattern("what up")
+
+    assert pattern.startswith("short:")
+    assert "what up" not in pattern
+
+
+def test_repeated_misclassification_updates_phrase_mapping(tmp_path, monkeypatch) -> None:
+    summary_path = tmp_path / "conversation_learning_summary.json"
+    monkeypatch.setenv("SIGNAL_CONVERSATION_LEARNING_PATH", str(summary_path))
+    monkeypatch.delenv("DEBUG_CONVERSATION_LEARNING", raising=False)
+    clarification = "Do you want the strongest current signal, a specific county, or a market opportunity?"
+
+    record_conversation_interaction("what up", clarification, [], "Kenya", "All", "All", path=summary_path)
+    summary = record_conversation_interaction("what up", clarification, [], "Kenya", "All", "All", path=summary_path)
+    pattern = normalize_prompt_pattern("what up")
+    learned = get_learned_intent_override("what up", summary_path)
+
+    assert summary["common_misclassified_phrases"][pattern]["status"] == "active"
+    assert summary["common_misclassified_phrases"][pattern]["suggested_intent"] == "small_talk"
+    assert learned is not None
+    assert learned["intent"] == "small_talk"
+    assert detect_open_signals_intent("what up")["intent"] == "small_talk"
+    assert "what up" not in str(summary)
+
+
+def test_conversation_learning_tracks_rephrase_and_successful_followup(tmp_path) -> None:
+    summary_path = tmp_path / "conversation_learning_summary.json"
+    history = [{"role": "assistant", "content": "**Strongest relevant signal:** Nairobi transport pressure"}]
+
+    summary = record_conversation_interaction(
+        "no, I mean Nairobi transport",
+        "Evidence basis: current live signal cache.",
+        history,
+        "Kenya",
+        "All",
+        "All",
+        path=summary_path,
+    )
+    summary = record_conversation_interaction(
+        "why",
+        "**Strongest relevant signal:** Nairobi transport pressure.\n\n**What it means:** This signal matters.",
+        history,
+        "Kenya",
+        "All",
+        "All",
+        path=summary_path,
+    )
+
+    assert summary["repeated_user_rephrase_count"] == 1
+    assert summary["successful_followup_count"] >= 1
 
 
 def test_chat_updates_conversation_learning_summary(tmp_path, monkeypatch) -> None:

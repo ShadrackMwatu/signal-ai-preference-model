@@ -13,7 +13,6 @@ from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
 
-from Behavioral_Signals_AI.chat.intents import detect_open_signals_intent
 from Behavioral_Signals_AI.data_ingestion.privacy_filter import assert_no_private_fields
 from Behavioral_Signals_AI.geography.county_matcher import detect_county_from_text
 from Behavioral_Signals_AI.geography.location_options import LOCATION_OPTIONS
@@ -42,6 +41,24 @@ LOW_QUALITY_MARKERS = [
     "i may not have enough context",
     "treat this as indicative",
 ]
+REPHRASE_MARKERS = [
+    "i mean",
+    "let me rephrase",
+    "not that",
+    "no,",
+    "no ",
+    "instead",
+]
+PRODUCTIVE_FOLLOWUP_MARKERS = [
+    "why",
+    "meaning",
+    "what about",
+    "compare",
+    "policy",
+    "opportunity",
+    "show",
+    "explain",
+]
 
 
 def record_conversation_interaction(
@@ -62,16 +79,19 @@ def record_conversation_interaction(
     if not isinstance(summary, dict):
         summary = _empty_summary()
 
-    intent = detect_open_signals_intent(prompt)["intent"]
+    intent = _detect_intent(prompt)
     mode = _response_mode(intent, prompt, response)
     county = _requested_county(prompt, location)
     selected_category = _requested_category(prompt, category)
+    safe_pattern = normalize_prompt_pattern(prompt)
 
     summary["schema_version"] = 1
     summary["updated_at"] = datetime.now(UTC).isoformat()
     summary["total_interactions"] = int(summary.get("total_interactions", 0)) + 1
+    _increment(summary.setdefault("intent_counts", {}), intent)
     _increment(summary.setdefault("common_prompt_types", {}), intent)
     _increment(summary.setdefault("most_requested_response_modes", {}), mode)
+    _increment_nested(summary.setdefault("preferred_response_style_by_intent", {}), intent, mode)
     if county:
         _increment(summary.setdefault("most_requested_counties", {}), county)
     if selected_category and selected_category != "All":
@@ -79,12 +99,18 @@ def record_conversation_interaction(
     if _is_unclear_or_clarification(intent, response):
         summary["unclear_prompt_frequency"] = int(summary.get("unclear_prompt_frequency", 0)) + 1
         summary["clarification_count"] = int(summary.get("clarification_count", 0)) + 1
+        _track_misclassification(summary, safe_pattern, prompt)
     if _is_privacy_refusal(prompt, response):
         summary["privacy_refusal_count"] = int(summary.get("privacy_refusal_count", 0)) + 1
     if _is_fallback_answer(response):
+        summary["fallback_count"] = int(summary.get("fallback_count", 0)) + 1
         summary["fallback_answer_count"] = int(summary.get("fallback_answer_count", 0)) + 1
     if _is_low_quality_answer(response):
         summary["low_quality_answer_count"] = int(summary.get("low_quality_answer_count", 0)) + 1
+    if _looks_like_rephrase(prompt, history):
+        summary["repeated_user_rephrase_count"] = int(summary.get("repeated_user_rephrase_count", 0)) + 1
+    if _looks_like_successful_followup(prompt, history, intent, response):
+        summary["successful_followup_count"] = int(summary.get("successful_followup_count", 0)) + 1
 
     summary["learning_hints"] = _learning_hints(summary)
     if _debug_enabled():
@@ -109,17 +135,65 @@ def conversation_learning_hints(path: str | Path | None = None) -> dict[str, Any
     return dict(summary.get("learning_hints") or _learning_hints(summary))
 
 
+def normalize_prompt_pattern(prompt: str) -> str:
+    """Convert a prompt into a safe aggregate pattern, not stored raw text."""
+    normalized = _normalize(_redact_prompt(prompt))
+    if not normalized:
+        return "empty_prompt"
+    tokens = normalized.split()
+    length = "short" if len(tokens) <= 3 else "medium" if len(tokens) <= 8 else "long"
+    county = _requested_county(normalized, "")
+    category = _requested_category(normalized, "All")
+    markers = []
+    if county:
+        markers.append("county")
+    if category:
+        markers.append("category")
+    if any(term in normalized for term in ["who", "what is your name", "who are you"]):
+        markers.append("identity")
+    if any(term in normalized for term in ["why", "meaning", "how"]):
+        markers.append("short_followup")
+    if any(term in normalized for term in ["hi", "hello", "hey", "good morning", "how are you"]):
+        markers.append("conversational")
+    if any(term in normalized for term in ["signal", "risk", "opportunity", "demand", "pressure", "happening"]):
+        markers.append("analytical")
+    if not markers:
+        markers.append("no_entities")
+    first = tokens[0] if tokens else "empty"
+    return f"{length}:{'+'.join(sorted(set(markers)))}:{first}"
+
+
+def get_learned_intent_override(message: str, path: str | Path | None = None) -> dict[str, Any] | None:
+    """Return a learned intent override from aggregate phrase patterns."""
+    pattern = normalize_prompt_pattern(message)
+    summary = get_conversation_learning_summary(path)
+    mapping = summary.get("common_misclassified_phrases") or {}
+    item = mapping.get(pattern)
+    if not isinstance(item, dict) or item.get("status") != "active":
+        return None
+    intent = str(item.get("suggested_intent") or "")
+    if intent:
+        return {"intent": intent, "confidence": min(0.9, float(item.get("confidence", 0.72) or 0.72))}
+    return None
+
+
 def _empty_summary() -> dict[str, Any]:
     return {
         "schema_version": 1,
         "updated_at": "",
         "total_interactions": 0,
         "common_prompt_types": {},
+        "intent_counts": {},
         "unclear_prompt_frequency": 0,
         "privacy_refusal_count": 0,
+        "fallback_count": 0,
         "fallback_answer_count": 0,
         "low_quality_answer_count": 0,
         "clarification_count": 0,
+        "common_misclassified_phrases": {},
+        "preferred_response_style_by_intent": {},
+        "repeated_user_rephrase_count": 0,
+        "successful_followup_count": 0,
         "most_requested_counties": {},
         "most_requested_categories": {},
         "most_requested_response_modes": {},
@@ -128,6 +202,8 @@ def _empty_summary() -> dict[str, Any]:
             "proactive_county_focus": "",
             "proactive_category_focus": "",
             "response_mode_bias": "balanced",
+            "learned_conversational_patterns": [],
+            "preferred_styles": {},
         },
     }
 
@@ -207,6 +283,8 @@ def _learning_hints(summary: dict[str, Any]) -> dict[str, Any]:
     counties = summary.get("most_requested_counties") or {}
     categories = summary.get("most_requested_categories") or {}
     modes = summary.get("most_requested_response_modes") or {}
+    styles = summary.get("preferred_response_style_by_intent") or {}
+    misclassified = summary.get("common_misclassified_phrases") or {}
     total = max(int(summary.get("total_interactions", 0)), 1)
     clarification_rate = int(summary.get("clarification_count", 0)) / total
     fallback_rate = int(summary.get("fallback_answer_count", 0)) / total
@@ -217,7 +295,65 @@ def _learning_hints(summary: dict[str, Any]) -> dict[str, Any]:
         "proactive_category_focus": _top_key(categories),
         "response_mode_bias": mode_bias,
         "top_response_mode": _top_key(modes),
+        "learned_conversational_patterns": [
+            pattern for pattern, item in misclassified.items()
+            if isinstance(item, dict) and item.get("status") == "active" and item.get("suggested_intent") in {"small_talk", "capability_query", "identity_query", "greeting"}
+        ][:10],
+        "preferred_styles": {intent: _top_key(counter) for intent, counter in styles.items() if isinstance(counter, dict)},
     }
+
+
+def _detect_intent(prompt: str) -> str:
+    learned = get_learned_intent_override(prompt)
+    if learned:
+        return str(learned["intent"])
+    from Behavioral_Signals_AI.chat.intents import detect_open_signals_intent
+
+    return str(detect_open_signals_intent(prompt)["intent"])
+
+
+def _track_misclassification(summary: dict[str, Any], pattern: str, prompt: str) -> None:
+    mapping = summary.setdefault("common_misclassified_phrases", {})
+    item = mapping.setdefault(pattern, {
+        "pattern": pattern,
+        "clarification_count": 0,
+        "suggested_intent": _suggest_intent_for_pattern(prompt),
+        "status": "candidate",
+        "confidence": 0.5,
+    })
+    item["clarification_count"] = int(item.get("clarification_count", 0)) + 1
+    if int(item["clarification_count"]) >= 2 and item.get("suggested_intent") != "unclear_query":
+        item["status"] = "active"
+        item["confidence"] = min(0.9, 0.55 + int(item["clarification_count"]) * 0.1)
+
+
+def _suggest_intent_for_pattern(prompt: str) -> str:
+    normalized = _normalize(prompt)
+    if any(term in normalized for term in ["who", "name", "who are you"]):
+        return "identity_query"
+    if any(term in normalized for term in ["what can", "help", "do you do", "how do you work"]):
+        return "capability_query"
+    if any(term in normalized for term in ["hi", "hello", "hey", "good morning", "how are you", "whats up", "what up"]):
+        return "small_talk"
+    if any(term in normalized for term in ["thanks", "thank you", "asante"]):
+        return "gratitude"
+    return "unclear_query"
+
+
+def _looks_like_rephrase(prompt: str, history: list[Any] | None) -> bool:
+    if not history:
+        return False
+    normalized = _normalize(prompt)
+    return any(marker in normalized for marker in REPHRASE_MARKERS)
+
+
+def _looks_like_successful_followup(prompt: str, history: list[Any] | None, intent: str, answer: str) -> bool:
+    if not history:
+        return False
+    normalized = _normalize(prompt)
+    if intent in {"follow_up_query", "short_followup", "comparison_query"} or any(marker in normalized for marker in PRODUCTIVE_FOLLOWUP_MARKERS):
+        return not _is_unclear_or_clarification(intent, answer) and not _is_privacy_refusal(prompt, answer)
+    return False
 
 
 def _append_debug_prompt(summary: dict[str, Any], prompt: str) -> None:
@@ -245,6 +381,11 @@ def _increment(counter: dict[str, int], key: str) -> None:
     counter[clean_key] = int(counter.get(clean_key, 0)) + 1
 
 
+def _increment_nested(counter: dict[str, dict[str, int]], key: str, nested_key: str) -> None:
+    bucket = counter.setdefault(str(key or "unknown"), {})
+    _increment(bucket, nested_key)
+
+
 def _top_key(counter: dict[str, Any]) -> str:
     if not counter:
         return ""
@@ -252,7 +393,7 @@ def _top_key(counter: dict[str, Any]) -> str:
 
 
 def _debug_enabled() -> bool:
-    return str(os.getenv("SIGNAL_DEBUG_CONVERSATION_LEARNING", "")).lower() in {"1", "true", "yes"}
+    return str(os.getenv("DEBUG_CONVERSATION_LEARNING") or os.getenv("SIGNAL_DEBUG_CONVERSATION_LEARNING", "")).lower() in {"1", "true", "yes"}
 
 
 def _normalize(text: Any) -> str:

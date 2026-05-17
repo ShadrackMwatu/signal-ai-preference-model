@@ -34,6 +34,9 @@ def _deterministic_response(plan: dict[str, Any]) -> str:
     mode = str(plan.get("response_mode") or "")
     tone = str(plan.get("tone") or "casual")
     session = plan.get("session_context", {}) if isinstance(plan.get("session_context"), dict) else {}
+    hints = plan.get("conversation_learning_hints", {}) if isinstance(plan.get("conversation_learning_hints"), dict) else {}
+    preferred_styles = hints.get("preferred_styles", {}) if isinstance(hints.get("preferred_styles"), dict) else {}
+    preferred = str(preferred_styles.get(str(plan.get("intent") or "")) or "")
     if mode == "greeting":
         return _pick([
             "Hello - what would you like to explore today?",
@@ -41,6 +44,8 @@ def _deterministic_response(plan: dict[str, Any]) -> str:
             "Hi. Tell me the county, sector, risk, or market opportunity you want to examine.",
         ], session, mode)
     if mode == "small_talk":
+        if preferred == "capability_query":
+            return "I can help when you are ready - ask me about a county, signal, risk, or opportunity."
         return _pick([
             "I'm ready to help. I can look at current aggregate signals whenever you want.",
             "Doing well - ready to examine a county, sector, risk, or opportunity when you are.",
@@ -74,8 +79,11 @@ def _deterministic_response(plan: dict[str, Any]) -> str:
 
 def _clarification(plan: dict[str, Any]) -> str:
     session = plan.get("session_context", {}) if isinstance(plan.get("session_context"), dict) else {}
+    hints = plan.get("conversation_learning_hints", {}) if isinstance(plan.get("conversation_learning_hints"), dict) else {}
     if session.get("last_signal"):
         return "Do you want me to explain why that signal matters, its likely meaning, or what action to take next?"
+    if hints.get("preferred_clarification_focus") == "county_or_category":
+        return "Should I focus on a specific county, category, or the strongest current signal?"
     return _pick([
         "Do you want the strongest current signal, a specific county, or a market opportunity?",
         "Should I focus on a county, a sector, a risk, or an opportunity?",
