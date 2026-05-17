@@ -212,16 +212,18 @@ def _conversational_response(intent: str, message: str, session_context: dict[st
     context = session_context or {}
     if intent == "greeting":
         if context.get("introduced_identity"):
-            return _pick_variation([
+            greeting = _pick_variation([
                 "Hi - what would you like to examine next?",
                 "I'm here. Which county, risk, or opportunity should we look at?",
                 "Sure - tell me the signal, county, or sector you want to explore.",
             ], context, "greeting_repeat")
-        return _pick_variation([
+            return _with_proactive_suggestions(greeting, context)
+        greeting = _pick_variation([
             "Hi. I can help analyze emerging signals across Kenya.",
             "Good morning. What signal or county would you like to examine?",
             "Hello - what would you like to explore today?",
         ], context, "greeting")
+        return _with_proactive_suggestions(greeting, context)
     if intent == "identity_query":
         if context.get("introduced_identity"):
             return _pick_variation([
@@ -371,6 +373,87 @@ def _looks_like_greeting_response(text: str) -> bool:
 def _looks_like_identity_response(text: str) -> bool:
     lowered = _normalize(text)
     return "i'm open signals" in lowered or "you are speaking with open signals" in lowered or "open signals is the assistant" in lowered
+
+
+def _with_proactive_suggestions(base_response: str, session_context: dict[str, str]) -> str:
+    suggestions = _proactive_suggestions(session_context)
+    if not suggestions:
+        return base_response
+    return f"{base_response}\n\n{suggestions}"
+
+
+def _proactive_suggestions(session_context: dict[str, str]) -> str:
+    signals = _eligible_proactive_signals(session_context)
+    if not signals:
+        return ""
+    top = signals[0]
+    insight = _proactive_signal_sentence(top, session_context)
+    prompt = _proactive_followup_prompt(top, session_context)
+    return f"{insight} {prompt}"
+
+
+def _eligible_proactive_signals(session_context: dict[str, str]) -> list[dict[str, Any]]:
+    category = _category_recommendation_filter(session_context) or "All"
+    signals = _filtered_ranked_signals("Kenya", category, "All")
+    if category != "All" and not signals:
+        signals = _filtered_ranked_signals("Kenya", "All", "All")
+    previous_topic = _normalize(session_context.get("last_signal_topic") or session_context.get("last_signal") or "")
+    previous_county = _normalize(session_context.get("last_county") or "")
+    eligible: list[dict[str, Any]] = []
+    for signal in signals:
+        if _is_limited_evidence(signal):
+            continue
+        if _safe_number(signal.get("confidence_score")) < 70:
+            continue
+        if _signal_score(signal) < 70 and _safe_number(signal.get("persistence_score")) < 70:
+            continue
+        if previous_topic and _normalize(_topic(signal)) == previous_topic:
+            continue
+        if previous_county and _normalize(str(signal.get("county_name") or "")) == previous_county and len(signals) > 1:
+            continue
+        eligible.append(signal)
+    return eligible[:2]
+
+
+def _category_recommendation_filter(session_context: dict[str, str]) -> str:
+    category = _normalize(session_context.get("last_category") or "")
+    signal_blob = _normalize(" ".join([session_context.get("last_signal", ""), session_context.get("last_signal_topic", "")]))
+    combined = f"{category} {signal_blob}"
+    if any(term in combined for term in ["agriculture", "food", "fertilizer", "maize", "unga"]):
+        return "food and agriculture"
+    if any(term in combined for term in ["housing", "rent", "construction"]):
+        return "housing"
+    if any(term in combined for term in ["jobs", "labour", "employment", "youth"]):
+        return "jobs and labour market"
+    if any(term in combined for term in ["transport", "fuel", "logistics"]):
+        return "transport"
+    return ""
+
+
+def _proactive_signal_sentence(signal: dict[str, Any], session_context: dict[str, str]) -> str:
+    topic = _topic(signal)
+    scope = _scope(signal)
+    category = str(signal.get("signal_category") or "current signals")
+    momentum = str(signal.get("momentum") or signal.get("trajectory_label") or _trajectory_label(signal)).lower()
+    if session_context.get("last_category") or session_context.get("last_signal"):
+        return f"Related to your earlier focus, {topic} is worth watching in {scope}; it is a {category} signal with {momentum} momentum."
+    return f"I'm currently seeing {topic} in {scope}; it is a {category} signal with {momentum} momentum."
+
+
+def _proactive_followup_prompt(signal: dict[str, Any], session_context: dict[str, str]) -> str:
+    prompts = [
+        "Would you like a county comparison?",
+        "Should I explain the business implications?",
+        "Would you like the strongest current signal?",
+        "Do you want opportunity-focused insights?",
+    ]
+    category = _normalize(str(signal.get("signal_category") or ""))
+    if "policy" in _normalize(session_context.get("previous_response_style") or ""):
+        prompts.insert(0, "Should I summarize what policymakers should monitor?")
+    if "business" in category or "trade" in category:
+        prompts.insert(0, "Should I explain the business implications?")
+    seed = len(_topic(signal)) + len(_scope(signal)) + len(session_context.get("previous_opening_phrase", ""))
+    return prompts[seed % len(prompts)]
 
 
 def _conversation_context(history: list[Any] | None) -> dict[str, str]:
