@@ -7,6 +7,7 @@ from typing import Any
 from Behavioral_Signals_AI.ai_platform.safety_layer import sanitize_context
 from Behavioral_Signals_AI.llm.llm_client import complete_json
 from Behavioral_Signals_AI.llm.open_signals_system_prompt import OPEN_SIGNALS_SYSTEM_PROMPT
+from Behavioral_Signals_AI.tools.tool_registry import list_tools
 
 
 def generate_open_signals_llm_answer(mode: str, context: dict[str, Any], fallback_answer: str) -> dict[str, Any]:
@@ -39,6 +40,8 @@ def generate_hybrid_open_signals_answer(plan: dict[str, Any], fallback_answer: s
         },
         "session_context": plan.get("session_context", {}),
         "retrieved_aggregate_evidence": list(plan.get("retrieved_evidence", []) or [])[:5],
+        "available_internal_tools": list_tools(),
+        "executed_tool_results": list(plan.get("tool_results", []) or [])[:6],
         "privacy_rules": [
             "Use aggregate, anonymized, public, or user-authorized signal intelligence only.",
             "Do not reveal raw searches, likes, comments, individual mobility, device IDs, exact personal locations, or private data.",

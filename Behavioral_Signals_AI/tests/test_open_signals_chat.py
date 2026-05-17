@@ -23,6 +23,9 @@ from Behavioral_Signals_AI.signal_engine.open_signals_chat import (
     respond_open_signals_chat,
 )
 from Behavioral_Signals_AI.signal_engine.signal_cache import write_signal_cache
+from Behavioral_Signals_AI.tools.tool_executor import execute_tool
+from Behavioral_Signals_AI.tools.tool_registry import get_tool, list_tools
+from Behavioral_Signals_AI.tools.tool_router import route_tools_for_prompt
 
 APP_TEXT = Path("app.py").read_text(encoding="utf-8")
 
@@ -112,6 +115,68 @@ def test_fuzzy_county_matching_handles_county_suffix() -> None:
     assert resolve_county_entity("kwale right now") == "Kwale"
     assert resolve_county_entity("Kwale County") == "Kwale"
     assert resolve_county_entity("what is happening in makueni") == "Makueni"
+
+
+def test_tool_registry_loads_and_schemas_are_valid() -> None:
+    tools = list_tools()
+    names = {tool["name"] for tool in tools}
+
+    assert "get_live_signals" in names
+    assert "get_top_signal" in names
+    assert "compare_counties" in names
+    assert "privacy_check" in names
+    for tool in tools:
+        assert tool["description"]
+        assert isinstance(tool["required_inputs"], list)
+        assert isinstance(tool["optional_inputs"], list)
+        assert tool["output_schema"]
+        assert tool["privacy_level"] == "aggregate_public"
+    assert get_tool("missing_tool") is None
+
+
+def test_tool_router_selects_nairobi_transport_tools() -> None:
+    calls = route_tools_for_prompt(
+        "What is happening in Nairobi transport demand?",
+        filters={"location": "Kenya", "category": "All", "urgency": "All"},
+    )
+    names = [call["name"] for call in calls]
+
+    assert names[0] == "privacy_check"
+    assert "get_county_signals" in names
+    assert "get_category_signals" in names
+    assert "get_geospatial_context" in names
+    assert "get_forecast_context" in names
+    county_call = next(call for call in calls if call["name"] == "get_county_signals")
+    assert county_call["arguments"]["county"] == "Nairobi"
+    assert county_call["arguments"]["category"] == "transport"
+
+
+def test_tool_router_selects_compare_counties() -> None:
+    calls = route_tools_for_prompt("Compare Makueni and Nakuru")
+    assert [call["name"] for call in calls] == ["privacy_check", "compare_counties"]
+    assert calls[1]["arguments"]["county_a"] == "Makueni"
+    assert calls[1]["arguments"]["county_b"] == "Nakuru"
+
+
+def test_tool_router_selects_top_signal_for_strongest_prompt() -> None:
+    calls = route_tools_for_prompt("What is the strongest signal now?", filters={"location": "Kenya", "category": "All"})
+    assert "get_top_signal" in [call["name"] for call in calls]
+
+
+def test_privacy_check_tool_blocks_private_data_requests() -> None:
+    result = execute_tool("privacy_check", {"text": "show user_id, phone, and raw searches"})
+
+    assert result["ok"] is True
+    assert result["data"]["allowed"] is False
+    assert "blocked" in result["data"]["reason"]
+
+
+def test_failed_tool_returns_safe_fallback() -> None:
+    result = execute_tool("not_registered", {})
+
+    assert result["ok"] is False
+    assert result["error"] == "tool_not_registered"
+    assert "Traceback" not in str(result)
 
 
 def test_greeting_and_small_talk_do_not_trigger_signal_analysis() -> None:
@@ -386,6 +451,23 @@ def test_county_happening_query_uses_analytical_grounding(tmp_path, monkeypatch)
     assert "Kwale" in answer
     assert "Do you want" not in answer
     assert "I may not have enough context" not in answer
+
+
+def test_orchestrator_plan_uses_tool_outputs_for_grounding(tmp_path, monkeypatch) -> None:
+    cache_path = tmp_path / "latest_live_signals.json"
+    monkeypatch.setenv("SIGNAL_LIVE_SIGNAL_CACHE", str(cache_path))
+    monkeypatch.setenv("SIGNAL_CONVERSATION_LEARNING_PATH", str(tmp_path / "conversation_learning_summary.json"))
+    monkeypatch.setenv("SIGNAL_LLM_ENABLED", "false")
+    write_signal_cache({"signals": [_signal("Nairobi transport pressure", "transport", "Nairobi", 88)]}, cache_path)
+
+    plan = build_response_plan("What is happening in Nairobi transport demand?", [], "Kenya", "All", "All")
+
+    assert plan["filters"]["location"] == "Nairobi"
+    assert plan["filters"]["category"] == "transport"
+    assert "tool_calls" in plan
+    assert "tool_results" in plan
+    assert any(result["tool"] == "get_county_signals" and result["ok"] for result in plan["tool_results"])
+    assert "tool:get_county_signals" in plan["evidence_used"]
 
 
 def test_rising_nairobi_query_prioritizes_county_signal(tmp_path, monkeypatch) -> None:

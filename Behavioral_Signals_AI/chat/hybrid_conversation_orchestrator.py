@@ -13,6 +13,9 @@ from Behavioral_Signals_AI.chat.response_synthesizer import PRIVATE_DATA_RESPONS
 from Behavioral_Signals_AI.chat.semantic_query_analyzer import analyze_open_signals_query, resolve_county_entity
 from Behavioral_Signals_AI.data_ingestion.privacy_filter import assert_no_private_fields
 from Behavioral_Signals_AI.data_ingestion.retrieval_index import retrieve_relevant_context
+from Behavioral_Signals_AI.tools.tool_executor import execute_tool_plan
+from Behavioral_Signals_AI.tools.tool_registry import list_tools
+from Behavioral_Signals_AI.tools.tool_router import route_tools_for_prompt
 
 FallbackHandler = Callable[[str, list[Any] | None, str, str, str], str]
 
@@ -74,11 +77,20 @@ def build_response_plan(
         session_context,
         limit=5,
     )
+    tool_calls = [] if privacy_risk else route_tools_for_prompt(
+        prompt,
+        semantic,
+        {"location": effective_location, "category": effective_category, "urgency": urgency},
+        session_context,
+    )
+    tool_results = [] if privacy_risk else execute_tool_plan(tool_calls)
+    if _tool_privacy_blocked(tool_results):
+        privacy_risk = True
     return {
         "intent": detected["intent"],
         "intent_confidence": detected.get("confidence", 0.0),
         "context_used": _context_used(session_context),
-        "evidence_used": _evidence_summary(retrieved, grounded_signals),
+        "evidence_used": _evidence_summary(retrieved, grounded_signals, tool_results),
         "response_mode": mode,
         "tone": tone,
         "needs_clarification": needs_clarification,
@@ -86,6 +98,9 @@ def build_response_plan(
         "session_context": session_context,
         "retrieved_evidence": retrieved,
         "grounded_signals": grounded_signals,
+        "tool_calls": tool_calls,
+        "tool_results": tool_results,
+        "available_tools": list_tools(),
         "semantic_query": semantic,
         "filters": {"location": effective_location, "category": effective_category, "urgency": urgency},
         "persona": persona_context(),
@@ -193,10 +208,24 @@ def _context_used(session_context: dict[str, str]) -> str:
     return "; ".join(used) or "no prior signal context"
 
 
-def _evidence_summary(records: list[dict[str, Any]], grounded_signals: list[dict[str, Any]] | None = None) -> str:
+def _tool_privacy_blocked(tool_results: list[dict[str, Any]]) -> bool:
+    for result in tool_results or []:
+        if result.get("tool") == "privacy_check" and result.get("ok") and not result.get("data", {}).get("allowed", True):
+            return True
+    return False
+
+
+def _evidence_summary(
+    records: list[dict[str, Any]],
+    grounded_signals: list[dict[str, Any]] | None = None,
+    tool_results: list[dict[str, Any]] | None = None,
+) -> str:
     labels = []
     for signal in list(grounded_signals or [])[:2]:
         labels.append(str(signal.get("signal_topic") or signal.get("source_summary") or "live signal cache")[:80])
+    for result in list(tool_results or [])[:4]:
+        if result.get("ok") and result.get("tool") != "privacy_check":
+            labels.append(f"tool:{result.get('tool')}")
     if not records and not labels:
         return "no retrieved aggregate evidence"
     for record in records[:3]:
